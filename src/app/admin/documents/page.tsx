@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-// ─── Template definitions ────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface TemplateField {
   key: string;
   label: string;
@@ -10,89 +10,23 @@ interface TemplateField {
   required: boolean;
   placeholder?: string;
   options?: string[];
-  fieldCode?: string;
+}
+
+interface TemplateTerm {
+  id: number;
+  text: string;
 }
 
 interface TemplateDefinition {
   id: string;
   name: string;
+  shortName: string;
   category: string;
   description: string;
   fields: TemplateField[];
+  terms: TemplateTerm[];
   requiresApproval: boolean;
 }
-
-const TEMPLATES: TemplateDefinition[] = [
-  {
-    id: 'ncnda',
-    name: 'CONFIDENTIALITY, NON-DISCLOSURE & NON-CIRCUMVENTION AGREEMENT',
-    category: 'NDA',
-    description: 'NCNDA with a broker representing seller and Cove representing buyer',
-    requiresApproval: true,
-    fields: [
-      { key: 'date', label: 'Date', type: 'date', required: true, fieldCode: '{{date}}' },
-      { key: 'company', label: 'Company Name', type: 'text', required: true, placeholder: 'Enter company name...', fieldCode: '{{Company}}' },
-      { key: 'license', label: 'License No', type: 'number', required: true, fieldCode: '{{license}}' },
-      { key: 'orn', label: 'ORN', type: 'number', required: true, fieldCode: '{{ORN}}' },
-      { key: 'address', label: 'Address', type: 'text', required: true, placeholder: 'Enter address...', fieldCode: '{{Address}}' },
-      { key: 'coInitials1', label: 'Co Initials', type: 'text', required: true, placeholder: 'Enter co initials...', fieldCode: '{{initials}}' },
-      { key: 'coInitials2', label: 'Co Initials', type: 'text', required: true, placeholder: 'Enter co initials...', fieldCode: '{{Initials}}' },
-      { key: 'signatory', label: 'Auth Signatory', type: 'text', required: true, placeholder: 'Enter auth signatory...', fieldCode: '{{Signatory}}' },
-    ],
-  },
-  {
-    id: 'mou',
-    name: 'Memorandum of Understanding (MOU)',
-    category: 'Sales Contract',
-    description: 'Standard MOU for property transactions between buyer and seller',
-    requiresApproval: true,
-    fields: [
-      { key: 'buyerName', label: 'Buyer Full Name', type: 'text', required: true, placeholder: 'Enter buyer full name...', fieldCode: '{{buyer_name}}' },
-      { key: 'sellerName', label: 'Seller Full Name', type: 'text', required: true, placeholder: 'Enter seller full name...', fieldCode: '{{seller_name}}' },
-      { key: 'propertyRef', label: 'Property Reference No.', type: 'text', required: true, placeholder: 'e.g. LX-RES-004', fieldCode: '{{property_ref}}' },
-      { key: 'propertyAddress', label: 'Property Address', type: 'text', required: true, placeholder: 'Enter property address...', fieldCode: '{{property_address}}' },
-      { key: 'agreedPrice', label: 'Agreed Price (AED)', type: 'number', required: true, fieldCode: '{{agreed_price}}' },
-      { key: 'depositAmount', label: 'Deposit Amount (AED)', type: 'number', required: true, fieldCode: '{{deposit_amount}}' },
-      { key: 'completionDate', label: 'Completion Date', type: 'date', required: true, fieldCode: '{{completion_date}}' },
-      { key: 'agentName', label: 'Agent Name', type: 'text', required: false, placeholder: 'Enter agent name...', fieldCode: '{{agent_name}}' },
-      { key: 'buyerPassport', label: 'Buyer Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{buyer_passport}}' },
-      { key: 'sellerPassport', label: 'Seller Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{seller_passport}}' },
-      { key: 'paymentMethod', label: 'Payment Method', type: 'select', required: true, options: ['Cash', 'Mortgage', 'Installment'], fieldCode: '{{payment_method}}' },
-      { key: 'mortgageBank', label: 'Mortgage Bank (if applicable)', type: 'text', required: false, placeholder: 'Enter bank name...', fieldCode: '{{mortgage_bank}}' },
-      { key: 'transferDate', label: 'Transfer Date', type: 'date', required: true, fieldCode: '{{transfer_date}}' },
-      { key: 'agentCommission', label: 'Agent Commission (%)', type: 'number', required: false, fieldCode: '{{agent_commission}}' },
-      { key: 'specialConditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Enter any special conditions...', fieldCode: '{{special_conditions}}' },
-    ],
-  },
-  {
-    id: 'tenancy',
-    name: 'Tenancy Contract (Ejari)',
-    category: 'Rental Agreement',
-    description: 'Standard tenancy contract for rental properties in Dubai, compliant with Ejari requirements',
-    requiresApproval: true,
-    fields: [
-      { key: 'tenantName', label: 'Tenant Full Name', type: 'text', required: true, placeholder: 'Enter tenant name...', fieldCode: '{{tenant_name}}' },
-      { key: 'landlordName', label: 'Landlord Full Name', type: 'text', required: true, placeholder: 'Enter landlord name...', fieldCode: '{{landlord_name}}' },
-      { key: 'propertyAddress', label: 'Property Address', type: 'text', required: true, placeholder: 'Enter property address...', fieldCode: '{{property_address}}' },
-      { key: 'annualRent', label: 'Annual Rent (AED)', type: 'number', required: true, fieldCode: '{{annual_rent}}' },
-      { key: 'startDate', label: 'Lease Start Date', type: 'date', required: true, fieldCode: '{{start_date}}' },
-      { key: 'endDate', label: 'Lease End Date', type: 'date', required: true, fieldCode: '{{end_date}}' },
-      { key: 'securityDeposit', label: 'Security Deposit (AED)', type: 'number', required: true, fieldCode: '{{security_deposit}}' },
-      { key: 'noOfCheques', label: 'Number of Cheques', type: 'number', required: true, fieldCode: '{{no_of_cheques}}' },
-      { key: 'tenantPassport', label: 'Tenant Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{tenant_passport}}' },
-      { key: 'landlordPassport', label: 'Landlord Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{landlord_passport}}' },
-      { key: 'ejariNo', label: 'Ejari Registration No.', type: 'text', required: false, placeholder: 'Enter Ejari number...', fieldCode: '{{ejari_no}}' },
-      { key: 'municipality', label: 'Municipality', type: 'text', required: true, placeholder: 'e.g. Dubai Municipality', fieldCode: '{{municipality}}' },
-      { key: 'propertyType', label: 'Property Type', type: 'select', required: true, options: ['Apartment', 'Villa', 'Townhouse', 'Studio', 'Office', 'Retail'], fieldCode: '{{property_type}}' },
-      { key: 'furnished', label: 'Furnished Status', type: 'select', required: true, options: ['Furnished', 'Semi-Furnished', 'Unfurnished'], fieldCode: '{{furnished}}' },
-      { key: 'agentName', label: 'Agent Name', type: 'text', required: false, placeholder: 'Enter agent name...', fieldCode: '{{agent_name}}' },
-      { key: 'agentLicense', label: 'Agent License No.', type: 'text', required: false, placeholder: 'Enter license number...', fieldCode: '{{agent_license}}' },
-      { key: 'specialConditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Enter any special conditions...', fieldCode: '{{special_conditions}}' },
-    ],
-  },
-];
-
-const CATEGORIES = ['All Categories', 'NDA', 'Sales Contract', 'Rental Agreement'];
 
 type DocStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected';
 
@@ -100,10 +34,12 @@ interface FilledDocument {
   id: number;
   templateId: string;
   templateName: string;
+  shortName: string;
   category: string;
   title: string;
   fields: Record<string, string>;
   notes: string;
+  terms: TemplateTerm[];
   status: DocStatus;
   createdAt: string;
   ceoSignature?: string;
@@ -111,44 +47,162 @@ interface FilledDocument {
   submittedBy: string;
 }
 
-const INITIAL_DOCUMENTS: FilledDocument[] = [
+// ─── Default Templates ────────────────────────────────────────────────────────
+const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   {
-    id: 1,
-    templateId: 'ncnda',
-    templateName: 'CONFIDENTIALITY, NON-DISCLOSURE & NON-CIRCUMVENTION AGREEMENT',
+    id: 'ncnda',
+    name: 'Non-Circumvention, Non-Disclosure Agreement',
+    shortName: 'NCNDA',
     category: 'NDA',
-    title: 'NCNDA - LuxEstate LLC - Investor Corp - May 2026',
-    fields: { date: '2026-05-01', company: 'LuxEstate LLC', license: '12345', orn: '67890', address: 'Dubai, UAE', coInitials1: 'LE', coInitials2: 'IC', signatory: 'Ahmed Al-Rashid' },
-    notes: '',
-    status: 'Approved',
-    createdAt: 'May 1, 2026',
-    ceoSignature: 'Ahmed Al-Rashid',
-    approvedAt: 'May 2, 2026',
-    submittedBy: 'Admin',
+    description: 'Confidentiality and non-circumvention agreement between broker and buyer representative',
+    requiresApproval: true,
+    fields: [
+      { key: 'date', label: 'Agreement Date', type: 'date', required: true },
+      { key: 'party1_company', label: 'Party 1 — Company Name', type: 'text', required: true, placeholder: 'e.g. LuxEstate LLC' },
+      { key: 'party1_license', label: 'Party 1 — License No.', type: 'text', required: true, placeholder: 'e.g. 12345' },
+      { key: 'party1_orn', label: 'Party 1 — ORN', type: 'text', required: true, placeholder: 'e.g. 67890' },
+      { key: 'party1_address', label: 'Party 1 — Address', type: 'text', required: true, placeholder: 'e.g. Dubai, UAE' },
+      { key: 'party1_signatory', label: 'Party 1 — Authorised Signatory', type: 'text', required: true, placeholder: 'Full name...' },
+      { key: 'party2_company', label: 'Party 2 — Company Name', type: 'text', required: true, placeholder: 'e.g. Investor Corp' },
+      { key: 'party2_license', label: 'Party 2 — License No.', type: 'text', required: true, placeholder: 'e.g. 54321' },
+      { key: 'party2_orn', label: 'Party 2 — ORN', type: 'text', required: false, placeholder: 'e.g. 09876' },
+      { key: 'party2_address', label: 'Party 2 — Address', type: 'text', required: true, placeholder: 'e.g. Abu Dhabi, UAE' },
+      { key: 'party2_signatory', label: 'Party 2 — Authorised Signatory', type: 'text', required: true, placeholder: 'Full name...' },
+      { key: 'duration', label: 'Agreement Duration', type: 'select', required: true, options: ['1 Year', '2 Years', '3 Years', '5 Years', 'Indefinite'] },
+      { key: 'governing_law', label: 'Governing Law', type: 'text', required: true, placeholder: 'e.g. Laws of the UAE' },
+    ],
+    terms: [
+      { id: 1, text: 'Both parties agree to maintain strict confidentiality regarding all information shared under this agreement, including but not limited to client lists, property details, financial data, and business strategies.' },
+      { id: 2, text: 'Neither party shall circumvent the other to directly contact, solicit, or transact with any client, investor, or counterparty introduced through this agreement without prior written consent.' },
+      { id: 3, text: 'All introductions made under this agreement shall be protected for the duration specified herein. Any transaction resulting from such introductions shall entitle the introducing party to their agreed commission.' },
+      { id: 4, text: 'This agreement shall be governed by and construed in accordance with the laws of the jurisdiction specified above. Any disputes shall be resolved through arbitration in Dubai, UAE.' },
+      { id: 5, text: 'Breach of this agreement shall entitle the non-breaching party to seek injunctive relief and damages, including but not limited to lost commissions and legal fees.' },
+    ],
   },
   {
-    id: 2,
-    templateId: 'mou',
-    templateName: 'Memorandum of Understanding (MOU)',
+    id: 'mou',
+    name: 'Memorandum of Understanding',
+    shortName: 'MOU',
     category: 'Sales Contract',
-    title: 'MoU - James Harrington - Meridian Villa - Apr 2026',
-    fields: { buyerName: 'James Harrington', sellerName: 'LuxEstate LLC', propertyRef: 'LX-RES-004', propertyAddress: 'Meridian Villa, Palm Jumeirah', agreedPrice: '42000000', depositAmount: '4200000', completionDate: '2026-06-30', paymentMethod: 'Cash', transferDate: '2026-06-30', buyerPassport: 'A1234567', sellerPassport: 'B7654321' },
-    notes: '',
-    status: 'Pending Approval',
-    createdAt: 'Apr 28, 2026',
-    submittedBy: 'Sarah M.',
+    description: 'Standard MOU for property transactions between buyer and seller',
+    requiresApproval: true,
+    fields: [
+      { key: 'date', label: 'MOU Date', type: 'date', required: true },
+      { key: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true, placeholder: 'Full legal name...' },
+      { key: 'buyer_passport', label: 'Buyer Passport / Emirates ID', type: 'text', required: true, placeholder: 'e.g. A1234567' },
+      { key: 'buyer_nationality', label: 'Buyer Nationality', type: 'text', required: true, placeholder: 'e.g. British' },
+      { key: 'seller_name', label: 'Seller Full Name', type: 'text', required: true, placeholder: 'Full legal name...' },
+      { key: 'seller_passport', label: 'Seller Passport / Emirates ID', type: 'text', required: true, placeholder: 'e.g. B7654321' },
+      { key: 'property_ref', label: 'Property Reference No.', type: 'text', required: true, placeholder: 'e.g. LX-RES-004' },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'Full property address...' },
+      { key: 'property_type', label: 'Property Type', type: 'select', required: true, options: ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Office', 'Retail', 'Warehouse'] },
+      { key: 'agreed_price', label: 'Agreed Sale Price (AED)', type: 'number', required: true },
+      { key: 'deposit_amount', label: 'Deposit Amount (AED)', type: 'number', required: true },
+      { key: 'payment_method', label: 'Payment Method', type: 'select', required: true, options: ['Cash', 'Mortgage', 'Installment Plan'] },
+      { key: 'mortgage_bank', label: 'Mortgage Bank (if applicable)', type: 'text', required: false, placeholder: 'Bank name...' },
+      { key: 'completion_date', label: 'Completion Date', type: 'date', required: true },
+      { key: 'transfer_date', label: 'Transfer Date', type: 'date', required: true },
+      { key: 'agent_name', label: 'Agent Name', type: 'text', required: false, placeholder: 'Handling agent...' },
+      { key: 'agent_commission', label: 'Agent Commission (%)', type: 'number', required: false },
+      { key: 'special_conditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Any special conditions...' },
+    ],
+    terms: [
+      { id: 1, text: 'The Buyer agrees to pay the deposit amount specified above within 5 business days of signing this MOU. Failure to do so shall render this agreement null and void.' },
+      { id: 2, text: 'The Seller agrees to provide vacant possession of the property on the agreed completion date, free from all encumbrances unless otherwise stated.' },
+      { id: 3, text: 'Both parties agree to cooperate fully with the Dubai Land Department (DLD) transfer process and provide all required documentation within the stipulated timeframes.' },
+      { id: 4, text: 'In the event the Buyer withdraws from this agreement after paying the deposit, the deposit shall be forfeited to the Seller as liquidated damages.' },
+      { id: 5, text: 'In the event the Seller withdraws from this agreement after receiving the deposit, the Seller shall return double the deposit amount to the Buyer as liquidated damages.' },
+      { id: 6, text: 'All agency fees and commissions shall be paid by the respective parties as agreed and shall not be deducted from the sale price.' },
+    ],
   },
   {
-    id: 3,
-    templateId: 'tenancy',
-    templateName: 'Tenancy Contract (Ejari)',
-    category: 'Rental Agreement',
-    title: 'Tenancy - Sofia Al-Rashid - Atlas Tower - Apr 2026',
-    fields: { tenantName: 'Sofia Al-Rashid', landlordName: 'LuxEstate LLC', propertyAddress: 'Atlas Tower, DIFC', annualRent: '120000', startDate: '2026-05-01', endDate: '2027-04-30', securityDeposit: '10000', noOfCheques: '4', tenantPassport: 'C9876543', landlordPassport: 'D1234567', municipality: 'Dubai Municipality', propertyType: 'Apartment', furnished: 'Furnished' },
-    notes: 'Renewal of existing contract',
-    status: 'Draft',
-    createdAt: 'Apr 20, 2026',
-    submittedBy: 'Omar H.',
+    id: 'loi',
+    name: 'Letter of Intent',
+    shortName: 'LOI',
+    category: 'Sales Contract',
+    description: 'Formal letter of intent to purchase a property',
+    requiresApproval: true,
+    fields: [
+      { key: 'date', label: 'Date', type: 'date', required: true },
+      { key: 'buyer_name', label: 'Buyer / Investor Name', type: 'text', required: true, placeholder: 'Full legal name...' },
+      { key: 'buyer_company', label: 'Buyer Company (if applicable)', type: 'text', required: false, placeholder: 'Company name...' },
+      { key: 'property_ref', label: 'Property Reference', type: 'text', required: true, placeholder: 'e.g. LX-RES-004' },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'Full address...' },
+      { key: 'offer_price', label: 'Offer Price (AED)', type: 'number', required: true },
+      { key: 'validity_period', label: 'LOI Validity Period', type: 'select', required: true, options: ['7 Days', '14 Days', '21 Days', '30 Days'] },
+      { key: 'payment_terms', label: 'Proposed Payment Terms', type: 'textarea', required: true, placeholder: 'Describe payment structure...' },
+      { key: 'due_diligence_period', label: 'Due Diligence Period (days)', type: 'number', required: false },
+      { key: 'agent_name', label: 'Agent Name', type: 'text', required: false },
+    ],
+    terms: [
+      { id: 1, text: 'This Letter of Intent is non-binding and serves as an expression of the Buyer\'s intent to purchase the above-referenced property subject to satisfactory due diligence and formal agreement.' },
+      { id: 2, text: 'The Seller agrees to grant the Buyer an exclusivity period as specified above, during which the property shall be taken off the market.' },
+      { id: 3, text: 'Both parties agree to negotiate in good faith towards executing a formal Sale and Purchase Agreement (SPA) within the validity period of this LOI.' },
+      { id: 4, text: 'This LOI shall expire automatically upon the end of the validity period unless extended in writing by both parties.' },
+    ],
+  },
+  {
+    id: 'offer',
+    name: 'Offer Document',
+    shortName: 'OFFER',
+    category: 'Sales Contract',
+    description: 'Formal offer to purchase a property with binding terms',
+    requiresApproval: true,
+    fields: [
+      { key: 'date', label: 'Offer Date', type: 'date', required: true },
+      { key: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true, placeholder: 'Full legal name...' },
+      { key: 'buyer_passport', label: 'Buyer ID / Passport', type: 'text', required: true },
+      { key: 'property_ref', label: 'Property Reference', type: 'text', required: true },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'offer_price', label: 'Offer Price (AED)', type: 'number', required: true },
+      { key: 'deposit_percentage', label: 'Deposit (%)', type: 'number', required: true },
+      { key: 'payment_plan', label: 'Payment Plan', type: 'select', required: true, options: ['Full Cash', '30/70 Plan', '40/60 Plan', '50/50 Plan', 'Mortgage'] },
+      { key: 'offer_expiry', label: 'Offer Expiry Date', type: 'date', required: true },
+      { key: 'special_requests', label: 'Special Requests / Conditions', type: 'textarea', required: false },
+    ],
+    terms: [
+      { id: 1, text: 'This offer is binding upon acceptance by the Seller and shall constitute a legally enforceable agreement to purchase the above property.' },
+      { id: 2, text: 'The Buyer confirms that funds are available and ready to be transferred upon acceptance of this offer.' },
+      { id: 3, text: 'This offer shall expire on the date specified above unless accepted in writing by the Seller prior to expiry.' },
+      { id: 4, text: 'Upon acceptance, both parties agree to execute a formal MOU/SPA within 5 business days.' },
+    ],
+  },
+  {
+    id: 'spa',
+    name: 'Sale & Purchase Agreement',
+    shortName: 'SPA',
+    category: 'Sales Contract',
+    description: 'Comprehensive sale and purchase agreement for property transactions',
+    requiresApproval: true,
+    fields: [
+      { key: 'date', label: 'Agreement Date', type: 'date', required: true },
+      { key: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true },
+      { key: 'buyer_passport', label: 'Buyer Passport / Emirates ID', type: 'text', required: true },
+      { key: 'buyer_address', label: 'Buyer Address', type: 'text', required: true },
+      { key: 'seller_name', label: 'Seller Full Name', type: 'text', required: true },
+      { key: 'seller_passport', label: 'Seller Passport / Emirates ID', type: 'text', required: true },
+      { key: 'seller_address', label: 'Seller Address', type: 'text', required: true },
+      { key: 'property_ref', label: 'Property Reference', type: 'text', required: true },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'plot_no', label: 'Plot / Unit No.', type: 'text', required: true },
+      { key: 'area_sqft', label: 'Area (sq.ft)', type: 'number', required: true },
+      { key: 'sale_price', label: 'Sale Price (AED)', type: 'number', required: true },
+      { key: 'dld_fee', label: 'DLD Transfer Fee (AED)', type: 'number', required: true },
+      { key: 'agency_fee', label: 'Agency Fee (AED)', type: 'number', required: false },
+      { key: 'completion_date', label: 'Completion Date', type: 'date', required: true },
+      { key: 'handover_date', label: 'Handover Date', type: 'date', required: true },
+      { key: 'payment_schedule', label: 'Payment Schedule', type: 'textarea', required: true, placeholder: 'Describe payment milestones...' },
+      { key: 'special_conditions', label: 'Special Conditions', type: 'textarea', required: false },
+    ],
+    terms: [
+      { id: 1, text: 'The Seller agrees to sell and the Buyer agrees to purchase the above property at the agreed sale price, subject to the terms and conditions set forth in this agreement.' },
+      { id: 2, text: 'Title to the property shall pass to the Buyer upon full payment of the sale price and completion of the DLD transfer process.' },
+      { id: 3, text: 'The Seller warrants that the property is free from all encumbrances, liens, and third-party claims as of the transfer date.' },
+      { id: 4, text: 'All service charges, utility bills, and municipality fees shall be apportioned between the parties as of the completion date.' },
+      { id: 5, text: 'The Buyer shall be responsible for all DLD transfer fees, registration fees, and any applicable taxes unless otherwise agreed in writing.' },
+      { id: 6, text: 'In the event of default by either party, the non-defaulting party shall be entitled to terminate this agreement and seek all remedies available under UAE law.' },
+      { id: 7, text: 'This agreement shall be governed by the laws of the United Arab Emirates and the parties submit to the exclusive jurisdiction of the Dubai courts.' },
+    ],
   },
 ];
 
@@ -159,724 +213,313 @@ const STATUS_STYLES: Record<DocStatus, string> = {
   Rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
 };
 
-// ─── SVG Icons ───────────────────────────────────────────────────────────────
-const IconFolder = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
-  </svg>
-);
-const IconFileText = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-    <path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" />
-  </svg>
-);
-const IconFilePen = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2" />
-    <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-    <path d="M8 18h1" />
-  </svg>
-);
-const IconSearch = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />
-  </svg>
-);
-const IconFilter = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
-  </svg>
-);
-const IconChevronDown = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
-const IconPlus = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14" /><path d="M12 5v14" />
-  </svg>
-);
-const IconPen = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-  </svg>
-);
-const IconTrash = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    <line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" />
-  </svg>
-);
-const IconX = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-  </svg>
-);
-const IconEye = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-const IconSend = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
-  </svg>
-);
-const IconCheck = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-const IconPrinter = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-    <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-    <rect x="6" y="14" width="12" height="8" rx="1" />
-  </svg>
-);
+const INITIAL_DOCUMENTS: FilledDocument[] = [
+  {
+    id: 1,
+    templateId: 'ncnda',
+    templateName: 'Non-Circumvention, Non-Disclosure Agreement',
+    shortName: 'NCNDA',
+    category: 'NDA',
+    title: 'NCNDA — LuxEstate LLC & Investor Corp — May 2026',
+    fields: { date: '2026-05-01', party1_company: 'LuxEstate LLC', party1_license: '12345', party1_orn: '67890', party1_address: 'Dubai, UAE', party1_signatory: 'Ahmed Al-Rashid', party2_company: 'Investor Corp', party2_license: '54321', party2_address: 'Abu Dhabi, UAE', party2_signatory: 'James Harrington', duration: '2 Years', governing_law: 'Laws of the UAE' },
+    notes: '',
+    terms: DEFAULT_TEMPLATES[0].terms,
+    status: 'Approved',
+    createdAt: 'May 1, 2026',
+    ceoSignature: 'Ahmed Al-Rashid',
+    approvedAt: 'May 2, 2026',
+    submittedBy: 'Admin',
+  },
+  {
+    id: 2,
+    templateId: 'mou',
+    templateName: 'Memorandum of Understanding',
+    shortName: 'MOU',
+    category: 'Sales Contract',
+    title: 'MOU — James Harrington — Meridian Villa — Apr 2026',
+    fields: { date: '2026-04-28', buyer_name: 'James Harrington', buyer_passport: 'A1234567', buyer_nationality: 'British', seller_name: 'LuxEstate LLC', seller_passport: 'B7654321', property_ref: 'LX-RES-004', property_address: 'Meridian Villa, Palm Jumeirah, Dubai', property_type: 'Villa', agreed_price: '42000000', deposit_amount: '4200000', payment_method: 'Cash', completion_date: '2026-06-30', transfer_date: '2026-06-30', agent_name: 'Sarah Mitchell', agent_commission: '2' },
+    notes: '',
+    terms: DEFAULT_TEMPLATES[1].terms,
+    status: 'Pending Approval',
+    createdAt: 'Apr 28, 2026',
+    submittedBy: 'Sarah M.',
+  },
+];
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function DocumentsPage() {
-  const [activeTab, setActiveTab] = useState<'templates' | 'documents' | 'approvals'>('templates');
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All Categories');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [documents, setDocuments] = useState<FilledDocument[]>(INITIAL_DOCUMENTS);
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
+const Ico = {
+  Folder: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg>,
+  File: ({ size = 16 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>,
+  Pen: ({ size = 14 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /></svg>,
+  Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>,
+  Eye: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>,
+  Send: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>,
+  Check: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>,
+  Print: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" /></svg>,
+  X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>,
+  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /><path d="M12 5v14" /></svg>,
+  Search: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>,
+  Share: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg>,
+  Settings: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>,
+};
 
-  // New Template modal
-  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState('');
-  const [newTemplateCategory, setNewTemplateCategory] = useState('NDA');
-  const [newTemplateDesc, setNewTemplateDesc] = useState('');
-
-  // Fill Document modal
-  const [fillTemplate, setFillTemplate] = useState<TemplateDefinition | null>(null);
-  const [fillTitle, setFillTitle] = useState('');
-  const [fillFields, setFillFields] = useState<Record<string, string>>({});
-  const [fillNotes, setFillNotes] = useState('');
-  const [fillPreview, setFillPreview] = useState(false);
-
-  // View Document modal
-  const [viewDoc, setViewDoc] = useState<FilledDocument | null>(null);
-
-  // CEO Approval modal
-  const [approvalDoc, setApprovalDoc] = useState<FilledDocument | null>(null);
+// ─── Document Preview Component ───────────────────────────────────────────────
+function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendForApproval, isCEO = true }: {
+  doc: FilledDocument;
+  template?: TemplateDefinition;
+  onClose: () => void;
+  onApprove?: () => void;
+  onPrint?: () => void;
+  onSendForApproval?: () => void;
+  isCEO?: boolean;
+}) {
   const [ceoSig, setCeoSig] = useState('');
+  const [showSignModal, setShowSignModal] = useState(false);
 
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const filteredTemplates = TEMPLATES.filter((t) => {
-    const matchCat = categoryFilter === 'All Categories' || t.category === categoryFilter;
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
-
-  const myDocuments = documents.filter((d) => {
-    const matchCat = categoryFilter === 'All Categories' || d.category === categoryFilter;
-    const matchSearch = d.title.toLowerCase().includes(search.toLowerCase()) || d.templateName.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
-
-  const approvalDocs = documents.filter((d) => d.status === 'Pending Approval');
-
-  // ── Fill Document ─────────────────────────────────────────────────────────
-  const openFill = (tpl: TemplateDefinition) => {
-    setFillTemplate(tpl);
-    const today = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-    setFillTitle(`${tpl.name} - ${today}`);
-    const init: Record<string, string> = {};
-    tpl.fields.forEach((f) => { init[f.key] = ''; });
-    setFillFields(init);
-    setFillNotes('');
-    setFillPreview(false);
+  const fmtCurrency = (val: string) => {
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return 'AED ' + n.toLocaleString('en-US');
   };
 
-  const closeFill = () => { setFillTemplate(null); setFillPreview(false); };
-
-  const allRequiredFilled = fillTemplate
-    ? fillTemplate.fields.filter((f) => f.required).every((f) => fillFields[f.key]?.trim())
-    : false;
-
-  const handleSaveDraft = () => {
-    if (!fillTemplate) return;
-    const doc: FilledDocument = {
-      id: Date.now(),
-      templateId: fillTemplate.id,
-      templateName: fillTemplate.name,
-      category: fillTemplate.category,
-      title: fillTitle || fillTemplate.name,
-      fields: { ...fillFields },
-      notes: fillNotes,
-      status: 'Draft',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      submittedBy: 'Admin',
-    };
-    setDocuments([doc, ...documents]);
-    closeFill();
-    setActiveTab('documents');
+  const fmtDate = (val: string) => {
+    if (!val) return val;
+    try { return new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return val; }
   };
 
-  const handleSaveSubmit = () => {
-    if (!fillTemplate || !allRequiredFilled) return;
-    const doc: FilledDocument = {
-      id: Date.now(),
-      templateId: fillTemplate.id,
-      templateName: fillTemplate.name,
-      category: fillTemplate.category,
-      title: fillTitle || fillTemplate.name,
-      fields: { ...fillFields },
-      notes: fillNotes,
-      status: 'Pending Approval',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      submittedBy: 'Admin',
-    };
-    setDocuments([doc, ...documents]);
-    closeFill();
-    setActiveTab('approvals');
+  const formatValue = (field: TemplateField | undefined, val: string) => {
+    if (!field) return val || '—';
+    if (field.type === 'number' && (field.label.toLowerCase().includes('price') || field.label.toLowerCase().includes('amount') || field.label.toLowerCase().includes('fee') || field.label.toLowerCase().includes('rent') || field.label.toLowerCase().includes('deposit'))) return fmtCurrency(val);
+    if (field.type === 'date') return fmtDate(val);
+    return val || '—';
   };
 
-  // ── Approval actions ──────────────────────────────────────────────────────
-  const handleApprove = () => {
-    if (!approvalDoc || !ceoSig.trim()) return;
-    setDocuments(documents.map((d) =>
-      d.id === approvalDoc.id
-        ? { ...d, status: 'Approved' as DocStatus, ceoSignature: ceoSig, approvedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
-        : d
-    ));
-    setApprovalDoc(null);
-    setCeoSig('');
-  };
-
-  const handleReject = () => {
-    if (!approvalDoc) return;
-    setDocuments(documents.map((d) => d.id === approvalDoc.id ? { ...d, status: 'Rejected' as DocStatus } : d));
-    setApprovalDoc(null);
-    setCeoSig('');
-  };
-
-  const handleSendForApproval = (doc: FilledDocument) => {
-    setDocuments(documents.map((d) => d.id === doc.id ? { ...d, status: 'Pending Approval' as DocStatus } : d));
-    setViewDoc(null);
-  };
-
-  const handleDeleteDoc = (id: number) => {
-    setDocuments(documents.filter((d) => d.id !== id));
-    if (viewDoc?.id === id) setViewDoc(null);
-  };
-
-  const handlePrint = (doc: FilledDocument) => {
-    const tpl = TEMPLATES.find((t) => t.id === doc.templateId);
-    const fieldsHtml = Object.entries(doc.fields).map(([key, val]) => {
-      const fieldDef = tpl?.fields.find((f) => f.key === key);
-      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span style="color:#666;font-size:13px">${fieldDef?.label || key}</span><span style="font-weight:600;font-size:13px">${val || '—'}</span></div>`;
-    }).join('');
-    const printContent = `<!DOCTYPE html><html><head><title>${doc.title}</title><style>body{font-family:Georgia,serif;color:#1a1a1a;padding:40px;max-width:800px;margin:0 auto}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #C5A47E;padding-bottom:20px;margin-bottom:30px}.logo{font-size:22px;font-weight:bold;color:#C5A47E;letter-spacing:2px}.title{font-size:20px;font-weight:bold;margin-bottom:5px}.section-title{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#C5A47E;border-bottom:1px solid #e5e0d5;padding-bottom:6px;margin-bottom:12px}.esign{background:#f8f6f0;padding:20px;margin-top:30px;border-left:4px solid #C5A47E}.footer{text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid #e5e0d5;font-size:11px;color:#aaa}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><div class="logo">COVE ESTATES</div><div style="text-align:right"><div style="font-size:12px;color:#888">${doc.createdAt}</div></div></div><div class="title">${doc.title}</div><div style="font-size:13px;color:#888;margin-bottom:24px">${doc.category}</div><div class="section-title">Document Fields</div>${fieldsHtml}${doc.ceoSignature ? `<div class="esign"><div class="section-title">CEO E-Signature</div><p style="font-size:20px;font-style:italic;color:#C5A47E;margin:8px 0">${doc.ceoSignature}</p><p style="font-size:12px;color:#888">Approved on ${doc.approvedAt}</p></div>` : ''}<div class="footer">© Cove Estates ${new Date().getFullYear()} · Confidential Document</div><script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}<\/script></body></html>`;
-    if (typeof window !== 'undefined') {
-      const pw = window.open('', '_blank');
-      if (pw) { pw.document.write(printContent); pw.document.close(); }
-    }
+  const handlePrint = () => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const content = win.document;
+    content.write(`<!DOCTYPE html><html><head><title>${doc.title}</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Times New Roman', serif; color: #1a1a1a; background: #fff; }
+      .page { max-width: 800px; margin: 0 auto; padding: 60px 60px 80px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #C9A84C; padding-bottom: 24px; margin-bottom: 32px; }
+      .logo { font-size: 24px; font-weight: 900; color: #C9A84C; letter-spacing: 3px; font-family: Arial, sans-serif; }
+      .doc-type { font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+      .doc-title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
+      .ref-box { background: #f8f6f0; border-left: 4px solid #C9A84C; padding: 12px 16px; margin-bottom: 28px; display: flex; justify-content: space-between; }
+      .ref-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+      .ref-value { font-size: 13px; font-weight: 600; }
+      .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #C9A84C; border-bottom: 1px solid #e5e0d5; padding-bottom: 6px; margin: 24px 0 12px; }
+      .field-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0ece4; }
+      .field-label { font-size: 12px; color: #666; flex: 1; }
+      .field-value { font-size: 12px; font-weight: 600; flex: 1; text-align: right; }
+      .terms-list { list-style: none; }
+      .terms-list li { padding: 8px 0; border-bottom: 1px solid #f0ece4; font-size: 12px; line-height: 1.7; color: #333; display: flex; gap: 10px; }
+      .term-num { color: #C9A84C; font-weight: bold; flex-shrink: 0; }
+      .sig-section { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+      .sig-box { border-top: 2px solid #1a1a1a; padding-top: 12px; }
+      .sig-name { font-size: 20px; font-style: italic; color: #C9A84C; margin: 8px 0 4px; font-family: 'Times New Roman', serif; }
+      .sig-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+      .approved-stamp { background: #f0fdf4; border: 2px solid #22c55e; padding: 16px; text-align: center; margin-top: 24px; }
+      .footer { text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e0d5; font-size: 10px; color: #aaa; }
+      @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+    </style></head><body><div class="page">
+    <div class="header">
+      <div><div class="logo">LUXESTATE</div><div class="doc-type">${doc.category}</div></div>
+      <div style="text-align:right"><div class="doc-title">${doc.shortName}</div><div style="font-size:12px;color:#888">Ref: LX-DOC-${doc.id.toString().padStart(4, '0')}</div><div style="font-size:12px;color:#888">${doc.createdAt}</div></div>
+    </div>
+    <div class="ref-box">
+      <div><div class="ref-label">Document</div><div class="ref-value">${doc.title}</div></div>
+      <div style="text-align:right"><div class="ref-label">Status</div><div class="ref-value" style="color:${doc.status === 'Approved' ? '#22c55e' : '#f59e0b'}">${doc.status}</div></div>
+    </div>
+    <div class="section-title">Document Details</div>
+    ${Object.entries(doc.fields).map(([key, val]) => {
+      const f = template?.fields.find((x) => x.key === key);
+      return `<div class="field-row"><span class="field-label">${f?.label || key}</span><span class="field-value">${formatValue(f, val)}</span></div>`;
+    }).join('')}
+    ${doc.notes ? `<div class="section-title">Notes</div><p style="font-size:12px;color:#444;line-height:1.7">${doc.notes}</p>` : ''}
+    <div class="section-title">Terms & Conditions</div>
+    <ol class="terms-list">
+      ${doc.terms.map((t, i) => `<li><span class="term-num">${i + 1}.</span><span>${t.text}</span></li>`).join('')}
+    </ol>
+    <div class="sig-section">
+      <div class="sig-box"><div class="sig-label">Party 1 / Authorised Signatory</div><div class="sig-name">${doc.fields.party1_signatory || doc.fields.buyer_name || '___________________'}</div><div style="font-size:11px;color:#888">Date: ${fmtDate(doc.fields.date || '')}</div></div>
+      <div class="sig-box"><div class="sig-label">Party 2 / Authorised Signatory</div><div class="sig-name">${doc.fields.party2_signatory || doc.fields.seller_name || '___________________'}</div><div style="font-size:11px;color:#888">Date: ${fmtDate(doc.fields.date || '')}</div></div>
+    </div>
+    ${doc.ceoSignature ? `<div class="approved-stamp"><div style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#16a34a;margin-bottom:6px">CEO Approved & E-Signed</div><div style="font-size:22px;font-style:italic;color:#C9A84C">${doc.ceoSignature}</div><div style="font-size:11px;color:#888;margin-top:4px">Approved on ${doc.approvedAt}</div></div>` : ''}
+    <div class="footer">© LuxEstate ${new Date().getFullYear()} · Confidential Document · Ref: LX-DOC-${doc.id.toString().padStart(4, '0')}</div>
+    </div><script>window.onload=function(){window.print();}<\/script></body></html>`);
+    content.close();
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="admin-documents">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Document Center</h1>
-          <p className="text-white/50 text-sm mt-1">Manage document templates and filled documents</p>
-        </div>
-        <button
-          onClick={() => setShowNewTemplateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <IconPlus />
-          New Template
-        </button>
-      </div>
-
-      {/* Tabs + Search */}
-      <div className="space-y-4">
-        {/* Tab bar */}
-        <div className="inline-flex h-9 items-center justify-center rounded-lg p-1 bg-[#111111] border border-white/10">
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'templates' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFolder /> Templates
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'documents' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFileText /> My Documents
-          </button>
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all relative ${
-              activeTab === 'approvals' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFilePen /> Approvals
-            {approvalDocs.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                {approvalDocs.length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Search + Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
-              <IconSearch />
-            </span>
-            <input
-              className="flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 pl-10 bg-white/5 border-white/10 text-white"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#0d0d0d] border border-white/10 w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl">
+        {/* Preview Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#111]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary/10 flex items-center justify-center">
+              <span className="text-primary"><Ico.File size={16} /></span>
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white">{doc.shortName} Preview</h2>
+              <p className="text-xs text-white/40">{doc.title}</p>
+            </div>
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="flex h-9 items-center gap-2 px-3 py-2 text-sm rounded-md border bg-white/5 border-white/10 text-white w-[180px] justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <IconFilter />
-                {categoryFilter}
-              </span>
-              <IconChevronDown />
-            </button>
-            {showCategoryDropdown && (
-              <div className="absolute top-full mt-1 right-0 w-[180px] bg-[#1a1a1a] border border-white/10 rounded-md shadow-lg z-20">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => { setCategoryFilter(cat); setShowCategoryDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-white/5 ${
-                      categoryFilter === cat ? 'text-primary' : 'text-white/70'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${STATUS_STYLES[doc.status]}`}>{doc.status}</span>
+            <button onClick={onClose} className="text-white/40 hover:text-white ml-2">&lt;Ico.X /&gt;</button>
           </div>
         </div>
 
-        {/* ── Templates Tab ─────────────────────────────────────────────── */}
-        {activeTab === 'templates' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-            {filteredTemplates.map((tpl) => (
-              <div key={tpl.id} className="rounded-xl border bg-[#111111] border-white/10 hover:border-primary/30 transition-colors">
-                <div className="p-6 pb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary"><IconFileText size={20} /></span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white text-sm leading-tight">{tpl.name}</div>
-                      <span className="inline-block mt-1 px-2 py-0.5 text-xs border border-white/20 text-white/60 rounded-md">{tpl.category}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-6 pb-6">
-                  <p className="text-white/50 text-sm mb-4 line-clamp-2">{tpl.description}</p>
-                  <div className="flex items-center gap-2 text-white/40 text-xs mb-4">
-                    <span>{tpl.fields.length} fields</span>
-                    <span>•</span>
-                    <span>{tpl.requiresApproval ? 'Requires approval' : 'No approval needed'}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openFill(tpl)}
-                      className="flex-1 h-8 px-3 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      Fill Document
-                    </button>
-                    <button className="h-8 px-3 text-xs border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors">
-                      <IconPen />
-                    </button>
-                    <button className="h-8 px-3 text-xs border border-red-500/30 text-red-400 rounded-md hover:bg-red-500/10 transition-colors">
-                      <IconTrash />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {filteredTemplates.length === 0 && (
-              <div className="col-span-3 py-16 text-center text-white/40 text-sm">No templates found</div>
-            )}
-          </div>
-        )}
-
-        {/* ── My Documents Tab ──────────────────────────────────────────── */}
-        {activeTab === 'documents' && (
-          <div className="mt-2">
-            {myDocuments.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white/30"><IconFileText size={28} /></span>
-                </div>
-                <p className="text-white/50 text-sm">No documents yet. Fill a template to get started.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {myDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 bg-[#111111] border border-white/10 rounded-lg hover:border-white/20 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary"><IconFileText size={16} /></span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{doc.title}</p>
-                        <p className="text-xs text-white/40 mt-0.5">{doc.category} · {doc.createdAt} · {doc.submittedBy}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${STATUS_STYLES[doc.status]}`}>
-                        {doc.status}
-                      </span>
-                      <button onClick={() => setViewDoc(doc)} className="p-1.5 text-white/40 hover:text-white transition-colors"><IconEye /></button>
-                      {doc.status === 'Draft' && (
-                        <button onClick={() => handleSendForApproval(doc)} className="p-1.5 text-white/40 hover:text-amber-400 transition-colors"><IconSend /></button>
-                      )}
-                      {doc.status === 'Approved' && (
-                        <button onClick={() => handlePrint(doc)} className="p-1.5 text-white/40 hover:text-blue-400 transition-colors"><IconPrinter /></button>
-                      )}
-                      <button onClick={() => handleDeleteDoc(doc.id)} className="p-1.5 text-white/40 hover:text-red-400 transition-colors"><IconTrash /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Approvals Tab ─────────────────────────────────────────────── */}
-        {activeTab === 'approvals' && (
-          <div className="mt-2">
-            {approvalDocs.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400"><IconCheck /></span>
-                </div>
-                <p className="text-white/50 text-sm">No documents pending approval.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {approvalDocs.map((doc) => (
-                  <div key={doc.id} className="p-5 bg-[#111111] border border-amber-500/20 rounded-lg">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">
-                            Pending Approval
-                          </span>
-                          <span className="text-xs text-white/40">{doc.category}</span>
-                        </div>
-                        <p className="text-sm font-semibold text-white">{doc.title}</p>
-                        <p className="text-xs text-white/40 mt-1">Submitted by {doc.submittedBy} · {doc.createdAt}</p>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => setViewDoc(doc)}
-                          className="h-8 px-3 text-xs border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5"
-                        >
-                          <IconEye /> View
-                        </button>
-                        <button
-                          onClick={() => { setApprovalDoc(doc); setCeoSig(''); }}
-                          className="h-8 px-3 text-xs bg-primary text-black rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1.5"
-                        >
-                          <IconCheck /> Review & Sign
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Fill Document Modal ─────────────────────────────────────────────── */}
-      {fillTemplate && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
-            {/* Modal header */}
-            <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-primary"><IconFileText size={16} /></span>
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-bold text-white leading-tight truncate">{fillTemplate.name}</h2>
-                  <p className="text-xs text-white/40 mt-0.5">{fillTemplate.description}</p>
-                </div>
-              </div>
-              <button onClick={closeFill} className="text-white/40 hover:text-white transition-colors flex-shrink-0 ml-4">
-                <IconX />
-              </button>
-            </div>
-
-            {/* Modal body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Document title */}
+        {/* Document Body */}
+        <div className="flex-1 overflow-y-auto bg-white text-gray-900">
+          <div className="max-w-2xl mx-auto px-12 py-10">
+            {/* Letterhead */}
+            <div className="flex justify-between items-start border-b-2 border-[#C9A84C] pb-6 mb-8">
               <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">
-                  Document Title *
-                </label>
-                <input
-                  type="text"
-                  value={fillTitle}
-                  onChange={(e) => setFillTitle(e.target.value)}
-                  placeholder="Enter a title for this document (e.g., MOU - Client Name - Property)"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
+                <div className="text-2xl font-black text-[#C9A84C] tracking-widest">LUXESTATE</div>
+                <div className="text-xs text-gray-400 tracking-widest uppercase mt-1">{doc.category}</div>
               </div>
-
-              {/* Fields section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <IconFileText size={14} />
-                    Fill in the Details ({fillTemplate.fields.length} fields)
-                  </h3>
-                  <span className="text-xs text-white/40">
-                    {fillTemplate.fields.filter((f) => f.required).length} required
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {fillTemplate.fields.map((field) => (
-                    <div key={field.key}>
-                      <label className="block text-xs font-medium text-white/70 mb-1">
-                        {field.label} {field.required && <span className="text-red-400">*</span>}
-                      </label>
-                      {field.fieldCode && (
-                        <p className="text-[10px] text-white/30 mb-1">
-                          Field: <code className="text-primary/70 font-mono">{field.fieldCode}</code>
-                        </p>
-                      )}
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          rows={3}
-                          placeholder={field.placeholder || ''}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                        />
-                      ) : field.type === 'select' ? (
-                        <select
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50"
-                        >
-                          <option value="">Select...</option>
-                          {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      ) : (
-                        <input
-                          type={field.type}
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          placeholder={field.placeholder || ''}
-                          className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  value={fillNotes}
-                  onChange={(e) => setFillNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Any additional notes for this document..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                />
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-800">{doc.shortName}</div>
+                <div className="text-xs text-gray-400 mt-1">Ref: LX-DOC-{doc.id.toString().padStart(4, '0')}</div>
+                <div className="text-xs text-gray-400">{doc.createdAt}</div>
               </div>
             </div>
 
-            {/* Modal footer */}
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10">
-              <button onClick={closeFill} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white hover:border-white/20 transition-colors">
-                Cancel
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFillPreview(!fillPreview)}
-                  className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5"
-                >
-                  <IconEye /> Preview
-                </button>
-                <button
-                  onClick={handleSaveDraft}
-                  className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors"
-                >
-                  Save as Draft
-                </button>
-                <button
-                  onClick={handleSaveSubmit}
-                  disabled={!allRequiredFilled}
-                  className="h-9 px-4 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                >
-                  <IconSend /> Save & Submit
-                </button>
-              </div>
+            {/* Document Title */}
+            <div className="bg-amber-50 border-l-4 border-[#C9A84C] px-4 py-3 mb-8">
+              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Document Title</div>
+              <div className="text-sm font-semibold text-gray-800">{doc.title}</div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── View Document Modal ─────────────────────────────────────────────── */}
-      {viewDoc && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <div>
-                <h2 className="text-sm font-bold text-white">{viewDoc.title}</h2>
-                <p className="text-xs text-white/40 mt-0.5">{viewDoc.category} · {viewDoc.createdAt}</p>
-              </div>
-              <button onClick={() => setViewDoc(null)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Status */}
-              <div className="flex items-center gap-2 mb-5">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${STATUS_STYLES[viewDoc.status]}`}>
-                  {viewDoc.status}
-                </span>
-                <span className="text-xs text-white/40">Submitted by {viewDoc.submittedBy}</span>
-              </div>
-              {/* Fields */}
-              <div className="space-y-2 mb-5">
-                {Object.entries(viewDoc.fields).map(([key, val]) => {
-                  const tpl = TEMPLATES.find((t) => t.id === viewDoc.templateId);
-                  const fieldDef = tpl?.fields.find((f) => f.key === key);
+            {/* Fields */}
+            <div className="mb-8">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#C9A84C] border-b border-amber-200 pb-2 mb-4">Document Details</div>
+              <div className="space-y-0">
+                {Object.entries(doc.fields).map(([key, val]) => {
+                  const f = template?.fields.find((x) => x.key === key);
+                  if (!val) return null;
                   return (
-                    <div key={key} className="flex justify-between py-2 border-b border-white/5">
-                      <span className="text-xs text-white/40">{fieldDef?.label || key}</span>
-                      <span className="text-xs text-white font-medium">{val || '—'}</span>
+                    <div key={key} className="flex justify-between py-2.5 border-b border-gray-100">
+                      <span className="text-xs text-gray-500 flex-1">{f?.label || key}</span>
+                      <span className="text-xs font-semibold text-gray-800 flex-1 text-right">{formatValue(f, val)}</span>
                     </div>
                   );
                 })}
               </div>
-              {/* Notes */}
-              {viewDoc.notes && (
-                <div className="mb-5 p-3 bg-white/5 rounded-md">
-                  <p className="text-xs text-white/40 mb-1">Notes</p>
-                  <p className="text-sm text-white">{viewDoc.notes}</p>
-                </div>
-              )}
-              {/* E-Signature */}
-              {viewDoc.status === 'Approved' && viewDoc.ceoSignature ? (
-                <div className="border border-emerald-500/30 bg-emerald-500/5 p-4 rounded-md mb-4">
-                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">CEO E-Signature</p>
-                  <p className="text-xl font-serif italic text-primary">{viewDoc.ceoSignature}</p>
-                  <p className="text-xs text-white/40 mt-1">Approved on {viewDoc.approvedAt}</p>
-                </div>
-              ) : (
-                <div className="border border-dashed border-white/10 p-4 rounded-md mb-4 text-center">
-                  <p className="text-xs text-white/30">Awaiting CEO e-signature</p>
-                </div>
-              )}
-              {/* Actions */}
-              <div className="flex gap-2">
-                {viewDoc.status === 'Draft' && (
-                  <button
-                    onClick={() => handleSendForApproval(viewDoc)}
-                    className="flex-1 h-9 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-md hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <IconSend /> Send for Approval
-                  </button>
-                )}
-                {viewDoc.status === 'Approved' && (
-                  <button
-                    onClick={() => { handlePrint(viewDoc); setViewDoc(null); }}
-                    className="flex-1 h-9 text-xs bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-md hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <IconPrinter /> Print / Save
-                  </button>
-                )}
+            </div>
+
+            {/* Notes */}
+            {doc.notes && (
+              <div className="mb-8">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#C9A84C] border-b border-amber-200 pb-2 mb-4">Notes</div>
+                <p className="text-sm text-gray-600 leading-relaxed">{doc.notes}</p>
               </div>
+            )}
+
+            {/* Terms */}
+            <div className="mb-8">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#C9A84C] border-b border-amber-200 pb-2 mb-4">Terms & Conditions</div>
+              <ol className="space-y-3">
+                {doc.terms.map((term, i) => (
+                  <li key={term.id} className="flex gap-3 text-xs text-gray-600 leading-relaxed">
+                    <span className="text-[#C9A84C] font-bold flex-shrink-0">{i + 1}.</span>
+                    <span>{term.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Signature Block */}
+            <div className="grid grid-cols-2 gap-8 mt-10">
+              <div>
+                <div className="border-t-2 border-gray-800 pt-3">
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Party 1 / Authorised Signatory</div>
+                  <div className="text-lg font-serif italic text-[#C9A84C] min-h-[28px]">
+                    {doc.fields.party1_signatory || doc.fields.buyer_name || ''}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Date: {doc.fields.date ? new Date(doc.fields.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '___________'}</div>
+                </div>
+              </div>
+              <div>
+                <div className="border-t-2 border-gray-800 pt-3">
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Party 2 / Authorised Signatory</div>
+                  <div className="text-lg font-serif italic text-[#C9A84C] min-h-[28px]">
+                    {doc.fields.party2_signatory || doc.fields.seller_name || ''}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Date: ___________</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CEO Approval Stamp */}
+            {doc.status === 'Approved' && doc.ceoSignature && (
+              <div className="mt-8 border-2 border-green-400 bg-green-50 p-5 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-2">✓ CEO Approved & E-Signed</div>
+                <div className="text-2xl font-serif italic text-[#C9A84C]">{doc.ceoSignature}</div>
+                <div className="text-xs text-gray-400 mt-2">Approved on {doc.approvedAt}</div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-10 pt-4 border-t border-gray-200 text-center">
+              <p className="text-[10px] text-gray-300">© LuxEstate {new Date().getFullYear()} · Confidential Document · Ref: LX-DOC-{doc.id.toString().padStart(4, '0')}</p>
             </div>
           </div>
         </div>
-      )}
 
-      {/* ── CEO Approval & E-Sign Modal ─────────────────────────────────────── */}
-      {approvalDoc && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
+        {/* Action Bar */}
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10 bg-[#111]">
+          <button onClick={onClose} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Close</button>
+          <div className="flex gap-2">
+            {doc.status === 'Draft' && onSendForApproval && (
+              <button onClick={onSendForApproval} className="h-9 px-4 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-md hover:bg-amber-500/20 transition-colors flex items-center gap-1.5">
+                <Ico.Send /> Send for CEO Approval
+              </button>
+            )}
+            {doc.status === 'Pending Approval' && isCEO && (
+              <button onClick={() => setShowSignModal(true)} className="h-9 px-4 text-xs bg-primary text-black rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1.5 font-semibold">
+                <Ico.Check /> Review & E-Sign
+              </button>
+            )}
+            {doc.status === 'Approved' && (
+              <>
+                <button onClick={handlePrint} className="h-9 px-4 text-xs bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-md hover:bg-blue-500/20 transition-colors flex items-center gap-1.5">
+                  <Ico.Print /> Print / Save PDF
+                </button>
+                <button className="h-9 px-4 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-md hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5">
+                  <Ico.Share /> Share
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* CEO Sign Modal */}
+      {showSignModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#111] border border-white/10 w-full max-w-sm rounded-xl shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <div>
-                <h2 className="text-base font-bold text-white">CEO Approval & E-Signature</h2>
-                <p className="text-xs text-white/40 mt-0.5">{approvalDoc.category} — {approvalDoc.title}</p>
-              </div>
-              <button onClick={() => setApprovalDoc(null)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
+              <h3 className="text-sm font-bold text-white">CEO E-Signature</h3>
+              <button onClick={() => setShowSignModal(false)} className="text-white/40 hover:text-white"><Ico.X /></button>
             </div>
-            <div className="p-6">
-              {/* Document summary */}
-              <div className="bg-primary/5 border border-primary/20 p-4 rounded-md mb-5">
-                <p className="text-xs font-semibold text-white mb-2">Document Summary</p>
-                {Object.entries(approvalDoc.fields).slice(0, 4).map(([key, val]) => {
-                  const tpl = TEMPLATES.find((t) => t.id === approvalDoc.templateId);
-                  const fieldDef = tpl?.fields.find((f) => f.key === key);
-                  return (
-                    <div key={key} className="flex justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
-                      <span className="text-white/40">{fieldDef?.label || key}</span>
-                      <span className="text-white font-medium">{val || '—'}</span>
-                    </div>
-                  );
-                })}
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-white/50">Type your full name to electronically sign and approve this document.</p>
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-2">Full Name *</label>
+                <input type="text" value={ceoSig} onChange={(e) => setCeoSig(e.target.value)} placeholder="Type full name to sign..." className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+                {ceoSig && <p className="mt-2 text-xl font-serif italic text-primary">{ceoSig}</p>}
               </div>
-              {/* Signature input */}
-              <div className="mb-5">
-                <label className="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
-                  CEO Full Name (E-Signature) *
-                </label>
-                <input
-                  type="text"
-                  value={ceoSig}
-                  onChange={(e) => setCeoSig(e.target.value)}
-                  placeholder="Type full name to sign"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
-                {ceoSig && (
-                  <p className="mt-2 text-xl font-serif italic text-primary">{ceoSig}</p>
-                )}
-                <p className="text-xs text-white/30 mt-1">By typing your name, you are electronically signing this document.</p>
-              </div>
-              {/* Actions */}
               <div className="flex gap-3">
+                <button onClick={() => setShowSignModal(false)} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
                 <button
-                  onClick={handleReject}
-                  className="flex-1 h-10 text-sm bg-red-500/10 border border-red-500/30 text-red-400 rounded-md hover:bg-red-500/20 transition-colors"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={handleApprove}
                   disabled={!ceoSig.trim()}
-                  className="flex-1 h-10 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  onClick={() => { onApprove && onApprove(); setShowSignModal(false); }}
+                  className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 font-semibold"
                 >
                   Approve & Sign
                 </button>
@@ -885,62 +528,366 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* ── New Template Modal ──────────────────────────────────────────────── */}
-      {showNewTemplateModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <h2 className="text-base font-bold text-white">New Template</h2>
-              <button onClick={() => setShowNewTemplateModal(false)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
+// ─── Terms Editor Modal ───────────────────────────────────────────────────────
+function TermsEditor({ template, onClose, onSave }: { template: TemplateDefinition; onClose: () => void; onSave: (terms: TemplateTerm[]) => void }) {
+  const [terms, setTerms] = useState<TemplateTerm[]>([...template.terms]);
+  const [newTerm, setNewTerm] = useState('');
+
+  const addTerm = () => {
+    if (!newTerm.trim()) return;
+    setTerms([...terms, { id: Date.now(), text: newTerm.trim() }]);
+    setNewTerm('');
+  };
+
+  const updateTerm = (id: number, text: string) => setTerms(terms.map((t) => t.id === id ? { ...t, text } : t));
+  const removeTerm = (id: number) => setTerms(terms.filter((t) => t.id !== id));
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h2 className="text-sm font-bold text-white">Edit Terms — {template.shortName}</h2>
+            <p className="text-xs text-white/40 mt-0.5">{template.name}</p>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-3">
+          {terms.map((term, i) => (
+            <div key={term.id} className="flex gap-3 items-start">
+              <span className="text-primary font-bold text-sm mt-2 flex-shrink-0 w-5">{i + 1}.</span>
+              <textarea
+                value={term.text}
+                onChange={(e) => updateTerm(term.id, e.target.value)}
+                rows={3}
+                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50 resize-none"
+              />
+              <button onClick={() => removeTerm(term.id)} className="mt-2 text-white/30 hover:text-red-400 transition-colors flex-shrink-0"><Ico.Trash /></button>
             </div>
-            <div className="p-6 space-y-4">
+          ))}
+          <div className="flex gap-3 items-start pt-2 border-t border-white/10">
+            <span className="text-white/30 font-bold text-sm mt-2 flex-shrink-0 w-5">{terms.length + 1}.</span>
+            <textarea
+              value={newTerm}
+              onChange={(e) => setNewTerm(e.target.value)}
+              rows={3}
+              placeholder="Add a new term..."
+              className="flex-1 px-3 py-2 bg-white/5 border border-dashed border-white/20 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
+            />
+            <button onClick={addTerm} disabled={!newTerm.trim()} className="mt-2 w-8 h-8 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors disabled:opacity-30 flex items-center justify-center flex-shrink-0">&lt;Ico.Plus /&gt;</button>
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
+          <button onClick={() => onSave(terms)} className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold">Save Terms</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function DocumentsPage() {
+  const [activeTab, setActiveTab] = useState<'templates' | 'documents' | 'approvals'>('templates');
+  const [search, setSearch] = useState('');
+  const [templates, setTemplates] = useState<TemplateDefinition[]>(DEFAULT_TEMPLATES);
+  const [documents, setDocuments] = useState<FilledDocument[]>(INITIAL_DOCUMENTS);
+
+  // Fill modal
+  const [fillTemplate, setFillTemplate] = useState<TemplateDefinition | null>(null);
+  const [fillTitle, setFillTitle] = useState('');
+  const [fillFields, setFillFields] = useState<Record<string, string>>({});
+  const [fillNotes, setFillNotes] = useState('');
+
+  // Preview modal
+  const [previewDoc, setPreviewDoc] = useState<FilledDocument | null>(null);
+
+  // Terms editor
+  const [termsTemplate, setTermsTemplate] = useState<TemplateDefinition | null>(null);
+
+  // CEO approval sig
+  const [approvalSig, setApprovalSig] = useState('');
+
+  const filteredTemplates = templates.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()) || t.shortName.toLowerCase().includes(search.toLowerCase()));
+  const myDocuments = documents.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()) || d.shortName.toLowerCase().includes(search.toLowerCase()));
+  const approvalDocs = documents.filter((d) => d.status === 'Pending Approval');
+
+  const openFill = (tpl: TemplateDefinition) => {
+    setFillTemplate(tpl);
+    setFillTitle(`${tpl.shortName} — ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`);
+    setFillFields(Object.fromEntries(tpl.fields.map((f) => [f.key, ''])));
+    setFillNotes('');
+  };
+
+  const allRequiredFilled = fillTemplate
+    ? fillTemplate.fields.filter((f) => f.required).every((f) => fillFields[f.key]?.trim())
+    : false;
+
+  const saveDoc = (status: DocStatus) => {
+    if (!fillTemplate) return;
+    const doc: FilledDocument = {
+      id: Date.now(),
+      templateId: fillTemplate.id,
+      templateName: fillTemplate.name,
+      shortName: fillTemplate.shortName,
+      category: fillTemplate.category,
+      title: fillTitle || fillTemplate.shortName,
+      fields: { ...fillFields },
+      notes: fillNotes,
+      terms: [...fillTemplate.terms],
+      status,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      submittedBy: 'Admin',
+    };
+    setDocuments([doc, ...documents]);
+    setFillTemplate(null);
+    setActiveTab(status === 'Pending Approval' ? 'approvals' : 'documents');
+  };
+
+  const handleApprove = (docId: number, sig: string) => {
+    setDocuments(documents.map((d) =>
+      d.id === docId ? { ...d, status: 'Approved' as DocStatus, ceoSignature: sig, approvedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) } : d
+    ));
+    if (previewDoc?.id === docId) {
+      setPreviewDoc((prev) => prev ? { ...prev, status: 'Approved', ceoSignature: sig, approvedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) } : null);
+    }
+  };
+
+  const handleReject = (docId: number) => {
+    setDocuments(documents.map((d) => d.id === docId ? { ...d, status: 'Rejected' as DocStatus } : d));
+    setPreviewDoc(null);
+  };
+
+  const handleSendForApproval = (docId: number) => {
+    setDocuments(documents.map((d) => d.id === docId ? { ...d, status: 'Pending Approval' as DocStatus } : d));
+    setPreviewDoc(null);
+    setActiveTab('approvals');
+  };
+
+  const saveTerms = (tplId: string, terms: TemplateTerm[]) => {
+    setTemplates(templates.map((t) => t.id === tplId ? { ...t, terms } : t));
+    setTermsTemplate(null);
+  };
+
+  const getTemplate = (id: string) => templates.find((t) => t.id === id);
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Document Center</h1>
+          <p className="text-white/50 text-sm mt-1">Create, manage, and approve legal documents</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-white/10">
+        {[
+          { key: 'templates', label: 'Templates', icon: <Ico.Folder />, count: templates.length },
+          { key: 'documents', label: 'My Documents', icon: <Ico.File />, count: myDocuments.length },
+          { key: 'approvals', label: 'Approvals', icon: <Ico.Check />, count: approvalDocs.length },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as typeof activeTab)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-white/50 hover:text-white'}`}
+          >
+            {tab.icon} {tab.label}
+            {tab.count > 0 && <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-full ${activeTab === tab.key ? 'bg-primary text-black' : 'bg-white/10 text-white/50'}`}>{tab.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">&lt;Ico.Search /&gt;</span>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="w-full h-9 pl-9 pr-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+      </div>
+
+      {/* ── Templates Tab ── */}
+      {activeTab === 'templates' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTemplates.map((tpl) => (
+            <div key={tpl.id} className="bg-[#111] border border-white/10 hover:border-primary/30 transition-colors rounded-xl p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 flex items-center justify-center rounded-lg flex-shrink-0">
+                    <span className="text-primary text-sm font-black">{tpl.shortName.slice(0, 3)}</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white text-sm leading-tight">{tpl.shortName}</div>
+                    <span className="text-[10px] text-white/40 border border-white/10 px-1.5 py-0.5 rounded mt-1 inline-block">{tpl.category}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-white/50 mb-3 line-clamp-2">{tpl.description}</p>
+              <div className="flex items-center gap-3 text-[10px] text-white/30 mb-4">
+                <span>{tpl.fields.length} fields</span>
+                <span>·</span>
+                <span>{tpl.terms.length} terms</span>
+                <span>·</span>
+                <span>{tpl.requiresApproval ? 'CEO approval' : 'No approval'}</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => openFill(tpl)} className="flex-1 h-8 text-xs font-semibold bg-primary text-black rounded-md hover:bg-primary/90 transition-colors">
+                  Fill Document
+                </button>
+                <button onClick={() => setTermsTemplate(tpl)} className="h-8 px-3 text-xs border border-white/10 text-white/60 rounded-md hover:bg-white/5 transition-colors flex items-center gap-1" title="Edit Terms">
+                  <Ico.Settings /> Terms
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── My Documents Tab ── */}
+      {activeTab === 'documents' && (
+        <div className="space-y-3">
+          {myDocuments.length === 0 ? (
+            <div className="py-16 text-center text-white/30 text-sm">No documents yet. Fill a template to get started.</div>
+          ) : myDocuments.map((doc) => (
+            <div key={doc.id} className="flex items-center justify-between p-4 bg-[#111] border border-white/10 rounded-lg hover:border-white/20 transition-colors">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary text-[10px] font-black">{doc.shortName.slice(0, 3)}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{doc.title}</p>
+                  <p className="text-xs text-white/40 mt-0.5">{doc.category} · {doc.createdAt} · {doc.submittedBy}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${STATUS_STYLES[doc.status]}`}>{doc.status}</span>
+                <button onClick={() => setPreviewDoc(doc)} className="p-1.5 text-white/40 hover:text-white transition-colors" title="Preview"><Ico.Eye /></button>
+                <button onClick={() => setDocuments(documents.filter((d) => d.id !== doc.id))} className="p-1.5 text-white/40 hover:text-red-400 transition-colors"><Ico.Trash /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Approvals Tab ── */}
+      {activeTab === 'approvals' && (
+        <div className="space-y-3">
+          {approvalDocs.length === 0 ? (
+            <div className="py-16 text-center text-white/30 text-sm">No documents pending approval.</div>
+          ) : approvalDocs.map((doc) => (
+            <div key={doc.id} className="p-5 bg-[#111] border border-amber-500/20 rounded-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">Pending Approval</span>
+                    <span className="text-xs text-white/40">{doc.category}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-white">{doc.title}</p>
+                  <p className="text-xs text-white/40 mt-1">Submitted by {doc.submittedBy} · {doc.createdAt}</p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button onClick={() => setPreviewDoc(doc)} className="h-8 px-3 text-xs border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                    <Ico.Eye /> Preview & Sign
+                  </button>
+                  <button onClick={() => handleReject(doc.id)} className="h-8 px-3 text-xs border border-red-500/30 text-red-400 rounded-md hover:bg-red-500/10 transition-colors">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Fill Document Modal ── */}
+      {fillTemplate && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
+            <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary text-xs font-black">{fillTemplate.shortName.slice(0, 3)}</span>
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">{fillTemplate.shortName} — {fillTemplate.name}</h2>
+                  <p className="text-xs text-white/40 mt-0.5">{fillTemplate.fields.filter((f) => f.required).length} required fields · {fillTemplate.terms.length} terms included</p>
+                </div>
+              </div>
+              <button onClick={() => setFillTemplate(null)} className="text-white/40 hover:text-white ml-4"><Ico.X /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Template Name *</label>
-                <input
-                  type="text"
-                  value={newTemplateName}
-                  onChange={(e) => setNewTemplateName(e.target.value)}
-                  placeholder="e.g. Sale & Purchase Agreement"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Document Title *</label>
+                <input type="text" value={fillTitle} onChange={(e) => setFillTitle(e.target.value)} className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" placeholder="e.g. MOU — Client Name — Property" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Category</label>
-                <select
-                  value={newTemplateCategory}
-                  onChange={(e) => setNewTemplateCategory(e.target.value)}
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50"
-                >
-                  <option>NDA</option>
-                  <option>Sales Contract</option>
-                  <option>Rental Agreement</option>
-                  <option>Other</option>
-                </select>
+                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Fill in Details</h3>
+                <div className="space-y-4">
+                  {fillTemplate.fields.map((field) => (
+                    <div key={field.key}>
+                      <label className="text-xs font-medium text-white/70 block mb-1">
+                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                      </label>
+                      {field.type === 'textarea' ? (
+                        <textarea value={fillFields[field.key] || ''} onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })} rows={3} placeholder={field.placeholder} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none" />
+                      ) : field.type === 'select' ? (
+                        <select value={fillFields[field.key] || ''} onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })} className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50">
+                          <option value="">Select...</option>
+                          {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <input type={field.type} value={fillFields[field.key] || ''} onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })} placeholder={field.placeholder} className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Description</label>
-                <textarea
-                  value={newTemplateDesc}
-                  onChange={(e) => setNewTemplateDesc(e.target.value)}
-                  rows={3}
-                  placeholder="Brief description of this template..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                />
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Notes (Optional)</label>
+                <textarea value={fillNotes} onChange={(e) => setFillNotes(e.target.value)} rows={3} placeholder="Any additional notes..." className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none" />
               </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowNewTemplateModal(false)} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
-                <button
-                  onClick={() => setShowNewTemplateModal(false)}
-                  disabled={!newTemplateName.trim()}
-                  className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  Create Template
+              <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
+                <p className="text-xs text-white/50"><span className="text-primary font-semibold">{fillTemplate.terms.length} terms</span> from the template will be included in this document. You can edit template terms from the Templates tab.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10">
+              <button onClick={() => setFillTemplate(null)} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
+              <div className="flex gap-2">
+                <button onClick={() => saveDoc('Draft')} className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors">Save as Draft</button>
+                <button onClick={() => saveDoc('Pending Approval')} disabled={!allRequiredFilled} className="h-9 px-4 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5 font-semibold">
+                  <Ico.Send /> Submit for Approval
                 </button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Document Preview Modal ── */}
+      {previewDoc && (
+        <DocumentPreview
+          doc={previewDoc}
+          template={getTemplate(previewDoc.templateId)}
+          onClose={() => setPreviewDoc(null)}
+          onApprove={() => {
+            const sig = approvalSig || 'Ahmed Al-Rashid';
+            handleApprove(previewDoc.id, sig);
+          }}
+          onSendForApproval={() => handleSendForApproval(previewDoc.id)}
+          isCEO={true}
+        />
+      )}
+
+      {/* ── Terms Editor Modal ── */}
+      {termsTemplate && (
+        <TermsEditor
+          template={termsTemplate}
+          onClose={() => setTermsTemplate(null)}
+          onSave={(terms) => saveTerms(termsTemplate.id, terms)}
+        />
       )}
     </div>
   );
