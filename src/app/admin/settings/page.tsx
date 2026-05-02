@@ -1,131 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useCMS, PageConfig, PageKey, BrandingConfig } from '@/contexts/CMSContext';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields';
 
 const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields'];
 
-type PageKey = 'home' | 'residential' | 'commercial' | 'projects' | 'about' | 'blog' | 'contact';
-
-interface PageConfig {
-  key: PageKey;
-  label: string;
-  hero_headline: string;
-  hero_subheadline: string;
-  hero_description: string;
-  cta_primary_text: string;
-  cta_primary_link: string;
-  cta_secondary_text: string;
-  cta_secondary_link: string;
-  meta_title: string;
-  meta_description: string;
-  sections: Record<string, boolean>;
-}
-
-const DEFAULT_PAGES: PageConfig[] = [
-  {
-    key: 'home',
-    label: 'Home',
-    hero_headline: 'Where Luxury Meets Legacy',
-    hero_subheadline: 'Ultra-premium properties for discerning buyers',
-    hero_description: 'LuxEstate curates the world\'s finest residential and commercial properties for high-net-worth buyers seeking exclusivity, prestige, and exceptional returns.',
-    cta_primary_text: 'Explore Properties',
-    cta_primary_link: '/residential',
-    cta_secondary_text: 'Book Consultation',
-    cta_secondary_link: '/#contact',
-    meta_title: 'LuxEstate — Ultra-Premium Properties for Discerning Buyers',
-    meta_description: 'LuxEstate curates the world\'s finest residential and commercial properties for high-net-worth buyers.',
-    sections: { featured_properties: true, featured_projects: true, why_luxestate: true, testimonials: true, mortgage_calculator: true, contact_section: true },
-  },
-  {
-    key: 'residential',
-    label: 'Residential',
-    hero_headline: 'Exclusive Residential Properties',
-    hero_subheadline: 'Villas, penthouses & luxury apartments in Dubai\'s finest locations',
-    hero_description: 'Discover our curated portfolio of ultra-premium residential properties, from beachfront villas to sky-high penthouses.',
-    cta_primary_text: 'View All Properties',
-    cta_primary_link: '/residential#listings',
-    cta_secondary_text: 'Book Viewing',
-    cta_secondary_link: '/#contact',
-    meta_title: 'Luxury Residential Properties Dubai — LuxEstate',
-    meta_description: 'Browse exclusive villas, penthouses and luxury apartments in Dubai\'s most prestigious locations.',
-    sections: { search_bar: true, listings_grid: true, team_section: true, market_stats: true },
-  },
-  {
-    key: 'commercial',
-    label: 'Commercial',
-    hero_headline: 'Premium Commercial Real Estate',
-    hero_subheadline: 'Office spaces, retail units & investment-grade commercial properties',
-    hero_description: 'Strategic commercial properties in Dubai\'s most sought-after business districts, offering exceptional yields and capital appreciation.',
-    cta_primary_text: 'View Commercial',
-    cta_primary_link: '/commercial#listings',
-    cta_secondary_text: 'Get Investment Report',
-    cta_secondary_link: '/#contact',
-    meta_title: 'Commercial Properties Dubai — LuxEstate',
-    meta_description: 'Premium office spaces, retail units and investment-grade commercial properties in Dubai.',
-    sections: { listings_grid: true, market_insights: true, commercial_stats: true },
-  },
-  {
-    key: 'projects',
-    label: 'Projects',
-    hero_headline: 'Off-Plan & New Developments',
-    hero_subheadline: 'Exclusive access to Dubai\'s most anticipated new projects',
-    hero_description: 'Invest in tomorrow\'s landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai\'s leading developers.',
-    cta_primary_text: 'View Projects',
-    cta_primary_link: '/projects#gallery',
-    cta_secondary_text: 'Register Interest',
-    cta_secondary_link: '/#contact',
-    meta_title: 'Off-Plan Projects Dubai — LuxEstate',
-    meta_description: 'Exclusive off-plan and new development projects in Dubai from leading developers.',
-    sections: { projects_gallery: true, project_timeline: true, project_inquiry: true },
-  },
-  {
-    key: 'about',
-    label: 'About',
-    hero_headline: 'Redefining Luxury Real Estate',
-    hero_subheadline: 'A legacy of excellence in Dubai\'s premium property market',
-    hero_description: 'LuxEstate was founded with a singular vision: to provide ultra-high-net-worth individuals with unparalleled access to the world\'s most exclusive properties.',
-    cta_primary_text: 'Meet Our Team',
-    cta_primary_link: '/about#team',
-    cta_secondary_text: 'Our Story',
-    cta_secondary_link: '/about#story',
-    meta_title: 'About LuxEstate — Luxury Real Estate Dubai',
-    meta_description: 'Learn about LuxEstate\'s mission, team and 15+ years of excellence in Dubai\'s luxury property market.',
-    sections: { team_section: true, stats_section: true, awards_section: true, timeline_section: true },
-  },
-  {
-    key: 'blog',
-    label: 'Blog',
-    hero_headline: 'Market Insights & News',
-    hero_subheadline: 'Expert analysis on Dubai\'s luxury real estate market',
-    hero_description: 'Stay informed with the latest market trends, investment insights, and property news from LuxEstate\'s expert team.',
-    cta_primary_text: 'Read Latest',
-    cta_primary_link: '/blog#latest',
-    cta_secondary_text: 'Subscribe',
-    cta_secondary_link: '/blog#subscribe',
-    meta_title: 'Real Estate Blog & Market Insights — LuxEstate',
-    meta_description: 'Expert analysis, market trends and property investment insights from LuxEstate.',
-    sections: { featured_post: true, posts_grid: true, categories_filter: true, newsletter_signup: true },
-  },
-  {
-    key: 'contact',
-    label: 'Contact',
-    hero_headline: 'Get in Touch',
-    hero_subheadline: 'Our team of specialists is ready to assist you',
-    hero_description: 'Whether you\'re buying, selling, or investing, our dedicated team provides personalised guidance every step of the way.',
-    cta_primary_text: 'Send Message',
-    cta_primary_link: '/contact#form',
-    cta_secondary_text: 'WhatsApp Us',
-    cta_secondary_link: 'https://wa.me/971508862683',
-    meta_title: 'Contact LuxEstate — Luxury Real Estate Dubai',
-    meta_description: 'Contact LuxEstate\'s team of luxury property specialists in Dubai.',
-    sections: { contact_form: true, map_section: true, office_details: true, whatsapp_button: true },
-  },
-];
-
-// ─── Property Field Config ────────────────────────────────────────────────────
 interface FieldOption { id: number; value: string; }
 interface PropertyFieldGroup {
   key: string;
@@ -145,20 +27,20 @@ const DEFAULT_PROPERTY_FIELDS: PropertyFieldGroup[] = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function InputField({ label, value, placeholder, type = 'text' }: { label: string; value?: string; placeholder?: string; type?: string }) {
+function InputField({ label, value, onChange, placeholder, type = 'text' }: { label: string; value?: string; onChange?: (v: string) => void; placeholder?: string; type?: string }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</label>
-      <input type={type} defaultValue={value} placeholder={placeholder} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
+      <input type={type} value={value ?? ''} onChange={(e) => onChange?.(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
     </div>
   );
 }
 
-function TextareaField({ label, value, placeholder, rows = 3 }: { label: string; value?: string; placeholder?: string; rows?: number }) {
+function TextareaField({ label, value, onChange, placeholder, rows = 3 }: { label: string; value?: string; onChange?: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</label>
-      <textarea rows={rows} defaultValue={value} placeholder={placeholder} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none" />
+      <textarea rows={rows} value={value ?? ''} onChange={(e) => onChange?.(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none" />
     </div>
   );
 }
@@ -175,13 +57,13 @@ function SectionHeader({ title, description }: { title: string; description: str
   );
 }
 
-function ColorField({ label, value }: { label: string; value: string }) {
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange?: (v: string) => void }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</label>
       <div className="flex items-center gap-2">
-        <input type="color" defaultValue={value} className="w-10 h-10 bg-input border border-border cursor-pointer p-0.5" />
-        <input type="text" defaultValue={value} className="flex-1 px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+        <input type="color" value={value} onChange={(e) => onChange?.(e.target.value)} className="w-10 h-10 bg-input border border-border cursor-pointer p-0.5" />
+        <input type="text" value={value} onChange={(e) => onChange?.(e.target.value)} className="flex-1 px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
       </div>
     </div>
   );
@@ -231,40 +113,23 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Hero Headline</label>
-              <input defaultValue={page.hero_headline} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+              <InputField label="Hero Headline" value={page.hero_headline} onChange={(v) => onChange({ ...page, hero_headline: v })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Hero Subheadline</label>
-              <input defaultValue={page.hero_subheadline} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+              <InputField label="Hero Subheadline" value={page.hero_subheadline} onChange={(v) => onChange({ ...page, hero_subheadline: v })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Hero Description</label>
-              <textarea rows={3} defaultValue={page.hero_description} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50 resize-none" />
+              <TextareaField label="Hero Description" value={page.hero_description} onChange={(v) => onChange({ ...page, hero_description: v })} />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Primary CTA Text</label>
-              <input defaultValue={page.cta_primary_text} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Primary CTA Link</label>
-              <input defaultValue={page.cta_primary_link} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Secondary CTA Text</label>
-              <input defaultValue={page.cta_secondary_text} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Secondary CTA Link</label>
-              <input defaultValue={page.cta_secondary_link} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-            </div>
+            <InputField label="Primary CTA Text" value={page.cta_primary_text} onChange={(v) => onChange({ ...page, cta_primary_text: v })} />
+            <InputField label="Primary CTA Link" value={page.cta_primary_link} onChange={(v) => onChange({ ...page, cta_primary_link: v })} />
+            <InputField label="Secondary CTA Text" value={page.cta_secondary_text} onChange={(v) => onChange({ ...page, cta_secondary_text: v })} />
+            <InputField label="Secondary CTA Link" value={page.cta_secondary_link} onChange={(v) => onChange({ ...page, cta_secondary_link: v })} />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Hero Background Image</label>
-            <div className="border border-dashed border-border p-5 text-center hover:border-primary/40 transition-colors cursor-pointer">
-              <Icon name="PhotoIcon" size={22} className="text-muted-foreground mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">Click to upload hero image (recommended: 1920×1080)</p>
-            </div>
+          <div className="bg-primary/5 border border-primary/20 p-3 rounded">
+            <p className="text-xs text-primary/80">
+              <span className="font-semibold">Live Preview:</span> Changes saved here will reflect immediately on the <strong>/{page.key === 'home' ? '' : page.key}</strong> page after clicking Save Changes.
+            </p>
           </div>
         </div>
       )}
@@ -290,16 +155,10 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
 
       {activeSection === 'seo' && (
         <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Page Title</label>
-            <input defaultValue={page.meta_title} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-            <p className="text-xs text-muted-foreground mt-1">{page.meta_title.length}/60 characters</p>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Meta Description</label>
-            <textarea rows={3} defaultValue={page.meta_description} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50 resize-none" />
-            <p className="text-xs text-muted-foreground mt-1">{page.meta_description.length}/160 characters</p>
-          </div>
+          <InputField label="Page Title" value={page.meta_title} onChange={(v) => onChange({ ...page, meta_title: v })} />
+          <p className="text-xs text-muted-foreground -mt-2">{page.meta_title.length}/60 characters</p>
+          <TextareaField label="Meta Description" value={page.meta_description} onChange={(v) => onChange({ ...page, meta_description: v })} />
+          <p className="text-xs text-muted-foreground -mt-2">{page.meta_description.length}/160 characters</p>
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">OG Image</label>
             <div className="border border-dashed border-border p-4 text-center hover:border-primary/40 transition-colors cursor-pointer">
@@ -343,7 +202,6 @@ function PropertyFieldsManager() {
     <div>
       <SectionHeader title="Property Field Configuration" description="Manage dropdown options, statuses, and field values used across property listings" />
       <div className="flex gap-6">
-        {/* Group selector */}
         <div className="w-48 flex-shrink-0">
           <div className="space-y-1">
             {groups.map((g) => (
@@ -354,8 +212,6 @@ function PropertyFieldsManager() {
             ))}
           </div>
         </div>
-
-        {/* Options editor */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-foreground">{group.label}</h3>
@@ -401,17 +257,26 @@ function PropertyFieldsManager() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
+  const { pages: cmsPages, branding: cmsBranding, saveAll, lastSaved } = useCMS();
   const [activeTab, setActiveTab] = useState<SettingsTab>('Company');
   const [saved, setSaved] = useState(false);
-  const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
+  const [pages, setPages] = useState<PageConfig[]>(cmsPages);
   const [activePage, setActivePage] = useState<PageKey>('home');
+  const [branding, setBranding] = useState<BrandingConfig>(cmsBranding);
+
+  // Sync from CMS context when it loads
+  React.useEffect(() => {
+    setPages(cmsPages);
+    setBranding(cmsBranding);
+  }, [cmsPages, cmsBranding]);
 
   const handleSave = () => {
+    saveAll(pages, branding);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2500);
   };
 
-  const currentPage = pages.find((p) => p.key === activePage)!;
+  const currentPage = pages.find((p) => p.key === activePage) || pages[0];
   const updatePage = (updated: PageConfig) => setPages(pages.map((p) => p.key === updated.key ? updated : p));
 
   return (
@@ -419,11 +284,14 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage all site content and configuration</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage all site content and configuration
+            {lastSaved && <span className="ml-2 text-xs text-primary/60">· Last saved: {lastSaved}</span>}
+          </p>
         </div>
         <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
           <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
-          {saved ? 'Saved!' : 'Save Changes'}
+          {saved ? 'Saved & Live!' : 'Save Changes'}
         </button>
       </div>
 
@@ -441,8 +309,8 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <SectionHeader title="Company Information" description="Basic company details and contact information" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputField label="Company Name" value="LuxEstate" />
-              <InputField label="Tagline" value="Luxury Real Estate in Dubai" />
+              <InputField label="Company Name" value={branding.company_name} onChange={(v) => setBranding({ ...branding, company_name: v })} />
+              <InputField label="Tagline" value={branding.tagline} onChange={(v) => setBranding({ ...branding, tagline: v })} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <InputField label="Phone" value="+971 50 886 2683" />
@@ -457,15 +325,13 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <SectionHeader title="Brand Identity" description="Logo, colors, and typography settings" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ColorField label="Primary Color (Gold)" value="#C9A84C" />
-              <ColorField label="Accent Color" value="#B8963E" />
-              <ColorField label="Background Color" value="#0A0A0A" />
-              <ColorField label="Foreground Color" value="#F5F0E8" />
+              <ColorField label="Primary Color (Gold)" value={branding.primary_color} onChange={(v) => setBranding({ ...branding, primary_color: v })} />
+              <ColorField label="Accent Color" value={branding.accent_color} onChange={(v) => setBranding({ ...branding, accent_color: v })} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Font Family</label>
-                <select className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+                <select value={branding.font_family} onChange={(e) => setBranding({ ...branding, font_family: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
                   <option>Plus Jakarta Sans</option><option>DM Sans</option><option>Manrope</option><option>Cabinet Grotesk</option>
                 </select>
               </div>
@@ -501,8 +367,7 @@ export default function SettingsPage() {
 
         {activeTab === 'Pages' && (
           <div>
-            <SectionHeader title="Page CMS Settings" description="Configure content, sections, and SEO for each page individually" />
-            {/* Page selector */}
+            <SectionHeader title="Page CMS Settings" description="Configure content, sections, and SEO for each page. Changes are live on the frontend after saving." />
             <div className="flex flex-wrap gap-1 border border-border overflow-hidden mb-6 w-fit">
               {pages.map((p) => (
                 <button key={p.key} onClick={() => setActivePage(p.key)} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activePage === p.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -510,7 +375,6 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            {/* Page editor */}
             <div className="bg-card border border-border p-5">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-1.5 h-1.5 bg-primary" />

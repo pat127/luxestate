@@ -3,8 +3,11 @@
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { useCMSPage } from '@/contexts/CMSContext';
+import Link from 'next/link';
 
 export default function ProjectsHero() {
+  const page = useCMSPage('projects');
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,7 +34,6 @@ export default function ProjectsHero() {
           priority
           className="object-cover"
           sizes="100vw" />
-
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/75 via-background/25 to-transparent" />
       </div>
@@ -40,29 +42,40 @@ export default function ProjectsHero() {
         <div ref={contentRef} className="flex flex-col gap-6">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
             <span className="h-px w-10 bg-primary" />
-            New Developments
+            {page.hero_subheadline || 'New Developments'}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            The Future<br />
-            <span className="text-gold-shimmer">Being Built Today</span>
+            {page.hero_headline || 'The Future Being Built Today'}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-            Off-plan acquisitions and new developments from the world's most celebrated architects — secured before completion, at pre-market pricing.
+            {page.hero_description || 'Off-plan acquisitions and new developments from the world\'s most celebrated architects — secured before completion, at pre-market pricing.'}
           </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            {page.cta_primary_text && (
+              <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
+                {page.cta_primary_text}
+              </Link>
+            )}
+            {page.cta_secondary_text && (
+              <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
+                {page.cta_secondary_text}
+              </Link>
+            )}
+          </div>
           <div className="flex flex-wrap gap-6 pt-2">
             {[
-            { icon: 'BuildingOffice2Icon', label: '18 Active Projects' },
-            { icon: 'ClockIcon', label: '2026–2028 Completions' },
-            { icon: 'LockClosedIcon', label: 'Priority Access Available' }].
-            map((stat) =>
-            <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
+              { icon: 'BuildingOffice2Icon', label: '18 Active Projects' },
+              { icon: 'ClockIcon', label: '2026–2028 Completions' },
+              { icon: 'LockClosedIcon', label: 'Priority Access Available' },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
                 <Icon name={stat.icon as Parameters<typeof Icon>[0]['name']} size={14} className="text-primary" />
                 {stat.label}
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 }

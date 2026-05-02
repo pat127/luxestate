@@ -1,19 +1,21 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { useCMSPage } from '@/contexts/CMSContext';
+import Link from 'next/link';
 
 export default function HeroSection() {
-  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const page = useCMSPage('home');
+  const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const els = [headlineRef.current, subRef.current, searchRef.current, statsRef.current];
-    els.forEach((el, i) => {
+    const els = [headlineRef?.current, subRef?.current, searchRef?.current, statsRef?.current];
+    els?.forEach((el, i) => {
       if (!el) return;
       el.style.opacity = '0';
       el.style.transform = 'translateY(40px)';
@@ -39,33 +41,25 @@ export default function HeroSection() {
           priority
           className="object-cover"
           sizes="100vw" />
-
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />
       </div>
-
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full pb-20 pt-40">
         {/* Eyebrow */}
-        <div ref={headlineRef as React.RefObject<HTMLDivElement>} className="mb-8">
+        <div ref={headlineRef} className="mb-8">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-6">
             <span className="h-px w-10 bg-primary" />
             Curated Luxury Properties
             <span className="h-px w-10 bg-primary" />
           </span>
-
           <h1 className="text-hero text-foreground max-w-4xl">
-            Where Architecture<br />
-            <span className="flex items-center gap-6">
-              <span className="h-px w-20 md:w-32 bg-foreground/30 flex-shrink-0" />
-              Becomes
-            </span>
-            <span className="text-gold-shimmer">Legacy</span>
+            {page?.hero_headline || 'Where Architecture Becomes Legacy'}
           </h1>
         </div>
 
         <p ref={subRef} className="text-foreground/70 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
-          Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.
+          {page?.hero_description || 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.'}
         </p>
 
         {/* Inline Search Bar */}
@@ -77,7 +71,6 @@ export default function HeroSection() {
                 type="text"
                 placeholder="Location, neighborhood, ZIP..."
                 className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
-
             </div>
             <select className="bg-background border border-border text-foreground text-sm px-4 py-3 outline-none focus:border-primary transition-colors cursor-pointer">
               <option value="">Property Type</option>
@@ -99,27 +92,42 @@ export default function HeroSection() {
           </div>
         </div>
 
+        {/* CTA Buttons */}
+        {(page?.cta_primary_text || page?.cta_secondary_text) && (
+          <div className="flex flex-wrap gap-4 mb-12">
+            {page?.cta_primary_text && (
+              <Link href={page?.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
+                {page?.cta_primary_text}
+              </Link>
+            )}
+            {page?.cta_secondary_text && (
+              <Link href={page?.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
+                {page?.cta_secondary_text}
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* Stats Bar */}
         <div ref={statsRef} className="flex flex-wrap gap-x-12 gap-y-6">
           {[
-          { value: '$4.2B', label: 'Total Transactions' },
-          { value: '340+', label: 'Properties Sold' },
-          { value: '18', label: 'Years of Excellence' },
-          { value: '97%', label: 'Client Satisfaction' }].
-          map((stat) =>
-          <div key={stat.label} className="flex flex-col gap-1">
-              <span className="text-2xl md:text-3xl font-bold text-primary tracking-tight">{stat.value}</span>
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</span>
+            { value: '$4.2B', label: 'Total Transactions' },
+            { value: '340+', label: 'Properties Sold' },
+            { value: '18', label: 'Years of Excellence' },
+            { value: '97%', label: 'Client Satisfaction' },
+          ]?.map((stat) => (
+            <div key={stat?.label} className="flex flex-col gap-1">
+              <span className="text-2xl md:text-3xl font-bold text-primary tracking-tight">{stat?.value}</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{stat?.label}</span>
             </div>
-          )}
+          ))}
         </div>
       </div>
-
       {/* Scroll Indicator */}
       <div className="absolute bottom-8 right-10 z-10 flex flex-col items-center gap-3 scroll-indicator">
         <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground rotate-90 origin-center mb-4">Scroll</span>
         <Icon name="ChevronDownIcon" size={18} className="text-primary" />
       </div>
-    </section>);
-
+    </section>
+  );
 }

@@ -3,8 +3,11 @@
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { useCMSPage } from '@/contexts/CMSContext';
+import Link from 'next/link';
 
 export default function ResidentialHero() {
+  const page = useCMSPage('residential');
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +35,6 @@ export default function ResidentialHero() {
           priority
           className="object-cover"
           sizes="100vw" />
-
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/20 to-transparent" />
       </div>
@@ -41,29 +43,40 @@ export default function ResidentialHero() {
         <div ref={contentRef} className="flex flex-col gap-6">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
             <span className="h-px w-10 bg-primary" />
-            Residential Collection
+            {page.hero_subheadline || 'Residential Collection'}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            Private Residences<br />
-            <span className="text-gold-shimmer">Worth Living For</span>
+            {page.hero_headline || 'Private Residences Worth Living For'}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-            Penthouses, estates, villas, and townhouses — each selected for architectural distinction and lifestyle excellence.
+            {page.hero_description || 'Penthouses, estates, villas, and townhouses — each selected for architectural distinction and lifestyle excellence.'}
           </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            {page.cta_primary_text && (
+              <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
+                {page.cta_primary_text}
+              </Link>
+            )}
+            {page.cta_secondary_text && (
+              <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
+                {page.cta_secondary_text}
+              </Link>
+            )}
+          </div>
           <div className="flex flex-wrap gap-6 pt-2">
             {[
-            { icon: 'HomeIcon', label: '120+ Active Listings' },
-            { icon: 'MapPinIcon', label: '12 Prime Markets' },
-            { icon: 'StarIcon', label: '70% Off-Market' }].
-            map((stat) =>
-            <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
+              { icon: 'HomeIcon', label: '120+ Active Listings' },
+              { icon: 'MapPinIcon', label: '12 Prime Markets' },
+              { icon: 'StarIcon', label: '70% Off-Market' },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
                 <Icon name={stat.icon as Parameters<typeof Icon>[0]['name']} size={14} className="text-primary" />
                 {stat.label}
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 }
