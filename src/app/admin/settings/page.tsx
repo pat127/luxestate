@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useCMS, PageConfig, PageKey, BrandingConfig } from '@/contexts/CMSContext';
+import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 
-type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields';
+type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
 
-const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields'];
+const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields', 'Communities'];
 
 interface FieldOption { id: number; value: string; }
 interface PropertyFieldGroup {
@@ -255,6 +256,349 @@ function PropertyFieldsManager() {
   );
 }
 
+// ─── Communities Manager ──────────────────────────────────────────────────────
+const STORAGE_KEY = 'luxestate_communities';
+
+function CommunitiesManager() {
+  const [locations, setLocations] = useState<UAELocation[]>([]);
+  const [selectedEmirate, setSelectedEmirate] = useState('Dubai');
+  const [selectedArea, setSelectedArea] = useState('');
+  const [newCommunity, setNewCommunity] = useState('');
+  const [newArea, setNewArea] = useState('');
+  const [newEmirate, setNewEmirate] = useState('');
+  const [editingCommunity, setEditingCommunity] = useState<{ area: string; idx: number } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [activeView, setActiveView] = useState<'communities' | 'areas' | 'emirates'>('communities');
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    if (stored) {
+      try { setLocations(JSON.parse(stored)); } catch { setLocations(UAE_LOCATIONS); }
+    } else {
+      setLocations(UAE_LOCATIONS);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (locations.length > 0) {
+      const emirateAreas = locations.filter((l) => l.emirate === selectedEmirate);
+      if (emirateAreas.length > 0 && !emirateAreas.find((l) => l.area === selectedArea)) {
+        setSelectedArea(emirateAreas[0].area);
+      }
+    }
+  }, [selectedEmirate, locations]);
+
+  const saveLocations = (updated: UAELocation[]) => {
+    setLocations(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const emirates = [...new Set(locations.map((l) => l.emirate))];
+  const areas = locations.filter((l) => l.emirate === selectedEmirate).map((l) => l.area);
+  const currentLocation = locations.find((l) => l.emirate === selectedEmirate && l.area === selectedArea);
+
+  const addCommunity = () => {
+    if (!newCommunity.trim() || !selectedArea) return;
+    const updated = locations.map((l) =>
+      l.emirate === selectedEmirate && l.area === selectedArea
+        ? { ...l, communities: [...l.communities, newCommunity.trim()] }
+        : l
+    );
+    saveLocations(updated);
+    setNewCommunity('');
+  };
+
+  const removeCommunity = (idx: number) => {
+    const updated = locations.map((l) =>
+      l.emirate === selectedEmirate && l.area === selectedArea
+        ? { ...l, communities: l.communities.filter((_, i) => i !== idx) }
+        : l
+    );
+    saveLocations(updated);
+  };
+
+  const saveEditCommunity = (idx: number) => {
+    if (!editValue.trim()) return;
+    const updated = locations.map((l) =>
+      l.emirate === selectedEmirate && l.area === selectedArea
+        ? { ...l, communities: l.communities.map((c, i) => (i === idx ? editValue.trim() : c)) }
+        : l
+    );
+    saveLocations(updated);
+    setEditingCommunity(null);
+  };
+
+  const addArea = () => {
+    if (!newArea.trim()) return;
+    const exists = locations.find((l) => l.emirate === selectedEmirate && l.area === newArea.trim());
+    if (exists) return;
+    const updated = [...locations, { emirate: selectedEmirate, area: newArea.trim(), communities: [] }];
+    saveLocations(updated);
+    setSelectedArea(newArea.trim());
+    setNewArea('');
+  };
+
+  const removeArea = (area: string) => {
+    const updated = locations.filter((l) => !(l.emirate === selectedEmirate && l.area === area));
+    saveLocations(updated);
+    if (selectedArea === area) {
+      const remaining = updated.filter((l) => l.emirate === selectedEmirate);
+      setSelectedArea(remaining[0]?.area || '');
+    }
+  };
+
+  const addEmirate = () => {
+    if (!newEmirate.trim()) return;
+    const exists = locations.find((l) => l.emirate === newEmirate.trim());
+    if (exists) return;
+    const updated = [...locations, { emirate: newEmirate.trim(), area: 'General', communities: [] }];
+    saveLocations(updated);
+    setSelectedEmirate(newEmirate.trim());
+    setNewEmirate('');
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <div className="w-1 h-5 bg-primary" />
+            UAE Communities Manager
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1 ml-3">
+            Manage all emirates, areas, and communities. Changes are saved instantly and used across all property/project forms.
+          </p>
+        </div>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+            <Icon name="CheckCircleIcon" size={14} /> Saved
+          </span>
+        )}
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-border mb-5">
+        {(['communities', 'areas', 'emirates'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setActiveView(v)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeView === v ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            {v === 'communities' ? 'Communities' : v === 'areas' ? 'Areas / Districts' : 'Emirates'}
+          </button>
+        ))}
+      </div>
+
+      {activeView === 'communities' && (
+        <div className="flex gap-6">
+          {/* Emirate selector */}
+          <div className="w-36 flex-shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Emirate</p>
+            <div className="space-y-1">
+              {emirates.map((em) => (
+                <button
+                  key={em}
+                  onClick={() => setSelectedEmirate(em)}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors border ${selectedEmirate === em ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/2'}`}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Area selector */}
+          <div className="w-52 flex-shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Area / District</p>
+            <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+              {areas.map((area) => {
+                const loc = locations.find((l) => l.emirate === selectedEmirate && l.area === area);
+                return (
+                  <button
+                    key={area}
+                    onClick={() => setSelectedArea(area)}
+                    className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors border ${selectedArea === area ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/2'}`}
+                  >
+                    <div>{area}</div>
+                    <div className="text-[10px] opacity-60 mt-0.5">{loc?.communities.length || 0} communities</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Communities list */}
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Communities in {selectedArea}
+              </p>
+              <span className="text-xs text-muted-foreground">{currentLocation?.communities.length || 0} total</span>
+            </div>
+            <div className="space-y-1.5 mb-4 max-h-72 overflow-y-auto pr-1">
+              {currentLocation?.communities.map((c, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2.5 bg-card border border-border">
+                  {editingCommunity?.area === selectedArea && editingCommunity?.idx === idx ? (
+                    <>
+                      <input
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && saveEditCommunity(idx)}
+                        className="flex-1 bg-input border border-primary/50 px-2 py-1 text-sm text-foreground focus:outline-none"
+                        autoFocus
+                      />
+                      <button onClick={() => saveEditCommunity(idx)} className="text-xs text-primary hover:underline px-2">Save</button>
+                      <button onClick={() => setEditingCommunity(null)} className="text-xs text-muted-foreground hover:text-foreground px-2">Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-primary/40 flex-shrink-0" />
+                      <span className="flex-1 text-sm text-foreground">{c}</span>
+                      <button
+                        onClick={() => { setEditingCommunity({ area: selectedArea, idx }); setEditValue(c); }}
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Icon name="PencilIcon" size={12} />
+                      </button>
+                      <button onClick={() => removeCommunity(idx)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors">
+                        <Icon name="TrashIcon" size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {(!currentLocation || currentLocation.communities.length === 0) && (
+                <p className="text-xs text-muted-foreground py-4 text-center">No communities yet. Add one below.</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={newCommunity}
+                onChange={(e) => setNewCommunity(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addCommunity()}
+                placeholder="Add new community..."
+                className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+              <button
+                onClick={addCommunity}
+                disabled={!newCommunity.trim()}
+                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeView === 'areas' && (
+        <div className="flex gap-6">
+          <div className="w-36 flex-shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Emirate</p>
+            <div className="space-y-1">
+              {emirates.map((em) => (
+                <button
+                  key={em}
+                  onClick={() => setSelectedEmirate(em)}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors border ${selectedEmirate === em ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/2'}`}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Areas in {selectedEmirate}</p>
+              <span className="text-xs text-muted-foreground">{areas.length} areas</span>
+            </div>
+            <div className="space-y-1.5 mb-4 max-h-80 overflow-y-auto pr-1">
+              {areas.map((area) => {
+                const loc = locations.find((l) => l.emirate === selectedEmirate && l.area === area);
+                return (
+                  <div key={area} className="flex items-center gap-2 p-2.5 bg-card border border-border">
+                    <div className="w-2 h-2 bg-primary/40 flex-shrink-0" />
+                    <span className="flex-1 text-sm text-foreground">{area}</span>
+                    <span className="text-xs text-muted-foreground">{loc?.communities.length || 0} communities</span>
+                    <button
+                      onClick={() => removeArea(area)}
+                      className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                    >
+                      <Icon name="TrashIcon" size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={newArea}
+                onChange={(e) => setNewArea(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addArea()}
+                placeholder={`Add new area in ${selectedEmirate}...`}
+                className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+              <button
+                onClick={addArea}
+                disabled={!newArea.trim()}
+                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                Add Area
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeView === 'emirates' && (
+        <div className="max-w-lg">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">All Emirates</p>
+            <span className="text-xs text-muted-foreground">{emirates.length} emirates</span>
+          </div>
+          <div className="space-y-1.5 mb-4">
+            {emirates.map((em) => {
+              const emAreas = locations.filter((l) => l.emirate === em);
+              const totalCommunities = emAreas.reduce((acc, l) => acc + l.communities.length, 0);
+              return (
+                <div key={em} className="flex items-center gap-2 p-2.5 bg-card border border-border">
+                  <div className="w-2 h-2 bg-primary/40 flex-shrink-0" />
+                  <span className="flex-1 text-sm text-foreground font-medium">{em}</span>
+                  <span className="text-xs text-muted-foreground">{emAreas.length} areas · {totalCommunities} communities</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={newEmirate}
+              onChange={(e) => setNewEmirate(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addEmirate()}
+              placeholder="Add new emirate..."
+              className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            />
+            <button
+              onClick={addEmirate}
+              disabled={!newEmirate.trim()}
+              className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50"
+            >
+              Add Emirate
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Adding a new emirate creates it with a default "General" area. Switch to the Areas tab to add more areas.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { pages: cmsPages, branding: cmsBranding, saveAll, lastSaved } = useCMS();
@@ -444,6 +788,7 @@ export default function SettingsPage() {
         )}
 
         {activeTab === 'Property Fields' && <PropertyFieldsManager />}
+        {activeTab === 'Communities' && <CommunitiesManager />}
       </div>
     </div>
   );
