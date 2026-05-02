@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import { useRouter } from 'next/navigation';
 import PinLocationMap from '@/components/ui/PinLocationMap';
+import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 
 interface Project {
   id: number;
@@ -94,12 +95,15 @@ export default function ProjectsPage() {
 
   // Location tab state
   const [locationSearch, setLocationSearch] = useState('');
+  const [emirate, setEmirate] = useState('Dubai');
   const [locationArea, setLocationArea] = useState('');
   const [community, setCommunity] = useState('');
   const [subCommunity, setSubCommunity] = useState('');
   const [fullAddress, setFullAddress] = useState('');
   const [latitude, setLatitude] = useState('25.0657');
   const [longitude, setLongitude] = useState('55.1713');
+  const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
+  const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
 
   // Payment tab state
   const [paymentPlanSummary, setPaymentPlanSummary] = useState('');
@@ -195,8 +199,9 @@ export default function ProjectsPage() {
     setBasicForm(emptyBasicForm);
     setTotalUnits(''); setAvailableUnits(''); setMinBedrooms('0'); setMaxBedrooms('6');
     setSizeRange(''); setSelectedPropertyTypes([]); setSelectedAmenities([]); setUnitTypes([]);
-    setLocationSearch(''); setLocationArea(''); setCommunity(''); setSubCommunity('');
+    setLocationSearch(''); setEmirate('Dubai'); setLocationArea(''); setCommunity(''); setSubCommunity('');
     setFullAddress(''); setLatitude('25.0657'); setLongitude('55.1713');
+    setAvailableAreas(getAreasForEmirate('Dubai')); setAvailableCommunities([]);
     setPaymentPlanSummary(''); setPostHandoverPlan(''); setMilestones([]);
     setProjectImages([]); setFloorPlans([]); setMasterPlanUrl(''); setVideoUrl(''); setVirtualTourUrl('');
     setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
@@ -223,6 +228,8 @@ export default function ProjectsPage() {
       published: project.published || false,
     });
     setLocationArea(project.location);
+    setEmirate('Dubai');
+    setAvailableAreas(getAreasForEmirate('Dubai'));
     setActiveTab('basic');
     setShowModal(true);
   };
@@ -558,23 +565,58 @@ export default function ProjectsPage() {
               {/* LOCATION TAB */}
               {activeTab === 'location' && (
                 <div className="space-y-4">
+                  {/* Emirate */}
                   <div>
-                    <label className={labelCls}>Search Location (Optional)</label>
-                    <div className="flex gap-2">
-                      <input className={`${inputCls} flex-1`} placeholder="Search for a place in Dubai..." value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} />
-                      <button type="button" className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-sm text-[#aaa] hover:text-white hover:border-[#555] transition-colors whitespace-nowrap">
-                        <Icon name="MagnifyingGlassIcon" size={14} />Search
-                      </button>
-                    </div>
+                    <label className={labelCls}>Emirate *</label>
+                    <select
+                      className={inputCls}
+                      value={emirate}
+                      onChange={(e) => {
+                        setEmirate(e.target.value);
+                        const areas = getAreasForEmirate(e.target.value);
+                        setAvailableAreas(areas);
+                        setLocationArea('');
+                        setCommunity('');
+                        setAvailableCommunities([]);
+                      }}
+                    >
+                      {UAE_EMIRATES.map((em) => (
+                        <option key={em} value={em}>{em}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelCls}>Location/Area *</label>
-                      <input className={inputCls} placeholder="e.g., Dubai Marina" value={locationArea} onChange={(e) => setLocationArea(e.target.value)} />
+                      <label className={labelCls}>Area / District *</label>
+                      <select
+                        className={inputCls}
+                        value={locationArea}
+                        onChange={(e) => {
+                          setLocationArea(e.target.value);
+                          const comms = getCommunitiesForArea(e.target.value);
+                          setAvailableCommunities(comms);
+                          setCommunity('');
+                        }}
+                      >
+                        <option value="">Select area...</option>
+                        {availableAreas.map((area) => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className={labelCls}>Community *</label>
-                      <input className={inputCls} placeholder="e.g., JBR" value={community} onChange={(e) => setCommunity(e.target.value)} />
+                      <select
+                        className={inputCls}
+                        value={community}
+                        onChange={(e) => setCommunity(e.target.value)}
+                        disabled={availableCommunities.length === 0}
+                      >
+                        <option value="">Select community...</option>
+                        {availableCommunities.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

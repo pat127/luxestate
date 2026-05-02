@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import PinLocationMap from '@/components/ui/PinLocationMap';
+import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 
 type PropertyType = 'All' | 'Residential' | 'Commercial';
 type ModalTab = 'basic' | 'dimensions' | 'features' | 'location' | 'media';
@@ -42,6 +43,14 @@ interface PropertyFormData {
   areaSqFt: string;
   builtUpArea: string;
   plotArea: string;
+  // Villa-specific
+  buaVilla: string;
+  plotAreaVilla: string;
+  // Land-specific
+  gfa: string;
+  plotAreaLand: string;
+  landUse: string;
+  heightLimit: string;
   // Features
   furnishing: string;
   view: string;
@@ -54,6 +63,7 @@ interface PropertyFormData {
   featuredProperty: boolean;
   published: boolean;
   // Location
+  emirate: string;
   locationArea: string;
   community: string;
   fullAddress: string;
@@ -81,6 +91,12 @@ const defaultFormData: PropertyFormData = {
   areaSqFt: '',
   builtUpArea: '',
   plotArea: '',
+  buaVilla: '',
+  plotAreaVilla: '',
+  gfa: '',
+  plotAreaLand: '',
+  landUse: '',
+  heightLimit: '',
   furnishing: '',
   view: '',
   balcony: false,
@@ -91,6 +107,7 @@ const defaultFormData: PropertyFormData = {
   amenities: '',
   featuredProperty: false,
   published: false,
+  emirate: 'Dubai',
   locationArea: '',
   community: '',
   fullAddress: '',
@@ -127,16 +144,9 @@ export default function PropertiesPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showModal, setShowModal] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [activeTab, setActiveTab] = useState<ModalTab>('basic');
-  const [formData, setFormData] = useState<any>({
-    title: '', referenceNumber: '', availability: 'Available', completion: 'Ready',
-    description: '', propertyType: 'Apartment', listingType: 'For Sale', priceAED: '',
-    pricePerSqFt: '', serviceCharge: '', bedrooms: '', bathrooms: '', areaSqFt: '',
-    builtUpArea: '', plotArea: '', furnishing: '', view: '', balcony: false, maidRoom: false,
-    studyRoom: false, privatePool: false, privateGarden: false, amenities: '',
-    featuredProperty: false, published: false, locationArea: '', community: '',
-    fullAddress: '', latitude: '', longitude: '', imageUrls: '', videoUrl: '', virtualTourUrl: '',
-  });
+  const [formData, setFormData] = useState<PropertyFormData>(defaultFormData);
   const [hasDraft, setHasDraft] = useState(false);
   const [draftTime, setDraftTime] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -149,6 +159,10 @@ export default function PropertiesPage() {
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [propertyList, setPropertyList] = useState(properties);
+
+  // UAE location cascading
+  const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
+  const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
 
   // Check for existing draft on mount
   useEffect(() => {
@@ -193,8 +207,43 @@ export default function PropertiesPage() {
     }
   }, [formData.priceAED, formData.areaSqFt]);
 
+  // Update areas when emirate changes
+  useEffect(() => {
+    const areas = getAreasForEmirate(formData.emirate);
+    setAvailableAreas(areas);
+    setAvailableCommunities([]);
+  }, [formData.emirate]);
+
+  // Update communities when area changes
+  useEffect(() => {
+    if (formData.locationArea) {
+      const comms = getCommunitiesForArea(formData.locationArea);
+      setAvailableCommunities(comms);
+    } else {
+      setAvailableCommunities([]);
+    }
+  }, [formData.locationArea]);
+
   const handleOpenModal = () => {
-    setFormData({ title: '', referenceNumber: '', availability: 'Available', completion: 'Ready', description: '', propertyType: 'Apartment', listingType: 'For Sale', priceAED: '', pricePerSqFt: '', serviceCharge: '', bedrooms: '', bathrooms: '', areaSqFt: '', builtUpArea: '', plotArea: '', furnishing: '', view: '', balcony: false, maidRoom: false, studyRoom: false, privatePool: false, privateGarden: false, amenities: '', featuredProperty: false, published: false, locationArea: '', community: '', fullAddress: '', latitude: '', longitude: '', imageUrls: '', videoUrl: '', virtualTourUrl: '' });
+    setEditingProperty(null);
+    setFormData(defaultFormData);
+    setActiveTab('basic');
+    setShowModal(true);
+  };
+
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setFormData({
+      ...defaultFormData,
+      title: property.name,
+      locationArea: property.location,
+      priceAED: property.price.replace('AED ', '').replace(/,/g, ''),
+      propertyType: property.type === 'Residential' ? 'Apartment' : 'Office',
+      availability: property.status,
+      bedrooms: property.beds?.toString() || '',
+      bathrooms: property.baths?.toString() || '',
+      areaSqFt: property.sqft?.replace(/,/g, '') || '',
+    });
     setActiveTab('basic');
     setShowModal(true);
   };
@@ -227,6 +276,7 @@ export default function PropertiesPage() {
 
   const handleClose = () => {
     setShowModal(false);
+    setEditingProperty(null);
   };
 
   const handleChange = useCallback((field: keyof PropertyFormData, value: string | boolean) => {
@@ -251,12 +301,30 @@ export default function PropertiesPage() {
   };
 
   const handleCreateProperty = () => {
-    // Handle property creation
+    if (editingProperty) {
+      setPropertyList((prev) =>
+        prev.map((p) =>
+          p.id === editingProperty.id
+            ? {
+                ...p,
+                name: formData.title || p.name,
+                location: formData.locationArea || p.location,
+                price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
+                status: formData.availability || p.status,
+                beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
+                baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
+                sqft: formData.areaSqFt || p.sqft,
+              }
+            : p
+        )
+      );
+    }
     if (typeof window !== 'undefined') {
       localStorage.removeItem(DRAFT_KEY);
     }
     setHasDraft(false);
     setShowModal(false);
+    setEditingProperty(null);
   };
 
   const handleShareProperty = (property: Property) => {
@@ -293,7 +361,6 @@ export default function PropertiesPage() {
           .spec { text-align: center; }
           .spec-val { font-size: 20px; font-weight: bold; color: #1a1a1a; }
           .spec-lbl { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-          .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #c9a84c; border-bottom: 1px solid #e5e0d5; padding-bottom: 8px; margin-bottom: 16px; margin-top: 30px; }
           .agent-section { background: #1a1a1a; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
           .agent-name { font-size: 16px; font-weight: bold; color: #c9a84c; }
           .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e0d5; font-size: 11px; color: #aaa; }
@@ -366,7 +433,6 @@ export default function PropertiesPage() {
   };
 
   const handleBulkPublish = (publish: boolean) => {
-    // In a real app this would update published state; here we just clear selection
     clearSelection();
   };
 
@@ -393,6 +459,9 @@ export default function PropertiesPage() {
   const labelClass = 'block text-xs font-medium text-gray-300 mb-1.5';
   const selectClass =
     'w-full bg-[#1a1f2e] border border-[#2a3040] text-sm text-white px-3 py-2.5 focus:outline-none focus:border-[#c9a84c]/50 transition-colors appearance-none cursor-pointer';
+
+  const isVilla = formData.propertyType === 'Villa';
+  const isLand = formData.propertyType === 'Land';
 
   return (
     <div className="p-6">
@@ -617,10 +686,18 @@ export default function PropertiesPage() {
                       >
                         <Icon name="EyeIcon" size={13} />
                       </button>
-                      <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                        onClick={() => handleEditProperty(property)}
+                        title="Edit"
+                        className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors"
+                      >
                         <Icon name="PencilIcon" size={13} />
                       </button>
-                      <button className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors">
+                      <button
+                        onClick={() => setPropertyList(propertyList.filter((p) => p.id !== property.id))}
+                        title="Delete"
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                      >
                         <Icon name="TrashIcon" size={13} />
                       </button>
                     </div>
@@ -701,10 +778,18 @@ export default function PropertiesPage() {
                       >
                         <Icon name="EyeIcon" size={13} />
                       </button>
-                      <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                        onClick={() => handleEditProperty(p)}
+                        title="Edit"
+                        className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors"
+                      >
                         <Icon name="PencilIcon" size={13} />
                       </button>
-                      <button className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors">
+                      <button
+                        onClick={() => setPropertyList(propertyList.filter((pr) => pr.id !== p.id))}
+                        title="Delete"
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                      >
                         <Icon name="TrashIcon" size={13} />
                       </button>
                     </div>
@@ -817,14 +902,16 @@ export default function PropertiesPage() {
         </div>
       )}
 
-      {/* Add New Property Modal */}
+      {/* Add/Edit Property Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={handleClose} />
           <div className="relative w-full max-w-2xl bg-[#12151f] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a3040]">
-              <h2 className="text-lg font-bold text-white">Add New Property</h2>
+              <h2 className="text-lg font-bold text-white">
+                {editingProperty ? `Edit Property — ${editingProperty.name}` : 'Add New Property'}
+              </h2>
               <button
                 onClick={handleClose}
                 className="text-gray-400 hover:text-white transition-colors p-1"
@@ -834,7 +921,7 @@ export default function PropertiesPage() {
             </div>
 
             {/* Draft Banner */}
-            {hasDraft && (
+            {hasDraft && !editingProperty && (
               <div className="mx-6 mt-4 flex items-center justify-between bg-[#1a2035] border border-[#2a3a5c] px-4 py-2.5">
                 <div className="flex items-center gap-2 text-sm text-blue-300">
                   <Icon name="DocumentTextIcon" size={15} className="text-blue-400" />
@@ -931,11 +1018,7 @@ export default function PropertiesPage() {
                           <option>Rented</option>
                           <option>Off Market</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -960,11 +1043,7 @@ export default function PropertiesPage() {
                           <option>2026</option>
                           <option>2027</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -983,7 +1062,7 @@ export default function PropertiesPage() {
                       </button>
                     </div>
                     <textarea
-                      placeholder="Detailed property description... or click AI Generate to create one automatically"
+                      placeholder="Detailed property description..."
                       value={formData.description}
                       onChange={(e) => handleChange('description', e.target.value)}
                       rows={4}
@@ -1012,11 +1091,7 @@ export default function PropertiesPage() {
                           <option>Warehouse</option>
                           <option>Land</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                     <div>
@@ -1032,11 +1107,7 @@ export default function PropertiesPage() {
                           <option>Short Term</option>
                           <option>Off Plan</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -1086,68 +1157,114 @@ export default function PropertiesPage() {
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon name="HomeIcon" size={16} className="text-[#c9a84c]" />
-                    <h3 className="text-base font-semibold text-white">Residential Dimensions</h3>
+                    <h3 className="text-base font-semibold text-white">
+                      {isLand ? 'Land Dimensions' : isVilla ? 'Villa Dimensions' : 'Property Dimensions'}
+                    </h3>
                   </div>
 
-                  {/* Bedrooms, Bathrooms, Area */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className={labelClass}>Bedrooms</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={formData.bedrooms}
-                        onChange={(e) => handleChange('bedrooms', e.target.value)}
-                        className={inputClass}
-                        min="0"
-                      />
+                  {/* Standard fields for non-land types */}
+                  {!isLand && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelClass}>Bedrooms</label>
+                        <input type="number" placeholder="0" value={formData.bedrooms} onChange={(e) => handleChange('bedrooms', e.target.value)} className={inputClass} min="0" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Bathrooms</label>
+                        <input type="number" placeholder="0" value={formData.bathrooms} onChange={(e) => handleChange('bathrooms', e.target.value)} className={inputClass} min="0" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Area (sq ft) *</label>
+                        <input type="text" placeholder="0" value={formData.areaSqFt} onChange={(e) => handleChange('areaSqFt', e.target.value)} className={inputClass} />
+                      </div>
                     </div>
-                    <div>
-                      <label className={labelClass}>Bathrooms</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={formData.bathrooms}
-                        onChange={(e) => handleChange('bathrooms', e.target.value)}
-                        className={inputClass}
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Area (sq ft) *</label>
-                      <input
-                        type="text"
-                        placeholder="0"
-                        value={formData.areaSqFt}
-                        onChange={(e) => handleChange('areaSqFt', e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Built-up Area + Plot Area */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>Built-up Area (sq ft)</label>
-                      <input
-                        type="text"
-                        placeholder="0"
-                        value={formData.builtUpArea}
-                        onChange={(e) => handleChange('builtUpArea', e.target.value)}
-                        className={inputClass}
-                      />
+                  {/* Villa-specific fields */}
+                  {isVilla && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 py-2 px-3 bg-[#c9a84c]/10 border border-[#c9a84c]/20">
+                        <Icon name="HomeModernIcon" size={14} className="text-[#c9a84c]" />
+                        <span className="text-xs font-semibold text-[#c9a84c] uppercase tracking-wider">Villa Specific Fields</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>BUA — Built-Up Area (sq ft) *</label>
+                          <input type="text" placeholder="e.g., 5000" value={formData.buaVilla} onChange={(e) => handleChange('buaVilla', e.target.value)} className={inputClass} />
+                          <p className="text-[10px] text-gray-500 mt-1">Total built-up area including all floors</p>
+                        </div>
+                        <div>
+                          <label className={labelClass}>Plot Area (sq ft) *</label>
+                          <input type="text" placeholder="e.g., 8000" value={formData.plotAreaVilla} onChange={(e) => handleChange('plotAreaVilla', e.target.value)} className={inputClass} />
+                          <p className="text-[10px] text-gray-500 mt-1">Total land/plot area</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className={labelClass}>Plot Area (sq ft)</label>
-                      <input
-                        type="text"
-                        placeholder="0"
-                        value={formData.plotArea}
-                        onChange={(e) => handleChange('plotArea', e.target.value)}
-                        className={inputClass}
-                      />
+                  )}
+
+                  {/* Land-specific fields */}
+                  {isLand && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 py-2 px-3 bg-[#c9a84c]/10 border border-[#c9a84c]/20">
+                        <Icon name="MapIcon" size={14} className="text-[#c9a84c]" />
+                        <span className="text-xs font-semibold text-[#c9a84c] uppercase tracking-wider">Land Specific Fields</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>GFA — Gross Floor Area (sq ft)</label>
+                          <input type="text" placeholder="e.g., 15000" value={formData.gfa} onChange={(e) => handleChange('gfa', e.target.value)} className={inputClass} />
+                          <p className="text-[10px] text-gray-500 mt-1">Maximum permissible gross floor area</p>
+                        </div>
+                        <div>
+                          <label className={labelClass}>Plot Area (sq ft) *</label>
+                          <input type="text" placeholder="e.g., 10000" value={formData.plotAreaLand} onChange={(e) => handleChange('plotAreaLand', e.target.value)} className={inputClass} />
+                          <p className="text-[10px] text-gray-500 mt-1">Total land plot area</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>Land Use</label>
+                          <div className="relative">
+                            <select value={formData.landUse} onChange={(e) => handleChange('landUse', e.target.value)} className={selectClass}>
+                              <option value="">Select land use</option>
+                              <option>Residential</option>
+                              <option>Commercial</option>
+                              <option>Mixed Use</option>
+                              <option>Industrial</option>
+                              <option>Agricultural</option>
+                              <option>Hospitality</option>
+                              <option>Retail</option>
+                              <option>Office</option>
+                              <option>Warehouse</option>
+                              <option>Educational</option>
+                              <option>Healthcare</option>
+                              <option>Community</option>
+                            </select>
+                            <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={labelClass}>Height Limit (floors / meters)</label>
+                          <input type="text" placeholder="e.g., G+4 or 20m" value={formData.heightLimit} onChange={(e) => handleChange('heightLimit', e.target.value)} className={inputClass} />
+                          <p className="text-[10px] text-gray-500 mt-1">Maximum permissible building height</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Built-up Area + Plot Area for non-villa, non-land */}
+                  {!isVilla && !isLand && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Built-up Area (sq ft)</label>
+                        <input type="text" placeholder="0" value={formData.builtUpArea} onChange={(e) => handleChange('builtUpArea', e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Plot Area (sq ft)</label>
+                        <input type="text" placeholder="0" value={formData.plotArea} onChange={(e) => handleChange('plotArea', e.target.value)} className={inputClass} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1159,31 +1276,19 @@ export default function PropertiesPage() {
                     <div>
                       <label className={labelClass}>Furnishing</label>
                       <div className="relative">
-                        <select
-                          value={formData.furnishing}
-                          onChange={(e) => handleChange('furnishing', e.target.value)}
-                          className={selectClass}
-                        >
+                        <select value={formData.furnishing} onChange={(e) => handleChange('furnishing', e.target.value)} className={selectClass}>
                           <option value="">Select furnishing</option>
                           <option>Furnished</option>
                           <option>Semi-Furnished</option>
                           <option>Unfurnished</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                     <div>
                       <label className={labelClass}>View</label>
                       <div className="relative">
-                        <select
-                          value={formData.view}
-                          onChange={(e) => handleChange('view', e.target.value)}
-                          className={selectClass}
-                        >
+                        <select value={formData.view} onChange={(e) => handleChange('view', e.target.value)} className={selectClass}>
                           <option value="">Select view</option>
                           <option>Sea View</option>
                           <option>Burj Khalifa View</option>
@@ -1194,11 +1299,7 @@ export default function PropertiesPage() {
                           <option>Canal View</option>
                           <option>Community View</option>
                         </select>
-                        <Icon
-                          name="ChevronDownIcon"
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                        />
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -1219,9 +1320,7 @@ export default function PropertiesPage() {
                           onChange={(e) => handleChange(key as keyof PropertyFormData, e.target.checked)}
                           className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer"
                         />
-                        <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                          {label}
-                        </span>
+                        <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{label}</span>
                       </label>
                     ))}
                   </div>
@@ -1241,26 +1340,12 @@ export default function PropertiesPage() {
                   {/* Featured + Published */}
                   <div className="flex items-center gap-6 pt-1">
                     <label className="flex items-center gap-2.5 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={formData.featuredProperty}
-                        onChange={(e) => handleChange('featuredProperty', e.target.checked)}
-                        className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                        Featured Property
-                      </span>
+                      <input type="checkbox" checked={formData.featuredProperty} onChange={(e) => handleChange('featuredProperty', e.target.checked)} className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer" />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Featured Property</span>
                     </label>
                     <label className="flex items-center gap-2.5 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={formData.published}
-                        onChange={(e) => handleChange('published', e.target.checked)}
-                        className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                        Published
-                      </span>
+                      <input type="checkbox" checked={formData.published} onChange={(e) => handleChange('published', e.target.checked)} className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer" />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Published</span>
                     </label>
                   </div>
                 </div>
@@ -1269,27 +1354,57 @@ export default function PropertiesPage() {
               {/* Location Tab */}
               {activeTab === 'location' && (
                 <div className="space-y-4">
-                  {/* Location/Area + Community */}
+                  {/* Emirate */}
+                  <div>
+                    <label className={labelClass}>Emirate *</label>
+                    <div className="relative">
+                      <select
+                        value={formData.emirate}
+                        onChange={(e) => handleChange('emirate', e.target.value)}
+                        className={selectClass}
+                      >
+                        {UAE_EMIRATES.map((em) => (
+                          <option key={em} value={em}>{em}</option>
+                        ))}
+                      </select>
+                      <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Area + Community */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Location / Area *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g., Palm Jumeirah"
-                        value={formData.locationArea}
-                        onChange={(e) => handleChange('locationArea', e.target.value)}
-                        className={inputClass}
-                      />
+                      <label className={labelClass}>Area / District *</label>
+                      <div className="relative">
+                        <select
+                          value={formData.locationArea}
+                          onChange={(e) => handleChange('locationArea', e.target.value)}
+                          className={selectClass}
+                        >
+                          <option value="">Select area...</option>
+                          {availableAreas.map((area) => (
+                            <option key={area} value={area}>{area}</option>
+                          ))}
+                        </select>
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div>
                       <label className={labelClass}>Community *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g., Frond N"
-                        value={formData.community}
-                        onChange={(e) => handleChange('community', e.target.value)}
-                        className={inputClass}
-                      />
+                      <div className="relative">
+                        <select
+                          value={formData.community}
+                          onChange={(e) => handleChange('community', e.target.value)}
+                          className={selectClass}
+                          disabled={availableCommunities.length === 0}
+                        >
+                          <option value="">Select community...</option>
+                          {availableCommunities.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
 
@@ -1317,7 +1432,6 @@ export default function PropertiesPage() {
               {/* Media Tab */}
               {activeTab === 'media' && (
                 <div className="space-y-4">
-                  {/* Image URLs */}
                   <div>
                     <label className={labelClass}>Image URLs (comma separated)</label>
                     <textarea
@@ -1328,8 +1442,6 @@ export default function PropertiesPage() {
                       className={inputClass + ' resize-none'}
                     />
                   </div>
-
-                  {/* Video URL */}
                   <div>
                     <label className={labelClass}>Video URL (YouTube/Vimeo)</label>
                     <input
@@ -1340,8 +1452,6 @@ export default function PropertiesPage() {
                       className={inputClass}
                     />
                   </div>
-
-                  {/* Virtual Tour URL */}
                   <div>
                     <label className={labelClass}>Virtual Tour URL</label>
                     <input
@@ -1368,7 +1478,7 @@ export default function PropertiesPage() {
                 onClick={handleCreateProperty}
                 className="px-5 py-2 text-sm font-semibold bg-[#c9a84c] text-black hover:bg-[#d4b86a] transition-colors"
               >
-                Create Property
+                {editingProperty ? 'Save Changes' : 'Create Property'}
               </button>
             </div>
           </div>
