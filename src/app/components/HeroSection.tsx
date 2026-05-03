@@ -3,11 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { useCMSPage } from '@/contexts/CMSContext';
+import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-// All properties and projects data for search
 const ALL_PROPERTIES = [
   { id: 1, title: 'Obsidian Penthouse', location: 'Downtown Dubai', community: 'Burj Khalifa District', type: 'Residential', category: 'property', price: 'AED 28,500,000', href: '/residential' },
   { id: 2, title: 'Meridian Villa', location: 'Palm Jumeirah', community: 'The Fronds', type: 'Residential', category: 'property', price: 'AED 42,000,000', href: '/residential' },
@@ -39,7 +37,6 @@ interface SearchResult {
 
 export default function HeroSection() {
   const page = useCMSPage('home');
-  const router = useRouter();
   const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -69,7 +66,6 @@ export default function HeroSection() {
     });
   }, []);
 
-  // Close results on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
@@ -87,7 +83,6 @@ export default function HeroSection() {
       setShowResults(false);
       return;
     }
-
     const results = ALL_LISTINGS.filter((item) => {
       const matchQuery = !q || (
         item.title.toLowerCase().includes(q) ||
@@ -96,16 +91,13 @@ export default function HeroSection() {
         item.type.toLowerCase().includes(q) ||
         ('developer' in item && item.developer?.toLowerCase().includes(q))
       );
-
       const matchType = !propertyTypeFilter || (
         propertyTypeFilter === 'residential' ? item.type === 'Residential' :
         propertyTypeFilter === 'commercial' ? item.type === 'Commercial' :
         propertyTypeFilter === 'project' ? item.category === 'project' : true
       );
-
       return matchQuery && matchType;
     });
-
     setSearchResults(results as SearchResult[]);
     setShowResults(true);
   };
@@ -129,13 +121,27 @@ export default function HeroSection() {
     setShowResults(results.length > 0);
   };
 
+  const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
+  const heroEyebrow = page?.hero_eyebrow || 'Curated Luxury Properties';
+  const heroHeadline = page?.hero_headline || 'Where Architecture Becomes Legacy';
+  const heroDescription = page?.hero_description || 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.';
+  const ctaPrimaryText = page?.cta_primary_text || 'Explore Properties';
+  const ctaPrimaryLink = page?.cta_primary_link || '/residential';
+  const ctaSecondaryText = page?.cta_secondary_text || 'Book Consultation';
+  const ctaSecondaryLink = page?.cta_secondary_link || '/#contact';
+  const stats = page?.hero_stats ?? DEFAULT_HERO_STATS;
+
+  const headlineWords = heroHeadline.split(' ');
+  const lastWord = headlineWords.pop();
+  const restHeadline = headlineWords.join(' ');
+
   return (
     <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 z-0">
         <AppImage
-          src="https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png"
-          alt="Dramatic modern mansion at dusk, dark glass facade, infinity pool reflecting city lights, deep shadows, atmospheric low-key architectural lighting"
+          src={heroImage}
+          alt="Dramatic modern mansion at dusk, dark glass facade, infinity pool reflecting city lights"
           fill
           priority
           className="object-cover"
@@ -143,34 +149,40 @@ export default function HeroSection() {
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />
       </div>
+
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full pb-20 pt-40">
-        {/* Eyebrow */}
+        {/* Eyebrow + Headline */}
         <div ref={headlineRef} className="mb-8">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-6">
             <span className="h-px w-10 bg-primary" />
-            Curated Luxury Properties
+            {heroEyebrow}
             <span className="h-px w-10 bg-primary" />
           </span>
           <h1 className="text-hero max-w-4xl">
-            {(() => {
-              const headline = page?.hero_headline || 'Where Architecture Becomes Legacy';
-              const words = headline.split(' ');
-              const lastWord = words.pop();
-              const rest = words.join(' ');
-              return (
-                <>
-                  {rest && <span className="text-foreground">{rest} </span>}
-                  <span className="text-gold-shimmer">{lastWord}</span>
-                </>
-              );
-            })()}
+            {restHeadline && <span className="text-foreground">{restHeadline} </span>}
+            <span className="text-gold-shimmer">{lastWord}</span>
           </h1>
         </div>
 
         <p ref={subRef} className="text-foreground/70 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
-          {page?.hero_description || 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.'}
+          {heroDescription}
         </p>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-wrap gap-4 mb-10">
+          <Link
+            href={ctaPrimaryLink}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
+            {ctaPrimaryText}
+            <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+          </Link>
+          <Link
+            href={ctaSecondaryLink}
+            className="flex items-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300">
+            {ctaSecondaryText}
+          </Link>
+        </div>
 
         {/* Inline Search Bar */}
         <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-4 md:p-5 max-w-3xl mb-16">
@@ -213,7 +225,6 @@ export default function HeroSection() {
               </button>
             </div>
 
-            {/* Search Results Dropdown */}
             {showResults && (
               <div className="absolute top-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mt-1 max-h-80 overflow-y-auto">
                 {searchResults.length === 0 ? (
@@ -267,41 +278,17 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* CTA Buttons */}
-        {(page?.cta_primary_text || page?.cta_secondary_text) && (
-          <div className="flex flex-wrap gap-4 mb-12">
-            {page?.cta_primary_text && (
-              <Link href={page?.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
-                {page?.cta_primary_text}
-              </Link>
-            )}
-            {page?.cta_secondary_text && (
-              <Link href={page?.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
-                {page?.cta_secondary_text}
-              </Link>
-            )}
+        {/* Stats */}
+        {stats.length > 0 && (
+          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl">
+            {stats.map((stat, i) => (
+              <div key={i} className="border-l border-primary/30 pl-4">
+                <p className="text-2xl font-black text-primary tracking-tighter">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</p>
+              </div>
+            ))}
           </div>
         )}
-
-        {/* Stats Bar */}
-        <div ref={statsRef} className="flex flex-wrap gap-x-12 gap-y-6">
-          {[
-            { value: '$4.2B', label: 'Total Transactions' },
-            { value: '340+', label: 'Properties Sold' },
-            { value: '18', label: 'Years of Excellence' },
-            { value: '97%', label: 'Client Satisfaction' },
-          ]?.map((stat) => (
-            <div key={stat?.label} className="flex flex-col gap-1">
-              <span className="text-2xl md:text-3xl font-bold text-primary tracking-tight">{stat?.value}</span>
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{stat?.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Scroll Indicator */}
-      <div className="absolute bottom-8 right-10 z-10 flex flex-col items-center gap-3 scroll-indicator">
-        <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground rotate-90 origin-center mb-4">Scroll</span>
-        <Icon name="ChevronDownIcon" size={18} className="text-primary" />
       </div>
     </section>
   );

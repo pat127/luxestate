@@ -10,48 +10,43 @@ import WhyLuxEstate from '@/app/components/WhyLuxEstate';
 import TestimonialsSection from '@/app/components/TestimonialsSection';
 import MortgageCalculator from '@/app/components/MortgageCalculator';
 import ContactSection from '@/app/components/ContactSection';
-import { useCMSPage } from '@/contexts/CMSContext';
-
-const BLOCK_COMPONENTS: Record<string, React.ComponentType> = {
-  featured_properties: FeaturedProperties,
-  featured_projects: FeaturedProjects,
-  why_luxestate: WhyLuxEstate,
-  testimonials: TestimonialsSection,
-  mortgage_calculator: MortgageCalculator,
-  contact_section: ContactSection,
-};
+import { useCMSPage, DEFAULT_HOMEPAGE_BLOCKS } from '@/contexts/CMSContext';
 
 export default function HomePage() {
   const homePage = useCMSPage('home');
 
-  // Use homepage_blocks for ordered, manageable rendering
-  const blocks = homePage?.homepage_blocks;
+  const blocks = homePage?.homepage_blocks?.length
+    ? homePage.homepage_blocks
+    : DEFAULT_HOMEPAGE_BLOCKS;
+
+  const visibleBlocks = [...blocks]
+    .sort((a, b) => a.order - b.order)
+    .filter((block) => block.visible === true);
+
+  const renderBlock = (key: string) => {
+    switch (key) {
+      case 'featured_properties':
+        return <FeaturedProperties key="featured_properties" content={homePage?.featured_properties_content} />;
+      case 'featured_projects':
+        return <FeaturedProjects key="featured_projects" content={homePage?.featured_projects_content} />;
+      case 'why_luxestate':
+        return <WhyLuxEstate key="why_luxestate" content={homePage?.why_luxestate_content} />;
+      case 'testimonials':
+        return <TestimonialsSection key="testimonials" content={homePage?.testimonials_content} />;
+      case 'mortgage_calculator':
+        return <MortgageCalculator key="mortgage_calculator" content={homePage?.mortgage_content} />;
+      case 'contact_section':
+        return <ContactSection key="contact_section" content={homePage?.contact_content} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <main className="bg-background overflow-x-hidden">
       <Header />
       <HeroSection />
-      {blocks && blocks.length > 0 ? (
-        // Render blocks in CMS-defined order, respecting visibility
-        [...blocks]
-          .sort((a, b) => a.order - b.order)
-          .filter((block) => block.visible !== false)
-          .map((block) => {
-            const Component = BLOCK_COMPONENTS[block.key];
-            if (!Component) return null;
-            return <Component key={block.key} />;
-          })
-      ) : (
-        // Fallback: render all blocks in default order
-        <>
-          <FeaturedProperties />
-          <FeaturedProjects />
-          <WhyLuxEstate />
-          <TestimonialsSection />
-          <MortgageCalculator />
-          <ContactSection />
-        </>
-      )}
+      {visibleBlocks.map((block) => renderBlock(block.key))}
       <Footer />
     </main>
   );
