@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { useCMS, PageConfig, PageKey, BrandingConfig } from '@/contexts/CMSContext';
+import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
@@ -85,9 +85,167 @@ function ToggleField({ label, description, defaultChecked = false }: { label: st
   );
 }
 
+// ─── Homepage Blocks Manager ──────────────────────────────────────────────────
+const AVAILABLE_BLOCKS: { key: string; label: string; description: string }[] = [
+  { key: 'featured_properties', label: 'Featured Properties', description: 'Showcase a curated grid of featured property listings' },
+  { key: 'featured_projects', label: 'Featured Projects', description: 'Highlight off-plan and new development projects' },
+  { key: 'why_luxestate', label: 'Why LuxEstate', description: 'Scrolling workflow section explaining the LuxEstate process' },
+  { key: 'testimonials', label: 'Testimonials', description: 'Client testimonials and awards recognition section' },
+  { key: 'mortgage_calculator', label: 'Mortgage Calculator', description: 'Interactive mortgage and payment calculator tool' },
+  { key: 'contact_section', label: 'Contact Section', description: 'Contact form and office details section' },
+];
+
+function HomepageBlocksManager({ page, onChange }: { page: PageConfig; onChange: (p: PageConfig) => void }) {
+  const blocks: HomepageBlock[] = page.homepage_blocks?.length
+    ? page.homepage_blocks
+    : DEFAULT_HOMEPAGE_BLOCKS;
+
+  const activeKeys = new Set(blocks.map((b) => b.key));
+
+  const toggleBlock = (key: string) => {
+    const updated = blocks.map((b) => b.key === key ? { ...b, visible: !b.visible } : b);
+    onChange({ ...page, homepage_blocks: updated, sections: buildSections(updated) });
+  };
+
+  const removeBlock = (key: string) => {
+    const updated = blocks.filter((b) => b.key !== key).map((b, i) => ({ ...b, order: i + 1 }));
+    onChange({ ...page, homepage_blocks: updated, sections: buildSections(updated) });
+  };
+
+  const addBlock = (key: string) => {
+    const def = AVAILABLE_BLOCKS.find((b) => b.key === key);
+    if (!def) return;
+    const newBlock: HomepageBlock = { key, label: def.label, visible: true, order: blocks.length + 1, editable: true };
+    const updated = [...blocks, newBlock];
+    onChange({ ...page, homepage_blocks: updated, sections: buildSections(updated) });
+  };
+
+  const moveBlock = (key: string, direction: 'up' | 'down') => {
+    const idx = blocks.findIndex((b) => b.key === key);
+    if (idx < 0) return;
+    const newBlocks = [...blocks];
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= newBlocks.length) return;
+    [newBlocks[idx], newBlocks[swapIdx]] = [newBlocks[swapIdx], newBlocks[idx]];
+    const reordered = newBlocks.map((b, i) => ({ ...b, order: i + 1 }));
+    onChange({ ...page, homepage_blocks: reordered, sections: buildSections(reordered) });
+  };
+
+  const buildSections = (blks: HomepageBlock[]): Record<string, boolean> => {
+    const s: Record<string, boolean> = {};
+    blks.forEach((b) => { s[b.key] = b.visible; });
+    return s;
+  };
+
+  const removableKeys = blocks.map((b) => b.key);
+  const addableBlocks = AVAILABLE_BLOCKS.filter((b) => !activeKeys.has(b.key));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-muted-foreground">Drag to reorder, toggle visibility, or remove blocks from the homepage. Changes apply after saving.</p>
+      </div>
+
+      {/* Active Blocks */}
+      <div className="space-y-2 mb-6">
+        {blocks.map((block, idx) => (
+          <div key={block.key} className={`flex items-center gap-3 p-3 border transition-colors ${block.visible ? 'border-border bg-card' : 'border-border/50 bg-card/50 opacity-60'}`}>
+            {/* Reorder */}
+            <div className="flex flex-col gap-0.5">
+              <button
+                onClick={() => moveBlock(block.key, 'up')}
+                disabled={idx === 0}
+                className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 transition-colors"
+                title="Move up"
+              >
+                <Icon name="ChevronUpIcon" size={12} />
+              </button>
+              <button
+                onClick={() => moveBlock(block.key, 'down')}
+                disabled={idx === blocks.length - 1}
+                className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 transition-colors"
+                title="Move down"
+              >
+                <Icon name="ChevronDownIcon" size={12} />
+              </button>
+            </div>
+
+            {/* Order badge */}
+            <div className="w-6 h-6 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-[10px] font-bold text-primary">{idx + 1}</span>
+            </div>
+
+            {/* Label */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">{block.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {AVAILABLE_BLOCKS.find((b) => b.key === block.key)?.description || ''}
+              </p>
+            </div>
+
+            {/* Visibility status */}
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 flex-shrink-0 ${block.visible ? 'bg-emerald-500/10 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+              {block.visible ? 'Visible' : 'Hidden'}
+            </span>
+
+            {/* Toggle visibility */}
+            <button
+              onClick={() => toggleBlock(block.key)}
+              className={`w-10 h-5 relative transition-colors flex-shrink-0 ${block.visible ? 'bg-primary' : 'bg-muted'}`}
+              title={block.visible ? 'Hide block' : 'Show block'}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 bg-white transition-transform ${block.visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+
+            {/* Remove */}
+            <button
+              onClick={() => removeBlock(block.key)}
+              className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0"
+              title="Remove block"
+            >
+              <Icon name="TrashIcon" size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add Block */}
+      {addableBlocks.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Add Block</p>
+          <div className="space-y-2">
+            {addableBlocks.map((block) => (
+              <div key={block.key} className="flex items-center gap-3 p-3 border border-dashed border-border/60 bg-card/30">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-muted-foreground">{block.label}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">{block.description}</p>
+                </div>
+                <button
+                  onClick={() => addBlock(block.key)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider hover:bg-primary/20 transition-colors"
+                >
+                  <Icon name="PlusIcon" size={12} />
+                  Add
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {blocks.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          No blocks on homepage. Add blocks above to build your homepage.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page CMS Editor ──────────────────────────────────────────────────────────
 function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageConfig) => void }) {
-  const [activeSection, setActiveSection] = useState<'content' | 'sections' | 'seo'>('content');
+  const isHome = page.key === 'home';
+  const [activeSection, setActiveSection] = useState<'content' | 'sections' | 'seo' | 'blocks'>('content');
 
   const sectionLabels: Record<string, string> = {
     featured_properties: 'Featured Properties', featured_projects: 'Featured Projects', why_luxestate: 'Why LuxEstate',
@@ -100,12 +258,16 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
     contact_form: 'Contact Form', map_section: 'Map Section', office_details: 'Office Details', whatsapp_button: 'WhatsApp Button',
   };
 
+  const subTabs = isHome
+    ? (['content', 'blocks', 'seo'] as const)
+    : (['content', 'sections', 'seo'] as const);
+
   return (
     <div>
       <div className="flex gap-1 mb-5 border-b border-border">
-        {(['content', 'sections', 'seo'] as const).map((s) => (
-          <button key={s} onClick={() => setActiveSection(s)} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeSection === s ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {s === 'content' ? 'Content & Hero' : s === 'sections' ? 'Page Sections' : 'SEO'}
+        {subTabs.map((s) => (
+          <button key={s} onClick={() => setActiveSection(s as typeof activeSection)} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeSection === s ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            {s === 'content' ? 'Content & Hero' : s === 'sections' ? 'Page Sections' : s === 'blocks' ? 'Homepage Blocks' : 'SEO'}
           </button>
         ))}
       </div>
@@ -135,7 +297,11 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
         </div>
       )}
 
-      {activeSection === 'sections' && (
+      {activeSection === 'blocks' && isHome && (
+        <HomepageBlocksManager page={page} onChange={onChange} />
+      )}
+
+      {activeSection === 'sections' && !isHome && (
         <div className="space-y-0">
           {Object.entries(page.sections).map(([key, enabled]) => (
             <div key={key} className="flex items-center justify-between py-3 border-b border-border">
@@ -724,6 +890,11 @@ export default function SettingsPage() {
                 <div className="w-1.5 h-1.5 bg-primary" />
                 <h3 className="text-sm font-bold text-foreground">{currentPage.label} Page</h3>
                 <span className="text-xs text-muted-foreground">/{currentPage.key === 'home' ? '' : currentPage.key}</span>
+                {currentPage.key === 'home' && (
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">
+                    Homepage Builder
+                  </span>
+                )}
               </div>
               <PageEditor page={currentPage} onChange={updatePage} />
             </div>
@@ -780,7 +951,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Follow-up Reminder (days)</label>
+                <label className="block text-xs font-semibold text-muted-foreground hover:text-foreground mb-1.5 uppercase tracking-wider">Follow-up Reminder (days)</label>
                 <input type="number" defaultValue={3} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
               </div>
             </div>

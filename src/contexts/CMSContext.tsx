@@ -4,6 +4,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 export type PageKey = 'home' | 'residential' | 'commercial' | 'projects' | 'about' | 'blog' | 'contact';
 
+export interface HomepageBlock {
+  key: string;
+  label: string;
+  visible: boolean;
+  order: number;
+  editable?: boolean;
+}
+
 export interface PageConfig {
   key: PageKey;
   label: string;
@@ -17,6 +25,7 @@ export interface PageConfig {
   meta_title: string;
   meta_description: string;
   sections: Record<string, boolean>;
+  homepage_blocks?: HomepageBlock[];
 }
 
 export interface BrandingConfig {
@@ -41,6 +50,15 @@ const DEFAULT_BRANDING: BrandingConfig = {
   font_family: 'Plus Jakarta Sans',
 };
 
+export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
+  { key: 'featured_properties', label: 'Featured Properties', visible: true, order: 1, editable: true },
+  { key: 'featured_projects', label: 'Featured Projects', visible: true, order: 2, editable: true },
+  { key: 'why_luxestate', label: 'Why LuxEstate', visible: true, order: 3, editable: true },
+  { key: 'testimonials', label: 'Testimonials', visible: true, order: 4, editable: true },
+  { key: 'mortgage_calculator', label: 'Mortgage Calculator', visible: true, order: 5, editable: true },
+  { key: 'contact_section', label: 'Contact Section', visible: true, order: 6, editable: true },
+];
+
 export const DEFAULT_PAGES: PageConfig[] = [
   {
     key: 'home',
@@ -55,6 +73,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
     meta_title: 'LuxEstate — Ultra-Premium Properties for Discerning Buyers',
     meta_description: 'LuxEstate curates the world\'s finest residential and commercial properties for high-net-worth buyers.',
     sections: { featured_properties: true, featured_projects: true, why_luxestate: true, testimonials: true, mortgage_calculator: true, contact_section: true },
+    homepage_blocks: DEFAULT_HOMEPAGE_BLOCKS,
   },
   {
     key: 'residential',
@@ -173,7 +192,16 @@ export function CMSProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem(CMS_STORAGE_KEY);
       if (stored) {
         const data: CMSData = JSON.parse(stored);
-        if (data.pages?.length) setPages(data.pages);
+        if (data.pages?.length) {
+          // Merge homepage_blocks defaults for existing data that may not have them
+          const merged = data.pages.map((p) => {
+            if (p.key === 'home' && !p.homepage_blocks) {
+              return { ...p, homepage_blocks: DEFAULT_HOMEPAGE_BLOCKS };
+            }
+            return p;
+          });
+          setPages(merged);
+        }
         if (data.branding) setBranding(data.branding);
         if (data.lastSaved) setLastSaved(data.lastSaved);
       }

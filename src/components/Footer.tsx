@@ -3,63 +3,135 @@ import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 
-const footerLinks = [
+const companyLinks = [
+  { label: 'About Us', href: '/about' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Our Team', href: '/about#team' },
+  { label: 'Careers', href: '#' },
+  { label: 'Contact', href: '/#contact' },
+];
+
+const propertyLinks = [
   { label: 'Residential', href: '/residential' },
   { label: 'Commercial', href: '/commercial' },
-  { label: 'Projects', href: '/projects' },
-  { label: 'Privacy', href: '#' },
-  { label: 'Terms', href: '#' },
+  { label: 'Off-Plan Projects', href: '/projects' },
+  { label: 'New Developments', href: '/projects' },
+  { label: 'Investment Properties', href: '/residential' },
+];
+
+const areaLinks = [
+  { label: 'Downtown Dubai', href: '/residential' },
+  { label: 'Palm Jumeirah', href: '/residential' },
+  { label: 'Dubai Marina', href: '/residential' },
+  { label: 'Emirates Hills', href: '/residential' },
+  { label: 'DIFC', href: '/commercial' },
+];
+
+const legalLinks = [
+  { label: 'Privacy Policy', href: '#' },
+  { label: 'Terms of Service', href: '#' },
+  { label: 'Cookie Policy', href: '#' },
 ];
 
 const socialLinks = [
-  { icon: 'GlobeAltIcon', label: 'Instagram', href: '#' },
-  { icon: 'ChatBubbleLeftIcon', label: 'LinkedIn', href: '#' },
-  { icon: 'TvIcon', label: 'YouTube', href: '#' },
+  { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/luxestate' },
+  { icon: 'ChatBubbleLeftIcon' as const, label: 'LinkedIn', href: 'https://linkedin.com/company/luxestate' },
+  { icon: 'TvIcon' as const, label: 'YouTube', href: 'https://youtube.com/@luxestate' },
 ];
+
+function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/80">{title}</h4>
+      <ul className="space-y-2.5">
+        {links.map((link) => (
+          <li key={link.label}>
+            <Link
+              href={link.href}
+              className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Footer() {
   return (
     <footer className="border-t border-border bg-background">
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-16 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
-        {/* Left: Logo + Tagline */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <AppLogo size={32} />
-            <span className="text-foreground font-bold text-lg tracking-tight">LuxEstate</span>
+      {/* Main Footer Grid */}
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+          {/* Brand Column */}
+          <div className="lg:col-span-2 flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <AppLogo size={32} />
+              <span className="text-foreground font-bold text-lg tracking-tight">LuxEstate</span>
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
+              Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.
+            </p>
+            {/* Social Links */}
+            <div className="flex items-center gap-4 mt-1">
+              {socialLinks.map((s) => (
+                <Link
+                  key={s.label}
+                  href={s.href}
+                  aria-label={s.label}
+                  className="w-9 h-9 border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all duration-300"
+                >
+                  <Icon name={s.icon} size={16} />
+                </Link>
+              ))}
+            </div>
+            {/* Contact Info */}
+            <div className="space-y-2 mt-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Icon name="PhoneIcon" size={12} className="text-primary flex-shrink-0" />
+                +971 50 886 2683
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Icon name="EnvelopeIcon" size={12} className="text-primary flex-shrink-0" />
+                admin@luxestate.com
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Icon name="MapPinIcon" size={12} className="text-primary flex-shrink-0" />
+                8th Level, Moosa Tower 1, Dubai, UAE
+              </p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
-            Curating the world's finest properties for those who demand the exceptional.
-          </p>
-        </div>
 
-        {/* Right: Links + Social */}
-        <div className="flex flex-col gap-6 items-start md:items-end">
-          <nav className="flex flex-wrap gap-x-8 gap-y-3">
-            {footerLinks.map((link) => (
+          {/* Company Column */}
+          <FooterColumn title="Company" links={companyLinks} />
+
+          {/* Properties Column */}
+          <FooterColumn title="Properties" links={propertyLinks} />
+
+          {/* Areas Column */}
+          <FooterColumn title="Areas We Cover" links={areaLinks} />
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-border">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <span className="text-muted-foreground text-xs tracking-widest">
+            © 2026 LuxEstate. All rights reserved.
+          </span>
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {legalLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="text-muted-foreground text-sm font-medium hover:text-primary transition-colors duration-300"
+                className="text-muted-foreground text-xs hover:text-primary transition-colors duration-300"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-6">
-            {socialLinks.map((s) => (
-              <Link
-                key={s.label}
-                href={s.href}
-                aria-label={s.label}
-                className="text-muted-foreground hover:text-primary transition-colors duration-300 p-1"
-              >
-                <Icon name={s.icon as Parameters<typeof Icon>[0]['name']} size={18} />
-              </Link>
-            ))}
-            <span className="text-muted-foreground text-xs tracking-widest pl-4 border-l border-border">
-              © 2026 LuxEstate
-            </span>
-          </div>
         </div>
       </div>
     </footer>
