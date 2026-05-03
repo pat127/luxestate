@@ -152,8 +152,8 @@ export default function HeroSection() {
             Curated Luxury Properties
             <span className="h-px w-10 bg-primary" />
           </span>
-          <h1 className="text-hero text-foreground max-w-4xl">
-            {page?.hero_headline || 'Where Architecture Becomes Legacy'}
+          <h1 className="text-hero max-w-4xl">
+            <span className="text-gold-shimmer">{page?.hero_headline || 'Where Architecture Becomes Legacy'}</span>
           </h1>
         </div>
 

@@ -56,7 +56,7 @@ const featuredProjects = [
 function ProjectCard({ project, priority = false }: {project: typeof featuredProjects[0];priority?: boolean;}) {
   const soldPct = project.sold;
   return (
-    <Link href="/projects" className={`relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500 ${project.colSpan}`}>
+    <Link href="/projects" className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500 ${project.colSpan}`}>
       <div className={`relative overflow-hidden ${project.colSpan === 'md:col-span-2' ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
         <AppImage
           src={project.image}

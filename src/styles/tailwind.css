@@ -101,14 +101,18 @@
     to right,
     #C9A84C 20%,
     #F5D98A 40%,
-    #C9A84C 60%,
-    #8B6914 80%
+    #FFE87C 50%,
+    #F5D98A 60%,
+    #C9A84C 80%,
+    #8B6914 90%
   );
   background-size: 200% auto;
   color: transparent !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
-  animation: goldShimmer 4s linear infinite;
+  -webkit-text-fill-color: transparent !important;
+  animation: goldShimmer 3s linear infinite;
+  display: inline-block;
 }
 
 .cinematic-in {
@@ -184,11 +188,13 @@
 /* Property card hover */
 .property-card {
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+  perspective: 1000px;
+  transform-style: preserve-3d;
 }
 
 .property-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(201, 168, 76, 0.2);
+  transform: translateY(-8px) rotateX(2deg) rotateY(-1deg) scale(1.01);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(201, 168, 76, 0.3), 0 0 40px rgba(201, 168, 76, 0.08);
 }
 
 .property-card img {
@@ -196,7 +202,19 @@
 }
 
 .property-card:hover img {
-  transform: scale(1.05);
+  transform: scale(1.07);
+}
+
+/* 3D project card */
+.project-card-3d {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.project-card-3d:hover {
+  transform: translateY(-8px) rotateX(2deg) rotateY(1deg) scale(1.01);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(201, 168, 76, 0.3), 0 0 40px rgba(201, 168, 76, 0.08);
 }
 
 /* Gold border animate */
