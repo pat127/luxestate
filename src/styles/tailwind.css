@@ -105,9 +105,9 @@
     #8B6914 80%
   );
   background-size: 200% auto;
-  color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
   animation: goldShimmer 4s linear infinite;
 }
 
@@ -244,8 +244,9 @@
 
 /* Nav scrolled */
 .nav-scrolled {
-  background: rgba(10, 10, 10, 0.95) !important;
-  backdrop-filter: blur(20px);
+  background: rgba(10, 10, 10, 0.55) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid rgba(201, 168, 76, 0.15) !important;
 }
 

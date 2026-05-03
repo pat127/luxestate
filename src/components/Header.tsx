@@ -41,7 +41,7 @@ export default function Header() {
     <>
       <header
         className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-          scrolled || !isHome
+          scrolled
             ? 'nav-scrolled py-4' :'py-6 bg-transparent'
         }`}
       >
