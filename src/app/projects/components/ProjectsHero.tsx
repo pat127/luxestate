@@ -45,7 +45,18 @@ export default function ProjectsHero() {
             {page.hero_subheadline || 'New Developments'}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            {page.hero_headline || 'The Future Being Built Today'}
+            {(() => {
+              const headline = page.hero_headline || 'The Future Being Built Today';
+              const words = headline.split(' ');
+              const lastWord = words.pop();
+              const rest = words.join(' ');
+              return (
+                <>
+                  {rest && <span>{rest} </span>}
+                  <span className="text-gold-shimmer">{lastWord}</span>
+                </>
+              );
+            })()}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
             {page.hero_description || 'Off-plan acquisitions and new developments from the world\'s most celebrated architects — secured before completion, at pre-market pricing.'}

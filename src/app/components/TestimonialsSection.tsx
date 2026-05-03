@@ -101,7 +101,7 @@ export default function TestimonialsSection() {
             Client Voices
           </span>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter">
-            Trusted by Those<br />Who Demand the Best
+            Trusted by Those<br />Who Demand the <span className="text-gold-shimmer">Best</span>
           </h2>
         </div>
 
@@ -149,7 +149,7 @@ export default function TestimonialsSection() {
           <div className="flex flex-col md:flex-row justify-between items-end mb-10 pt-12 gap-6">
             <div>
               <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Recognition</span>
-              <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tighter">Industry Validated<br />Excellence</h3>
+              <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tighter">Industry Validated<br /><span className="text-gold-shimmer">Excellence</span></h3>
             </div>
             <p className="text-muted-foreground text-sm max-w-xs text-right leading-relaxed">
               Our commitment to discretion and results has been recognized by the world's foremost luxury publications.

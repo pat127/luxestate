@@ -46,7 +46,18 @@ export default function ResidentialHero() {
             {page.hero_subheadline || 'Residential Collection'}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            {page.hero_headline || 'Private Residences Worth Living For'}
+            {(() => {
+              const headline = page.hero_headline || 'Private Residences Worth Living For';
+              const words = headline.split(' ');
+              const lastWord = words.pop();
+              const rest = words.join(' ');
+              return (
+                <>
+                  {rest && <span>{rest} </span>}
+                  <span className="text-gold-shimmer">{lastWord}</span>
+                </>
+              );
+            })()}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
             {page.hero_description || 'Penthouses, estates, villas, and townhouses — each selected for architectural distinction and lifestyle excellence.'}

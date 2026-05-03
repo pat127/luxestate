@@ -140,7 +140,7 @@ export default function FeaturedProjects() {
             Off-Plan & New Developments
           </span>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
-            Featured<br />Projects
+            Featured<br /><span className="text-gold-shimmer">Projects</span>
           </h2>
         </div>
         <div className="animate-on-scroll flex flex-col items-end gap-4">

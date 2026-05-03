@@ -45,7 +45,18 @@ export default function CommercialHero() {
             {page.hero_subheadline || 'Commercial Portfolio'}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            {page.hero_headline || 'Assets That Generate Legacy'}
+            {(() => {
+              const headline = page.hero_headline || 'Assets That Generate Legacy';
+              const words = headline.split(' ');
+              const lastWord = words.pop();
+              const rest = words.join(' ');
+              return (
+                <>
+                  {rest && <span>{rest} </span>}
+                  <span className="text-gold-shimmer">{lastWord}</span>
+                </>
+              );
+            })()}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
             {page.hero_description || 'Trophy office towers, flagship retail, hospitality assets, and mixed-use developments — income-producing properties for sophisticated investors.'}

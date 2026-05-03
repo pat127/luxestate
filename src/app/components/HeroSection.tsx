@@ -153,7 +153,18 @@ export default function HeroSection() {
             <span className="h-px w-10 bg-primary" />
           </span>
           <h1 className="text-hero max-w-4xl">
-            <span className="text-gold-shimmer">{page?.hero_headline || 'Where Architecture Becomes Legacy'}</span>
+            {(() => {
+              const headline = page?.hero_headline || 'Where Architecture Becomes Legacy';
+              const words = headline.split(' ');
+              const lastWord = words.pop();
+              const rest = words.join(' ');
+              return (
+                <>
+                  {rest && <span className="text-foreground">{rest} </span>}
+                  <span className="text-gold-shimmer">{lastWord}</span>
+                </>
+              );
+            })()}
           </h1>
         </div>
 
