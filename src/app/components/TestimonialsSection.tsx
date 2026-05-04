@@ -103,14 +103,14 @@ export default function TestimonialsSection({ content }: Props) {
 
         {/* Awards */}
         <div className="border-t border-border animate-on-scroll">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-10 pt-12 gap-6">
+          <div className="flex flex-col md:flex-row justify-between md:items-end mb-10 pt-12 gap-6">
             <div>
               <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">{c.awards_eyebrow}</span>
               <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tighter">
                 {c.awards_headline}<br /><span key={c.awards_headline_shimmer} className="text-gold-shimmer">{c.awards_headline_shimmer}</span>
               </h3>
             </div>
-            <p className="text-muted-foreground text-sm max-w-xs text-right leading-relaxed">
+            <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">
               {c.awards_subtext}
             </p>
           </div>

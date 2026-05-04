@@ -76,7 +76,7 @@ export default function WhyLuxEstate({ content }: Props) {
   return (
     <section className="border-t border-border bg-background py-0" ref={containerRef}>
       <div className="max-w-7xl mx-auto px-6 md:px-10 pt-24 pb-16">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+        <div className="flex flex-col md:flex-row justify-between md:items-end gap-8">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
               {c.eyebrow}

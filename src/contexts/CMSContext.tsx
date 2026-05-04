@@ -181,7 +181,7 @@ export interface CMSData {
 }
 
 const DEFAULT_BRANDING: BrandingConfig = {
-  company_name: 'LuxEstate',
+  company_name: 'Cove Estates',
   tagline: 'Luxury Real Estate in Dubai',
   primary_color: '#C9A84C',
   accent_color: '#B8963E',
@@ -191,7 +191,7 @@ const DEFAULT_BRANDING: BrandingConfig = {
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
 { key: 'featured_properties', label: 'Featured Properties', visible: true, order: 1, editable: true },
 { key: 'featured_projects', label: 'Featured Projects', visible: true, order: 2, editable: true },
-{ key: 'why_luxestate', label: 'Why LuxEstate', visible: true, order: 3, editable: true },
+{ key: 'why_luxestate', label: 'Why Cove Estates', visible: true, order: 3, editable: true },
 { key: 'testimonials', label: 'Testimonials', visible: true, order: 4, editable: true },
 { key: 'mortgage_calculator', label: 'Mortgage Calculator', visible: true, order: 5, editable: true },
 { key: 'contact_section', label: 'Contact Section', visible: true, order: 6, editable: true }];
@@ -236,7 +236,7 @@ export const DEFAULT_FEATURED_PROJECTS: FeaturedProjectsContent = {
 };
 
 export const DEFAULT_WHY_LUXESTATE: WhyLuxEstateContent = {
-  eyebrow: 'The LuxEstate Difference',
+  eyebrow: 'The Cove Estates Difference',
   headline: 'How We',
   headline_shimmer: 'Deliver',
   subtext: 'Three decades of combined expertise, an unmatched off-market network, and a singular obsession with client outcomes.',
@@ -260,9 +260,9 @@ export const DEFAULT_TESTIMONIALS: TestimonialsContent = {
   awards_headline_shimmer: 'Excellence',
   awards_subtext: "Our commitment to discretion and results has been recognized by the world's foremost luxury publications.",
   testimonials: [
-  { name: 'Margaret Harrington', location: 'Greenwich, Connecticut', quote: "LuxEstate found us a property that wasn't on any public listing. The discretion and access they provide is unlike anything we've experienced in twenty years of property ownership.", role: 'Private Equity Principal', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1b32bbd93-1763299584368.png', imageAlt: 'Professional woman in elegant dark blazer, studio portrait' },
+  { name: 'Margaret Harrington', location: 'Greenwich, Connecticut', quote: "Cove Estates found us a property that wasn't on any public listing. The discretion and access they provide is unlike anything we've experienced in twenty years of property ownership.", role: 'Private Equity Principal', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1b32bbd93-1763299584368.png', imageAlt: 'Professional woman in elegant dark blazer, studio portrait' },
   { name: 'Thomas Blackwell', location: 'Upper East Side, New York', quote: 'The caliber of off-market opportunities they surfaced was extraordinary.', role: 'Investment Banker', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1bfef8bd5-1763295388609.png', imageAlt: 'Professional man in tailored dark suit, confident expression, studio portrait' },
-  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — LuxEstate handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png', imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
+  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png', imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
   { name: 'James Whitfield', location: 'Palm Beach, Florida', quote: 'Truly exceptional service.', role: 'Family Office Director', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1651cfc0b-1763295052209.png', imageAlt: 'Professional man in dark jacket, confident posture, studio portrait' },
   { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: 'https://images.unsplash.com/photo-1636200063467-5408d3d08473', imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
 
@@ -283,7 +283,7 @@ export const DEFAULT_CONTACT: ContactContent = {
   availability_subtext: 'We work with a limited number of clients per quarter to ensure every acquisition receives our full attention and expertise.',
   details: [
   { icon: 'PhoneIcon', label: 'Direct Line', value: '+1 (212) 555-0190' },
-  { icon: 'EnvelopeIcon', label: 'Private Email', value: 'acquisitions@luxestate.com' },
+  { icon: 'EnvelopeIcon', label: 'Private Email', value: 'acquisitions@coveestates.com' },
   { icon: 'MapPinIcon', label: 'Headquarters', value: '432 Park Avenue, New York, NY 10022' }]
 
 };
@@ -309,8 +309,8 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_primary_link: '/residential',
   cta_secondary_text: 'Book Consultation',
   cta_secondary_link: '/#contact',
-  meta_title: 'LuxEstate — Ultra-Premium Properties for Discerning Buyers',
-  meta_description: "LuxEstate curates the world's finest residential and commercial properties for high-net-worth buyers.",
+  meta_title: 'Cove Estates — Ultra-Premium Properties for Discerning Buyers',
+  meta_description: "Cove Estates curates the world's finest residential and commercial properties for high-net-worth buyers.",
   sections: { featured_properties: true, featured_projects: true, why_luxestate: true, testimonials: true, mortgage_calculator: true, contact_section: true },
   homepage_blocks: DEFAULT_HOMEPAGE_BLOCKS,
   hero_stats: DEFAULT_HERO_STATS,
@@ -331,7 +331,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_primary_link: '/residential#listings',
   cta_secondary_text: 'Book Viewing',
   cta_secondary_link: '/#contact',
-  meta_title: 'Luxury Residential Properties Dubai — LuxEstate',
+  meta_title: 'Luxury Residential Properties Dubai — Cove Estates',
   meta_description: "Browse exclusive villas, penthouses and luxury apartments in Dubai's most prestigious locations.",
   sections: { search_bar: true, listings_grid: true, team_section: true, market_stats: true }
 },
@@ -345,7 +345,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_primary_link: '/commercial#listings',
   cta_secondary_text: 'Get Investment Report',
   cta_secondary_link: '/#contact',
-  meta_title: 'Commercial Properties Dubai — LuxEstate',
+  meta_title: 'Commercial Properties Dubai — Cove Estates',
   meta_description: 'Premium office spaces, retail units and investment-grade commercial properties in Dubai.',
   sections: { listings_grid: true, market_insights: true, commercial_stats: true }
 },
@@ -359,7 +359,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
   cta_secondary_link: '/#contact',
-  meta_title: 'Off-Plan Projects Dubai — LuxEstate',
+  meta_title: 'Off-Plan Projects Dubai — Cove Estates',
   meta_description: 'Exclusive off-plan and new development projects in Dubai from leading developers.',
   sections: { projects_gallery: true, project_timeline: true, project_inquiry: true }
 },
@@ -368,13 +368,13 @@ export const DEFAULT_PAGES: PageConfig[] = [
   label: 'About',
   hero_headline: 'Redefining Luxury Real Estate',
   hero_subheadline: "A legacy of excellence in Dubai's premium property market",
-  hero_description: 'LuxEstate was founded with a singular vision: to provide ultra-high-net-worth individuals with unparalleled access to the world\'s most exclusive properties.',
+  hero_description: 'Cove Estates was founded with a singular vision: to provide ultra-high-net-worth individuals with unparalleled access to the world\'s most exclusive properties.',
   cta_primary_text: 'Meet Our Team',
   cta_primary_link: '/about#team',
   cta_secondary_text: 'Our Story',
   cta_secondary_link: '/about#story',
-  meta_title: 'About LuxEstate — Luxury Real Estate Dubai',
-  meta_description: "Learn about LuxEstate's mission, team and 15+ years of excellence in Dubai's luxury property market.",
+  meta_title: 'About Cove Estates — Luxury Real Estate Dubai',
+  meta_description: "Learn about Cove Estates's mission, team and 15+ years of excellence in Dubai's luxury property market.",
   sections: { team_section: true, stats_section: true, awards_section: true, timeline_section: true }
 },
 {
@@ -382,13 +382,13 @@ export const DEFAULT_PAGES: PageConfig[] = [
   label: 'Blog',
   hero_headline: 'Market Insights & News',
   hero_subheadline: "Expert analysis on Dubai's luxury real estate market",
-  hero_description: "Stay informed with the latest market trends, investment insights, and property news from LuxEstate's expert team.",
+  hero_description: "Stay informed with the latest market trends, investment insights, and property news from Cove Estates's expert team.",
   cta_primary_text: 'Read Latest',
   cta_primary_link: '/blog#latest',
   cta_secondary_text: 'Subscribe',
   cta_secondary_link: '/blog#subscribe',
-  meta_title: 'Real Estate Blog & Market Insights — LuxEstate',
-  meta_description: 'Expert analysis, market trends and property investment insights from LuxEstate.',
+  meta_title: 'Real Estate Blog & Market Insights — Cove Estates',
+  meta_description: 'Expert analysis, market trends and property investment insights from Cove Estates.',
   sections: { featured_post: true, posts_grid: true, categories_filter: true, newsletter_signup: true }
 },
 {
@@ -401,13 +401,13 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_primary_link: '/contact#form',
   cta_secondary_text: 'WhatsApp Us',
   cta_secondary_link: 'https://wa.me/971508862683',
-  meta_title: 'Contact LuxEstate — Luxury Real Estate Dubai',
-  meta_description: "Contact LuxEstate's team of luxury property specialists in Dubai.",
+  meta_title: 'Contact Cove Estates — Luxury Real Estate Dubai',
+  meta_description: "Contact Cove Estates's team of luxury property specialists in Dubai.",
   sections: { contact_form: true, map_section: true, office_details: true, whatsapp_button: true }
 }];
 
 
-const CMS_STORAGE_KEY = 'luxestate_cms_data';
+const CMS_STORAGE_KEY = 'coveestates_cms_data';
 
 interface CMSContextValue {
   pages: PageConfig[];

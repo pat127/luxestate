@@ -53,7 +53,7 @@ export default function Header() {
               className="transition-transform duration-300 group-hover:scale-105"
             />
             <span className="text-foreground font-bold text-xl tracking-tight hidden sm:block">
-              LuxEstate
+              Cove Estates
             </span>
           </Link>
 
@@ -85,7 +85,7 @@ export default function Header() {
               href="https://wa.me/971508862683"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:flex items-center justify-center w-9 h-9 border border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/10 transition-all duration-300"
+              className="hidden md:flex items-center justify-center w-9 h-9 border border-primary/40 text-primary hover:bg-primary/10 transition-all duration-300"
               aria-label="Chat on WhatsApp"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -140,7 +140,7 @@ export default function Header() {
           </div>
           <div className="mt-auto pb-10">
             <p className="text-muted-foreground text-xs tracking-widest uppercase">
-              +1 (212) 555-0190 · hello@luxestate.com
+              +971 50 886 2683 · hello@coveestates.com
             </p>
           </div>
         </div>

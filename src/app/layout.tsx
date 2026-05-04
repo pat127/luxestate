@@ -21,10 +21,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.built
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'LuxEstate — Ultra-Premium Luxury Real Estate Dubai | Residential, Commercial & Off-Plan',
-    template: '%s | LuxEstate Dubai',
+    default: 'Cove Estates — Ultra-Premium Luxury Real Estate Dubai | Residential, Commercial & Off-Plan',
+    template: '%s | Cove Estates Dubai',
   },
-  description: 'LuxEstate curates Dubai\'s finest luxury residential and commercial properties for high-net-worth buyers. Explore exclusive villas, penthouses, off-plan projects, and commercial assets in prime Dubai locations.',
+  description: 'Cove Estates curates Dubai\'s finest luxury residential and commercial properties for high-net-worth buyers. Explore exclusive villas, penthouses, off-plan projects, and commercial assets in prime Dubai locations.',
   keywords: [
     'luxury real estate Dubai',
     'premium properties Dubai',
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
     'high net worth real estate',
     'exclusive properties UAE',
   ],
-  authors: [{ name: 'LuxEstate', url: siteUrl }],
-  creator: 'LuxEstate',
-  publisher: 'LuxEstate',
+  authors: [{ name: 'Cove Estates', url: siteUrl }],
+  creator: 'Cove Estates',
+  publisher: 'Cove Estates',
   robots: {
     index: true,
     follow: true,
@@ -60,23 +60,23 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_AE',
     url: siteUrl,
-    siteName: 'LuxEstate',
-    title: 'LuxEstate — Ultra-Premium Luxury Real Estate Dubai',
+    siteName: 'Cove Estates',
+    title: 'Cove Estates — Ultra-Premium Luxury Real Estate Dubai',
     description: 'Discover Dubai\'s most exclusive residential and commercial properties. Curated for high-net-worth buyers seeking prestige, exclusivity, and exceptional returns.',
     images: [
       {
         url: `${siteUrl}/assets/images/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: 'LuxEstate — Luxury Real Estate Dubai',
+        alt: 'Cove Estates — Luxury Real Estate Dubai',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@luxestate',
-    creator: '@luxestate',
-    title: 'LuxEstate — Ultra-Premium Luxury Real Estate Dubai',
+    site: '@coveestates',
+    creator: '@coveestates',
+    title: 'Cove Estates — Ultra-Premium Luxury Real Estate Dubai',
     description: 'Discover Dubai\'s most exclusive residential and commercial properties.',
     images: [`${siteUrl}/assets/images/og-image.jpg`],
   },
@@ -99,12 +99,12 @@ export const metadata: Metadata = {
 const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'RealEstateAgent',
-  name: 'LuxEstate',
+  name: 'Cove Estates',
   description: 'Ultra-premium luxury real estate agency in Dubai specializing in residential, commercial, and off-plan properties.',
   url: siteUrl,
   logo: `${siteUrl}/assets/images/app_logo.png`,
   telephone: '+971508862683',
-  email: 'admin@luxestate.com',
+  email: 'admin@coveestates.com',
   address: {
     '@type': 'PostalAddress',
     streetAddress: '8th Level, Moosa Tower 1',
@@ -122,9 +122,9 @@ const organizationSchema = {
     { '@type': 'Country', name: 'United Arab Emirates' },
   ],
   sameAs: [
-    'https://instagram.com/luxestate',
-    'https://linkedin.com/company/luxestate',
-    'https://facebook.com/luxestate',
+    'https://instagram.com/coveestates',
+    'https://linkedin.com/company/coveestates',
+    'https://facebook.com/coveestates',
   ],
   knowsAbout: [
     'Luxury Real Estate',
@@ -139,7 +139,7 @@ const organizationSchema = {
 const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'LuxEstate',
+  name: 'Cove Estates',
   url: siteUrl,
   description: 'Ultra-premium luxury real estate in Dubai',
   potentialAction: {

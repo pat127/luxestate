@@ -31,7 +31,7 @@ export async function generatePropertyMetadata({ params }: { params: Promise<{ i
   const { id } = await params;
   const property = propertyData[id] || propertyData['1'];
 
-  const title = `${property.name} | ${property.propertyType} in ${property.location} | LuxEstate`;
+  const title = `${property.name} | ${property.propertyType} in ${property.location} | Cove Estates`;
   const description = `${property.beds ? `${property.beds} Bed ` : ''}${property.propertyType} in ${property.community}, ${property.location}. ${property.price}. ${property.sqft} sq ft. ${property.description.slice(0, 100)}...`;
   const url = `https://luxestate6357.builtwithrocket.new/admin/properties/${id}`;
 
@@ -42,7 +42,7 @@ export async function generatePropertyMetadata({ params }: { params: Promise<{ i
       title,
       description,
       url,
-      siteName: 'LuxEstate',
+      siteName: 'Cove Estates',
       images: [
         {
           url: property.image,

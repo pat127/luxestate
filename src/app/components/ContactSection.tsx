@@ -98,27 +98,27 @@ export default function ContactSection({ content }: Props) {
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-3">Inquiry Received</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Thank you for reaching out. A LuxEstate principal will contact you personally within 24 hours.
+                  Thank you for reaching out. A Cove Estates principal will contact you personally within 24 hours.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="col-span-2 md:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Full Name *</label>
                     <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="Alexandra Whitmore" />
                   </div>
-                  <div className="col-span-2 md:col-span-1">
+                  <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Email Address *</label>
                     <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="alex@family.com" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="col-span-2 md:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Phone</label>
                     <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="+1 (212) 000-0000" />
                   </div>
-                  <div className="col-span-2 md:col-span-1">
+                  <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Budget Range</label>
                     <select value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors cursor-pointer">
                       <option value="">Select Range</option>
@@ -131,7 +131,7 @@ export default function ContactSection({ content }: Props) {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Property Type</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {['Residential', 'Commercial', 'New Development'].map((type) => (
                       <button key={type} type="button" onClick={() => setForm({ ...form, propertyType: type })} className={`py-2.5 text-xs font-bold border transition-all duration-300 ${form.propertyType === type ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`}>
                         {type}

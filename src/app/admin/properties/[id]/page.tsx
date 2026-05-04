@@ -40,7 +40,7 @@ const propertyData: Record<string, any> = {
     description: 'Discover this exceptional Obsidian Penthouse nestled in the heart of Downtown Dubai. This stunning property offers an unparalleled living experience with world-class amenities, breathtaking Burj Khalifa views, and meticulous attention to detail. Perfect for discerning buyers seeking the pinnacle of luxury real estate.',
     agent: 'Sarah Mitchell',
     agentPhone: '+971 50 123 4567',
-    agentEmail: 'sarah.mitchell@luxestate.com',
+    agentEmail: 'sarah.mitchell@coveestates.com',
     featured: true,
     published: true,
     images: [
@@ -88,7 +88,7 @@ const propertyData: Record<string, any> = {
     description: 'An extraordinary beachfront villa on Palm Jumeirah offering unobstructed sea views and the ultimate in luxury living. This 7-bedroom masterpiece features a private beach, infinity pool, and world-class finishes throughout.',
     agent: 'James Carter',
     agentPhone: '+971 50 234 5678',
-    agentEmail: 'james.carter@luxestate.com',
+    agentEmail: 'james.carter@coveestates.com',
     featured: true,
     published: true,
     images: [
@@ -139,7 +139,7 @@ export default function PropertyDetailsPage() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${property.name} - LuxEstate Brochure</title>
+          <title>${property.name} - Cove Estates Brochure</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: Georgia, serif; color: #1a1a1a; background: #fff; }
@@ -175,7 +175,7 @@ export default function PropertyDetailsPage() {
         <body>
           <div class="brochure">
             <div class="header">
-              <div class="logo">LUXESTATE</div>
+              <div class="logo">COVE ESTATES</div>
               <div class="ref">Ref: ${property.referenceNumber}</div>
             </div>
             <img class="hero-img" src="${property.images[0]?.url}" alt="${property.images[0]?.alt}" />
@@ -226,10 +226,10 @@ export default function PropertyDetailsPage() {
                 <div class="agent-name">${property.agent}</div>
                 <div class="agent-contact">${property.agentPhone} · ${property.agentEmail}</div>
               </div>
-              <div style="text-align: right; color: #c9a84c; font-size: 18px; font-weight: bold;">LUXESTATE</div>
+              <div style="text-align: right; color: #c9a84c; font-size: 18px; font-weight: bold;">COVE ESTATES</div>
             </div>
             <div class="footer">
-              This brochure is for informational purposes only. All details are subject to change. © LuxEstate ${new Date().getFullYear()}
+              This brochure is for informational purposes only. All details are subject to change. © Cove Estates ${new Date().getFullYear()}
             </div>
           </div>
           <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }</script>

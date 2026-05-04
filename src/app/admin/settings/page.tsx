@@ -94,7 +94,7 @@ function ToggleField({ label, description, defaultChecked = false }: { label: st
 const AVAILABLE_BLOCKS: { key: string; label: string; description: string }[] = [
   { key: 'featured_properties', label: 'Featured Properties', description: 'Showcase a curated grid of featured property listings' },
   { key: 'featured_projects', label: 'Featured Projects', description: 'Highlight off-plan and new development projects' },
-  { key: 'why_luxestate', label: 'Why LuxEstate', description: 'Scrolling workflow section explaining the LuxEstate process' },
+  { key: 'why_luxestate', label: 'Why Cove Estates', description: 'Scrolling workflow section explaining the Cove Estates process' },
   { key: 'testimonials', label: 'Testimonials', description: 'Client testimonials and awards recognition section' },
   { key: 'mortgage_calculator', label: 'Mortgage Calculator', description: 'Interactive mortgage and payment calculator tool' },
   { key: 'contact_section', label: 'Contact Section', description: 'Contact form and office details section' },
@@ -564,7 +564,7 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
   const [activeSection, setActiveSection] = useState<SubTab>('content');
 
   const sectionLabels: Record<string, string> = {
-    featured_properties: 'Featured Properties', featured_projects: 'Featured Projects', why_luxestate: 'Why LuxEstate',
+    featured_properties: 'Featured Properties', featured_projects: 'Featured Projects', why_luxestate: 'Why Cove Estates',
     testimonials: 'Testimonials', mortgage_calculator: 'Mortgage Calculator', contact_section: 'Contact Section',
     search_bar: 'Search Bar', listings_grid: 'Listings Grid', team_section: 'Team Section', market_stats: 'Market Stats',
     market_insights: 'Market Insights', commercial_stats: 'Commercial Stats', projects_gallery: 'Projects Gallery',
@@ -873,7 +873,7 @@ function PropertyFieldsManager() {
 }
 
 // ─── Communities Manager ──────────────────────────────────────────────────────
-const STORAGE_KEY = 'luxestate_communities';
+const STORAGE_KEY = 'coveestates_communities';
 
 function CommunitiesManager() {
   const [locations, setLocations] = useState<UAELocation[]>([]);
@@ -1274,7 +1274,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <InputField label="Phone" value="+971 50 886 2683" />
-              <InputField label="Email" value="admin@luxestate.com" />
+              <InputField label="Email" value="admin@coveestates.com" />
               <InputField label="WhatsApp" value="+971508862683" />
             </div>
             <TextareaField label="Address" value="8th Level, Moosa Tower 1, Dubai, UAE" rows={2} />
@@ -1356,12 +1356,12 @@ export default function SettingsPage() {
             <SectionHeader title="Social Media Links" description="Configure social media profiles and links" />
             <div className="space-y-4">
               {[
-                { label: 'Instagram', placeholder: 'https://instagram.com/luxestate' },
-                { label: 'LinkedIn', placeholder: 'https://linkedin.com/company/luxestate' },
-                { label: 'Facebook', placeholder: 'https://facebook.com/luxestate' },
-                { label: 'Twitter / X', placeholder: 'https://twitter.com/luxestate' },
-                { label: 'YouTube', placeholder: 'https://youtube.com/@luxestate' },
-                { label: 'TikTok', placeholder: 'https://tiktok.com/@luxestate' },
+                { label: 'Instagram', placeholder: 'https://instagram.com/coveestates' },
+                { label: 'LinkedIn', placeholder: 'https://linkedin.com/company/coveestates' },
+                { label: 'Facebook', placeholder: 'https://facebook.com/coveestates' },
+                { label: 'Twitter / X', placeholder: 'https://twitter.com/coveestates' },
+                { label: 'YouTube', placeholder: 'https://youtube.com/@coveestates' },
+                { label: 'TikTok', placeholder: 'https://tiktok.com/@coveestates' },
               ].map((s) => <InputField key={s.label} label={s.label} placeholder={s.placeholder} />)}
             </div>
           </div>
@@ -1370,8 +1370,8 @@ export default function SettingsPage() {
         {activeTab === 'SEO' && (
           <div className="space-y-6">
             <SectionHeader title="Global SEO Configuration" description="Site-wide search engine optimization settings" />
-            <InputField label="Site Title" value="LuxEstate — Ultra-Premium Properties for Discerning Buyers" />
-            <TextareaField label="Meta Description" value="LuxEstate curates the world's finest residential and commercial properties for high-net-worth buyers." rows={3} />
+            <InputField label="Site Title" value="Cove Estates — Ultra-Premium Properties for Discerning Buyers" />
+            <TextareaField label="Meta Description" value="Cove Estates curates the world's finest residential and commercial properties for high-net-worth buyers." rows={3} />
             <InputField label="Google Analytics ID" placeholder="G-XXXXXXXXXX" />
             <InputField label="Google Search Console Verification" placeholder="google-site-verification=..." />
             <div className="space-y-0">

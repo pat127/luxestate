@@ -34,9 +34,9 @@ const legalLinks = [
 ];
 
 const socialLinks = [
-  { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/luxestate' },
-  { icon: 'ChatBubbleLeftIcon' as const, label: 'LinkedIn', href: 'https://linkedin.com/company/luxestate' },
-  { icon: 'TvIcon' as const, label: 'YouTube', href: 'https://youtube.com/@luxestate' },
+  { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/coveestates' },
+  { icon: 'ChatBubbleLeftIcon' as const, label: 'LinkedIn', href: 'https://linkedin.com/company/coveestates' },
+  { icon: 'TvIcon' as const, label: 'YouTube', href: 'https://youtube.com/@coveestates' },
 ];
 
 function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
@@ -69,7 +69,7 @@ export default function Footer() {
           <div className="lg:col-span-2 flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <AppLogo size={32} />
-              <span className="text-foreground font-bold text-lg tracking-tight">LuxEstate</span>
+              <span className="text-foreground font-bold text-lg tracking-tight">Cove Estates</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.
@@ -95,7 +95,7 @@ export default function Footer() {
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="EnvelopeIcon" size={12} className="text-primary flex-shrink-0" />
-                admin@luxestate.com
+                admin@coveestates.com
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="MapPinIcon" size={12} className="text-primary flex-shrink-0" />
@@ -119,7 +119,7 @@ export default function Footer() {
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
           <span className="text-muted-foreground text-xs tracking-widest">
-            © 2026 LuxEstate. All rights reserved.
+            © 2026 Cove Estates. All rights reserved.
           </span>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {legalLinks.map((link) => (

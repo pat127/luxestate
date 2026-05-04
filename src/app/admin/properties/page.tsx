@@ -367,7 +367,7 @@ export default function PropertiesPage() {
           @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
         </style></head><body>
         <div class="brochure">
-          <div class="header"><div class="logo">LUXESTATE</div><div style="font-size:12px;color:#666">${property.type} Property</div></div>
+          <div class="header"><div class="logo">COVE ESTATES</div><div style="font-size:12px;color:#666">${property.type} Property</div></div>
           <img class="hero-img" src="${property.image}" alt="${property.alt}" />
           <div class="title">${property.name}</div>
           <div class="location">📍 ${property.location}</div>
@@ -379,9 +379,9 @@ export default function PropertiesPage() {
           </div>
           <div class="agent-section">
             <div><div class="agent-name">${property.agent}</div><div style="font-size:12px;color:#aaa">Listing Agent</div></div>
-            <div style="text-align:right;color:#c9a84c;font-size:18px;font-weight:bold">LUXESTATE</div>
+            <div style="text-align:right;color:#c9a84c;font-size:18px;font-weight:bold">COVE ESTATES</div>
           </div>
-          <div class="footer">© LuxEstate ${new Date().getFullYear()} · All details subject to change</div>
+          <div class="footer">© Cove Estates ${new Date().getFullYear()} · All details subject to change</div>
         </div>
         <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}</script>
         </body></html>

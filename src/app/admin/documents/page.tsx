@@ -58,7 +58,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     requiresApproval: true,
     fields: [
       { key: 'date', label: 'Agreement Date', type: 'date', required: true },
-      { key: 'party1_company', label: 'First Party — Company Name', type: 'text', required: true, placeholder: 'e.g. LuxEstate LLC' },
+      { key: 'party1_company', label: 'First Party — Company Name', type: 'text', required: true, placeholder: 'e.g. Cove Estates LLC' },
       { key: 'party1_license', label: 'First Party — License No.', type: 'text', required: true, placeholder: 'e.g. 1432541' },
       { key: 'party1_orn', label: 'First Party — ORN', type: 'text', required: true, placeholder: 'e.g. 46855' },
       { key: 'party1_address', label: 'First Party — Office Address', type: 'text', required: true, placeholder: 'e.g. 802, Moosa Tower, Dubai, UAE' },
@@ -222,10 +222,10 @@ const INITIAL_DOCUMENTS: FilledDocument[] = [
     templateName: 'Non-Circumvention, Non-Disclosure Agreement',
     shortName: 'NCNDA',
     category: 'NDA',
-    title: 'NCNDA — LuxEstate LLC & Investor Corp — May 2026',
+    title: 'NCNDA — Cove Estates LLC & Investor Corp — May 2026',
     fields: {
       date: '2026-05-02',
-      party1_company: 'LuxEstate LLC',
+      party1_company: 'Cove Estates LLC',
       party1_license: '1432541',
       party1_orn: '46855',
       party1_address: '802, Moosa Tower, Dubai, UAE',
@@ -261,7 +261,7 @@ const INITIAL_DOCUMENTS: FilledDocument[] = [
       buyer_name: 'James Harrington',
       buyer_passport: 'A1234567',
       buyer_nationality: 'British',
-      seller_name: 'LuxEstate LLC',
+      seller_name: 'Cove Estates LLC',
       seller_passport: 'B7654321',
       property_ref: 'LX-RES-004',
       property_address: 'Meridian Villa, Palm Jumeirah, Dubai',
@@ -341,7 +341,7 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {/* Logo / Company */}
           <div>
             <div style={{ fontSize: '26px', fontWeight: '900', color: '#C9A84C', letterSpacing: '4px', fontFamily: 'Arial, sans-serif', lineHeight: 1 }}>
-              LUXESTATE
+              COVE ESTATES
             </div>
             <div style={{ fontSize: '9px', color: '#888', letterSpacing: '3px', textTransform: 'uppercase', marginTop: '4px', fontFamily: 'Arial, sans-serif' }}>
               Luxury Real Estate · Dubai, UAE
@@ -384,7 +384,7 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {isNCNDA ? (
             <>
               <p style={{ fontSize: '11px', lineHeight: 1.9, marginBottom: '10px', color: '#333' }}>
-                <strong>{f.party1_company || 'LuxEstate LLC'}</strong>, a company incorporated in Dubai, United Arab Emirates with license{' '}
+                <strong>{f.party1_company || 'Cove Estates LLC'}</strong>, a company incorporated in Dubai, United Arab Emirates with license{' '}
                 <strong>{f.party1_license || '1432541'}</strong>, ORN no <strong>{f.party1_orn || '46855'}</strong> and office at{' '}
                 <strong>{f.party1_address || '802, Moosa Tower, Dubai, UAE'}</strong>{' '}
                 (&ldquo;<strong>{f.party1_initials || 'LX'}</strong>&rdquo;), representing the <strong>Buyer</strong>. (First Party)
@@ -420,7 +420,7 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {[
               `The Parties acknowledge that they wish to share information relating to ${f.property_description || 'Plots (listed in appendix "Property").'}.`,
-              `${f.party1_company || 'LuxEstate'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
+              `${f.party1_company || 'Cove Estates'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
               'Both Parties agree to disclose and receive information pertaining to the parties they respectively represent.',
               'Both Parties agree to be retained by their respective clients in terms of fees and agree not to circumvent.',
             ].map((item, i) => (
@@ -567,7 +567,7 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
       {/* ── Footer ── */}
       <div style={{ marginTop: '36px', paddingTop: '12px', borderTop: '1px solid #e5e0d5', textAlign: 'center' }}>
         <p style={{ fontSize: '9px', color: '#bbb', fontFamily: 'Arial, sans-serif' }}>
-          © LuxEstate {new Date().getFullYear()} · Confidential Document · {refNo} · This document is legally binding upon execution by all parties.
+          © Cove Estates {new Date().getFullYear()} · Confidential Document · {refNo} · This document is legally binding upon execution by all parties.
         </p>
       </div>
     </div>
@@ -622,7 +622,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     </style></head><body><div class="page">
     <div class="letterhead">
       <div>
-        <div class="logo">LUXESTATE</div>
+        <div class="logo">COVE ESTATES</div>
         <div style="font-size:9px;color:#888;letter-spacing:3px;text-transform:uppercase;font-family:Arial,sans-serif;margin-top:4px">Luxury Real Estate · Dubai, UAE</div>
         <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">License: ${f.party1_license || '1432541'} · ORN: ${f.party1_orn || '46855'}</div>
         <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_address || '802, Moosa Tower, Dubai, UAE'}</div>
@@ -636,7 +636,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     <div class="doc-title">${doc.templateName.toUpperCase()}<div style="width:60px;height:2px;background:#C9A84C;margin:8px auto 0"></div></div>
     <p>This Agreement is made on <strong>${fmtDate(f.date || '')}</strong> (the "Effective Date").</p>
     ${(isNCNDA || isMOU) ? `<div class="section-title">BY AND BETWEEN</div>
-    ${isNCNDA ? `<p><strong>${f.party1_company || 'LuxEstate LLC'}</strong>, a company incorporated in Dubai, UAE with license <strong>${f.party1_license || '1432541'}</strong>, ORN no <strong>${f.party1_orn || '46855'}</strong> and office at <strong>${f.party1_address || '802, Moosa Tower, Dubai, UAE'}</strong> ("<strong>${f.party1_initials || 'LX'}</strong>"), representing the <strong>Buyer</strong>. (First Party)</p>
+    ${isNCNDA ? `<p><strong>${f.party1_company || 'Cove Estates LLC'}</strong>, a company incorporated in Dubai, UAE with license <strong>${f.party1_license || '1432541'}</strong>, ORN no <strong>${f.party1_orn || '46855'}</strong> and office at <strong>${f.party1_address || '802, Moosa Tower, Dubai, UAE'}</strong> ("<strong>${f.party1_initials || 'CE'}</strong>"), representing the <strong>Buyer</strong>. (First Party)</p>
     <p style="text-align:center;font-style:italic;color:#888">— and —</p>
     <p><strong>${f.party2_company || '[COMPANY]'}</strong>, a company incorporated in Dubai, UAE with Trade license <strong>${f.party2_license || '[LICENSE]'}</strong>, ORN <strong>${f.party2_orn || '[ORN]'}</strong> and office at <strong>${f.party2_address || '[ADDRESS]'}</strong>, Dubai, UAE ("<strong>${f.party2_initials || '[INITIALS]'}</strong>"), representing <strong>Seller</strong>. (Second Party)</p>` :
     `<p><strong>Buyer:</strong> ${f.buyer_name || '___________'}${f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}${f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}</p>
@@ -645,7 +645,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     ${isNCNDA ? `<div class="section-title">BACKGROUND</div>
     <ul style="list-style:none;padding:0">
       ${[`The Parties acknowledge that they wish to share information relating to ${f.property_description || 'Plots (listed in appendix "Property").'}.`,
-        `${f.party1_company || 'LuxEstate'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
+        `${f.party1_company || 'Cove Estates'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
         'Both Parties agree to disclose and receive information pertaining to the parties they respectively represent.',
         'Both Parties agree to be retained by their respective clients in terms of fees and agree not to circumvent.']
         .map(item => `<li style="font-size:11px;line-height:1.8;margin-bottom:6px;color:#333;padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#C9A84C;font-weight:bold">•</span>${item}</li>`).join('')}
@@ -679,7 +679,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       </div>
     </div>
     ${doc.ceoSignature ? `<div class="approved"><div style="font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#16a34a;margin-bottom:6px;font-family:Arial,sans-serif">✓ CEO APPROVED & E-SIGNED</div><div style="font-size:24px;font-style:italic;color:#C9A84C">${doc.ceoSignature}</div><div style="font-size:10px;color:#888;margin-top:4px;font-family:Arial,sans-serif">Approved on ${doc.approvedAt}</div></div>` : ''}
-    <div class="footer">© LuxEstate ${new Date().getFullYear()} · Confidential Document · ${refNo} · This document is legally binding upon execution by all parties.</div>
+    <div class="footer">© Cove Estates ${new Date().getFullYear()} · Confidential Document · ${refNo} · This document is legally binding upon execution by all parties.</div>
     </div><script>window.onload=function(){window.print();}<\/script></body></html>`);
     win.document.close();
   };

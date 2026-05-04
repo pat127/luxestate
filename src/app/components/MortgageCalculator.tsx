@@ -68,7 +68,7 @@ export default function MortgageCalculator({ content }: Props) {
   return (
     <section ref={sectionRef} className="py-24 px-6 md:px-10 border-t border-border bg-background">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 animate-on-scroll">
+        <div className="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-8 animate-on-scroll">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
               {c.eyebrow}

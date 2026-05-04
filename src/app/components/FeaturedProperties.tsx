@@ -87,7 +87,7 @@ export default function FeaturedProperties({ content }: Props) {
 
   return (
     <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+      <div className="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-8">
         <div className="animate-on-scroll stagger-children">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
             {c.eyebrow}
@@ -96,8 +96,8 @@ export default function FeaturedProperties({ content }: Props) {
             {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
-        <div className="animate-on-scroll flex flex-col items-end gap-4">
-          <p className="text-muted-foreground text-sm max-w-xs text-right leading-relaxed">
+        <div className="animate-on-scroll flex flex-col items-start md:items-end gap-4">
+          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">
             {c.description}
           </p>
           <Link
