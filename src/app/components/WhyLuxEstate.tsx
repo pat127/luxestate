@@ -83,7 +83,7 @@ export default function WhyLuxEstate({ content }: Props) {
             </span>
             <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
               {restHeadline && <>{restHeadline}<br /></>}
-              <span className="text-gold-shimmer">{lastHeadlineWord || c.headline_shimmer}</span>
+              <span key={lastHeadlineWord} className="text-gold-shimmer">{lastHeadlineWord || c.headline_shimmer}</span>
             </h2>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
@@ -96,10 +96,11 @@ export default function WhyLuxEstate({ content }: Props) {
         <div className="flex flex-col lg:flex-row">
           {/* Sticky Left */}
           <div className="lg:w-1/2 lg:h-screen lg:sticky top-0 flex flex-col justify-center py-12 lg:py-0 lg:pr-16 border-r border-border/0 lg:border-border">
-            <h3 className="text-2xl md:text-4xl font-bold text-foreground tracking-tighter mb-10 text-gold-shimmer">
-              {c.left_title}<br />
+            <div className="text-2xl md:text-4xl font-bold tracking-tighter mb-10">
+              <span className="text-gold-shimmer">{c.left_title}</span>
+              <br />
               <span className="text-muted-foreground">{c.left_subtitle}</span>
-            </h3>
+            </div>
 
             <div className="hidden lg:block border-l border-border mb-10 pl-6 relative space-y-6">
               <div className="vertical-beam" />

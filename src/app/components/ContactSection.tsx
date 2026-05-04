@@ -59,7 +59,7 @@ export default function ContactSection({ content }: Props) {
             </span>
             <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none mb-8">
               {restHeadline && <>{restHeadline}<br /></>}
-              <span className="text-gold-shimmer">{lastWord || c.headline_shimmer}</span>
+              <span key={lastWord} className="text-gold-shimmer">{lastWord || c.headline_shimmer}</span>
             </h2>
             <p className="text-muted-foreground text-base leading-relaxed mb-12 max-w-md">
               {c.description}

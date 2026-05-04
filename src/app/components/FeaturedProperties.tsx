@@ -93,7 +93,7 @@ export default function FeaturedProperties({ content }: Props) {
             {c.eyebrow}
           </span>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
-            {c.headline}<br /><span className="text-gold-shimmer">{c.headline_shimmer}</span>
+            {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
         <div className="animate-on-scroll flex flex-col items-end gap-4">

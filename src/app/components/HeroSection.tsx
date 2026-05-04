@@ -161,7 +161,7 @@ export default function HeroSection() {
           </span>
           <h1 className="text-hero max-w-4xl">
             {restHeadline && <span className="text-foreground">{restHeadline} </span>}
-            <span className="text-gold-shimmer">{lastWord}</span>
+            <span key={lastWord} className="text-gold-shimmer">{lastWord}</span>
           </h1>
         </div>
 

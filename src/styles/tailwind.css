@@ -113,6 +113,7 @@
   -webkit-text-fill-color: transparent !important;
   animation: goldShimmer 3s linear infinite;
   display: inline-block;
+  will-change: background-position;
 }
 
 .cinematic-in {

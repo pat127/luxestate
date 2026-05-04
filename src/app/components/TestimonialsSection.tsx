@@ -56,7 +56,7 @@ export default function TestimonialsSection({ content }: Props) {
             {c.eyebrow}
           </span>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter">
-            {restHeadline} <span className="text-gold-shimmer">{lastWord || c.headline_shimmer}</span>
+            {restHeadline} <span key={lastWord} className="text-gold-shimmer">{lastWord || c.headline_shimmer}</span>
           </h2>
         </div>
 
@@ -107,7 +107,7 @@ export default function TestimonialsSection({ content }: Props) {
             <div>
               <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">{c.awards_eyebrow}</span>
               <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tighter">
-                {c.awards_headline}<br /><span className="text-gold-shimmer">{c.awards_headline_shimmer}</span>
+                {c.awards_headline}<br /><span key={c.awards_headline_shimmer} className="text-gold-shimmer">{c.awards_headline_shimmer}</span>
               </h3>
             </div>
             <p className="text-muted-foreground text-sm max-w-xs text-right leading-relaxed">

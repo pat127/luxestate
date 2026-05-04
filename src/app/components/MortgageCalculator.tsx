@@ -18,7 +18,10 @@ export default function MortgageCalculator({ content }: Props) {
   const [loanTerm, setLoanTerm] = useState(30);
   const [monthly, setMonthly] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const calculate = useCallback(() => {
     const principal = homePrice * (1 - downPayment / 100);
@@ -53,8 +56,10 @@ export default function MortgageCalculator({ content }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => {
+    if (!mounted) return '$0';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  };
 
   const loanAmount = homePrice * (1 - downPayment / 100);
 
