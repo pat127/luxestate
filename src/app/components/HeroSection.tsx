@@ -207,16 +207,6 @@ export default function HeroSection() {
                 <option value="commercial">Commercial</option>
                 <option value="project">New Development</option>
               </select>
-              <select
-                value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
-                className="bg-background border border-border text-foreground text-sm px-4 py-3 outline-none focus:border-primary transition-colors cursor-pointer">
-                <option value="">Price Range</option>
-                <option value="1m-5m">AED 1M – 5M</option>
-                <option value="5m-15m">AED 5M – 15M</option>
-                <option value="15m-50m">AED 15M – 50M</option>
-                <option value="50m+">AED 50M+</option>
-              </select>
               <button
                 onClick={handleSearch}
                 className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
