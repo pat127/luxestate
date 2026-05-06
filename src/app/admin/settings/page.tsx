@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import {
   useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS,
@@ -1223,12 +1223,30 @@ export default function SettingsPage() {
   const [pages, setPages] = useState<PageConfig[]>(cmsPages);
   const [activePage, setActivePage] = useState<PageKey>('home');
   const [branding, setBranding] = useState<BrandingConfig>(cmsBranding);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoInputRef = React.useRef<HTMLInputElement>(null);
+  const initializedRef = React.useRef(false);
 
-  // Sync from CMS context when it loads
+  // Sync from CMS context only on first load (not on every render)
   React.useEffect(() => {
-    setPages(cmsPages);
-    setBranding(cmsBranding);
+    if (!initializedRef.current && (cmsPages.length > 0 || cmsBranding.company_name)) {
+      setPages(cmsPages);
+      setBranding(cmsBranding);
+      initializedRef.current = true;
+    }
   }, [cmsPages, cmsBranding]);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setLogoPreview(dataUrl);
+      setBranding((prev) => ({ ...prev, logo_url: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = () => {
     saveAll(pages, branding);
@@ -1304,10 +1322,43 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Logo Upload</label>
-              <div className="border border-dashed border-border p-6 text-center hover:border-primary/40 transition-colors cursor-pointer">
-                <Icon name="PhotoIcon" size={24} className="text-muted-foreground mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">Click to upload logo (SVG, PNG, JPG)</p>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/svg+xml,image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <div
+                className="border border-dashed border-border p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+                onClick={() => logoInputRef.current?.click()}
+              >
+                {logoPreview || (branding as any).logo_url ? (
+                  <div className="flex flex-col items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoPreview || (branding as any).logo_url}
+                      alt="Logo preview"
+                      className="max-h-16 max-w-[200px] object-contain"
+                    />
+                    <p className="text-xs text-primary font-semibold">Logo uploaded — click to replace</p>
+                  </div>
+                ) : (
+                  <>
+                    <Icon name="PhotoIcon" size={24} className="text-muted-foreground mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">Click to upload logo (SVG, PNG, JPG)</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Recommended: SVG or PNG with transparent background</p>
+                  </>
+                )}
               </div>
+              {(logoPreview || (branding as any).logo_url) && (
+                <button
+                  onClick={() => { setLogoPreview(null); setBranding((prev) => ({ ...prev, logo_url: undefined })); }}
+                  className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Remove logo
+                </button>
+              )}
             </div>
           </div>
         )}

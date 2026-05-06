@@ -430,16 +430,31 @@ const CMSContext = createContext<CMSContextValue>({
 
 function mergeWithDefaults(stored: PageConfig): PageConfig {
   if (stored.key !== 'home') return stored;
+  // Deep merge: stored values take priority, only fill in completely missing keys
   return {
     ...stored,
-    hero_stats: stored.hero_stats ?? DEFAULT_HERO_STATS,
-    featured_properties_content: stored.featured_properties_content ?? DEFAULT_FEATURED_PROPERTIES,
-    featured_projects_content: stored.featured_projects_content ?? DEFAULT_FEATURED_PROJECTS,
-    why_luxestate_content: stored.why_luxestate_content ?? DEFAULT_WHY_LUXESTATE,
-    testimonials_content: stored.testimonials_content ?? DEFAULT_TESTIMONIALS,
-    contact_content: stored.contact_content ?? DEFAULT_CONTACT,
-    mortgage_content: stored.mortgage_content ?? DEFAULT_MORTGAGE,
-    homepage_blocks: stored.homepage_blocks ?? DEFAULT_HOMEPAGE_BLOCKS
+    hero_stats: stored.hero_stats && stored.hero_stats.length > 0 ? stored.hero_stats : DEFAULT_HERO_STATS,
+    featured_properties_content: stored.featured_properties_content
+      ? { ...DEFAULT_FEATURED_PROPERTIES, ...stored.featured_properties_content }
+      : DEFAULT_FEATURED_PROPERTIES,
+    featured_projects_content: stored.featured_projects_content
+      ? { ...DEFAULT_FEATURED_PROJECTS, ...stored.featured_projects_content }
+      : DEFAULT_FEATURED_PROJECTS,
+    why_luxestate_content: stored.why_luxestate_content
+      ? { ...DEFAULT_WHY_LUXESTATE, ...stored.why_luxestate_content }
+      : DEFAULT_WHY_LUXESTATE,
+    testimonials_content: stored.testimonials_content
+      ? { ...DEFAULT_TESTIMONIALS, ...stored.testimonials_content }
+      : DEFAULT_TESTIMONIALS,
+    contact_content: stored.contact_content
+      ? { ...DEFAULT_CONTACT, ...stored.contact_content }
+      : DEFAULT_CONTACT,
+    mortgage_content: stored.mortgage_content
+      ? { ...DEFAULT_MORTGAGE, ...stored.mortgage_content }
+      : DEFAULT_MORTGAGE,
+    homepage_blocks: stored.homepage_blocks && stored.homepage_blocks.length > 0
+      ? stored.homepage_blocks
+      : DEFAULT_HOMEPAGE_BLOCKS,
   };
 }
 
@@ -447,6 +462,7 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
   const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
   const [lastSaved, setLastSaved] = useState<string | undefined>();
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -454,16 +470,22 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
       if (stored) {
         const data: CMSData = JSON.parse(stored);
         if (data.pages?.length) {
-          const merged = data.pages.map(mergeWithDefaults);
-          setPages(merged);
+          // Merge stored pages with defaults: stored pages take priority
+          const mergedPages = DEFAULT_PAGES.map((defaultPage) => {
+            const storedPage = data.pages.find((p) => p.key === defaultPage.key);
+            if (!storedPage) return defaultPage;
+            return mergeWithDefaults(storedPage);
+          });
+          setPages(mergedPages);
         }
         if (data.branding) setBranding(data.branding);
         if (data.lastSaved) setLastSaved(data.lastSaved);
       }
     } catch {
-
       // use defaults
-    }}, []);
+    }
+    setLoaded(true);
+  }, []);
 
   const getPage = useCallback((key: PageKey): PageConfig => {
     return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];
@@ -485,15 +507,15 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
     try {
       localStorage.setItem(CMS_STORAGE_KEY, JSON.stringify({ pages: newPages, branding: newBranding, lastSaved: ts }));
     } catch {
-
       // storage unavailable
-    }}, []);
+    }
+  }, []);
 
   return (
     <CMSContext.Provider value={{ pages, branding, getPage, updatePage, updateBranding, saveAll, lastSaved }}>
       {children}
-    </CMSContext.Provider>);
-
+    </CMSContext.Provider>
+  );
 }
 
 export function useCMS() {

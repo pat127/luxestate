@@ -16,7 +16,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
   wide?: boolean;
 }) {
   return (
-    <Link href="/projects" className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
+    <Link href={`/projects/${project.id}`} className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
       <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
         <AppImage
           src={project.image}

@@ -70,8 +70,8 @@ export default function CalendarPage() {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   const visibleEvents = view === 'ceo'
-    ? events.filter((e) => e.type === 'CEO' || e.type === 'Deal')
-    : events;
+    ? events.filter((e) => e.type === 'CEO')
+    : events.filter((e) => e.type !== 'CEO');
 
   const getEventsForDay = (day: number) => visibleEvents.filter((e) => e.date === day && e.month === currentMonth);
 

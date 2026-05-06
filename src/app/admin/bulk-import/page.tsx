@@ -79,6 +79,10 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'status', label: 'Status', required: false, type: 'select' },
       { key: 'reference_number', label: 'Reference Number', required: false, type: 'text' },
       { key: 'agent', label: 'Agent Name', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: false, type: 'text' },
+      { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
+      { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
+      { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },
     ],
   },
   projects: {
@@ -95,6 +99,10 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'starting_price', label: 'Starting Price (AED)', required: false, type: 'number' },
       { key: 'completion', label: 'Completion Date', required: false, type: 'text' },
       { key: 'description', label: 'Description', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: false, type: 'text' },
+      { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
+      { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
+      { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },
     ],
   },
   blogs: {

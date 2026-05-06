@@ -16,7 +16,7 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
   rowSpan?: string;
 }) {
   return (
-    <Link href={property.href} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${rowSpan}`}>
+    <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${rowSpan}`}>
       <div className={`relative overflow-hidden ${rowSpan === 'md:row-span-2' ? 'h-full min-h-[500px]' : 'h-64 md:h-72'}`}>
         <AppImage
           src={property.image}
