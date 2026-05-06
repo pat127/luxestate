@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '@/components/ui/AppIcon';
 
 interface Agent {
@@ -69,6 +70,9 @@ export default function AgentsPage() {
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [form, setForm] = useState<AgentForm>(emptyForm);
   const [search, setSearch] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => { setMounted(true); }, []);
 
   const filtered = agents.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -217,8 +221,8 @@ export default function AgentsPage() {
       </div>
 
       {/* Add/Edit Agent Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      {showModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card">
               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">{editAgent ? 'Edit Agent' : 'Add New Agent'}</h2>
@@ -288,7 +292,8 @@ export default function AgentsPage() {
               <button onClick={handleSave} className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors">{editAgent ? 'Update Agent' : 'Save Agent'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

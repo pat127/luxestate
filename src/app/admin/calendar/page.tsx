@@ -142,6 +142,21 @@ export default function CalendarPage() {
   const openNew = () => { setEditEvent(null); setForm(emptyForm); setShowModal(true); };
   const openNewMarketing = () => { setEditMarketingEvent(null); setMarketingForm(emptyMarketingForm); setShowMarketingModal(true); };
 
+  const openNewWithDate = (day: number) => {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const defaultType = activeTab === 'ceo' ? 'CEO' : 'Meeting';
+    setEditEvent(null);
+    setForm({ ...emptyForm, date: dateStr, type: defaultType });
+    setShowModal(true);
+  };
+
+  const openNewMarketingWithDate = (day: number) => {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setEditMarketingEvent(null);
+    setMarketingForm({ ...emptyMarketingForm, date: dateStr });
+    setShowMarketingModal(true);
+  };
+
   const openEdit = (ev: CalEvent) => {
     setEditEvent(ev);
     setForm({
@@ -282,7 +297,7 @@ export default function CalendarPage() {
                 <div
                   key={day}
                   className={`h-20 border-b border-r border-border p-1.5 hover:bg-white/2 transition-colors cursor-pointer ${isToday ? 'bg-primary/5' : ''}`}
-                  onClick={isMarketing ? openNewMarketing : openNew}
+                  onClick={isMarketing ? () => openNewMarketingWithDate(day) : () => openNewWithDate(day)}
                 >
                   <span className={`text-xs font-bold inline-flex w-5 h-5 items-center justify-center ${isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
                     {day}

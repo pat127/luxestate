@@ -5,6 +5,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { UAE_LOCATIONS } from '@/lib/uaeLocations';
 
 interface LocationSuggestion {
@@ -28,6 +29,7 @@ const ALL_LOCATION_SUGGESTIONS = buildLocationSuggestions();
 
 export default function HeroSection() {
   const page = useCMSPage('home');
+  const router = useRouter();
   const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,16 @@ export default function HeroSection() {
   const handleSelectSuggestion = (suggestion: LocationSuggestion) => {
     setSearchQuery(suggestion.label);
     setShowSuggestions(false);
+  };
+
+  const handleSearch = () => {
+    setShowSuggestions(false);
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/residential?search=${encodeURIComponent(q)}`);
+    } else {
+      router.push('/residential');
+    }
   };
 
   const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
@@ -169,7 +181,7 @@ export default function HeroSection() {
                     className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
                 </div>
                 <button
-                  onClick={() => setShowSuggestions(false)}
+                  onClick={handleSearch}
                   className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
                   Search
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
