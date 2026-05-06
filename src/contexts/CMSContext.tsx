@@ -307,6 +307,7 @@ export interface BrandingConfig {
   primary_color: string;
   accent_color: string;
   font_family: string;
+  logo_url?: string;
 }
 
 export interface CMSData {

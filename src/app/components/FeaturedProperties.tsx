@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES } from '@/contexts/CMSContext';
+import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES, PropertyItem } from '@/contexts/CMSContext';
 
 interface Props {
   content?: FeaturedPropertiesContent;
@@ -66,7 +66,43 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
 export default function FeaturedProperties({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROPERTIES;
-  const props = c.properties ?? DEFAULT_FEATURED_PROPERTIES.properties;
+  const cmsProps = c.properties ?? DEFAULT_FEATURED_PROPERTIES.properties;
+
+  const [allProperties, setAllProperties] = useState<PropertyItem[]>(cmsProps);
+
+  useEffect(() => {
+    // Merge admin-managed properties from localStorage with CMS properties
+    try {
+      const stored = localStorage.getItem('admin_properties');
+      if (stored) {
+        const adminProps = JSON.parse(stored) as Array<{
+          id: number; name: string; location: string; price: string;
+          beds?: number; baths?: number; sqft: string; image: string; alt: string;
+          status?: string; type?: string;
+        }>;
+        // Convert admin properties to PropertyItem format
+        const adminConverted: PropertyItem[] = adminProps.map((p) => ({
+          id: p.id,
+          name: p.name,
+          location: p.location,
+          price: p.price,
+          beds: p.beds ?? 0,
+          baths: p.baths ?? 0,
+          sqft: p.sqft,
+          tag: p.status || 'For Sale',
+          href: `/properties/${p.id}`,
+          image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+          alt: p.alt || p.name,
+        }));
+        // Merge: admin properties override CMS ones by id, then append new ones
+        const cmsIds = new Set(cmsProps.map((p) => p.id));
+        const newAdminProps = adminConverted.filter((p) => !cmsIds.has(p.id));
+        setAllProperties([...cmsProps, ...newAdminProps]);
+      }
+    } catch {
+      // fallback to CMS props
+    }
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -84,6 +120,8 @@ export default function FeaturedProperties({ content }: Props) {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const props = allProperties;
 
   return (
     <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">

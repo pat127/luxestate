@@ -278,7 +278,9 @@ export default function ProjectDetailsPage() {
             <Icon name="DocumentArrowDownIcon" size={13} />
             {pdfGenerating ? 'Generating...' : 'PDF Brochure'}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+          <button
+            onClick={() => router.push(`/admin/projects?edit=${id}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
             <Icon name="PencilIcon" size={13} />
             Edit Project
           </button>
@@ -615,7 +617,7 @@ export default function ProjectDetailsPage() {
                 <Icon name="DocumentArrowDownIcon" size={13} className="text-primary" />
                 {pdfGenerating ? 'Generating...' : 'Download PDF Brochure'}
               </button>
-              <button className="w-full flex items-center gap-2 px-4 py-2.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
+              <button onClick={() => router.push(`/admin/projects?edit=${id}`)} className="w-full flex items-center gap-2 px-4 py-2.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
                 <Icon name="PencilIcon" size={13} className="text-primary" />
                 Edit Project
               </button>

@@ -107,12 +107,41 @@ export default function MarketingPage() {
     setShowModal(true);
   };
 
+  const syncCampaignToCalendar = (campaign: typeof initialCampaigns[0]) => {
+    // Convert campaign to a marketing calendar event and store in localStorage
+    if (typeof window === 'undefined' || !campaign.startDate) return;
+    try {
+      const d = new Date(campaign.startDate);
+      const calEvent = {
+        id: campaign.id + 100000, // offset to avoid id collision
+        title: campaign.name,
+        date: d.getDate(),
+        month: d.getMonth(),
+        time: '9:00 AM',
+        campaign: campaign.name,
+        channel: campaign.channel,
+        budget: campaign.budget > 0 ? `AED ${campaign.budget.toLocaleString()}` : '',
+        notes: campaign.subject || '',
+      };
+      const stored = localStorage.getItem('marketing_calendar_events');
+      const existing: typeof calEvent[] = stored ? JSON.parse(stored) : [];
+      // Remove old version of this campaign event if exists
+      const filtered = existing.filter((e) => e.id !== calEvent.id);
+      localStorage.setItem('marketing_calendar_events', JSON.stringify([...filtered, calEvent]));
+    } catch { /* ignore */ }
+  };
+
   const handleSave = () => {
     if (!form.name) return;
     if (editCampaign) {
-      setCampaigns(campaigns.map((c) => c.id === editCampaign.id ? { ...c, name: form.name, channel: form.channel, status: form.status, subject: form.subject, budget: parseInt(form.budget) || 0, startDate: form.startDate, endDate: form.endDate } : c));
+      const updated = campaigns.map((c) => c.id === editCampaign.id ? { ...c, name: form.name, channel: form.channel, status: form.status, subject: form.subject, budget: parseInt(form.budget) || 0, startDate: form.startDate, endDate: form.endDate } : c);
+      setCampaigns(updated);
+      const updatedCampaign = updated.find((c) => c.id === editCampaign.id);
+      if (updatedCampaign) syncCampaignToCalendar(updatedCampaign);
     } else {
-      setCampaigns([...campaigns, { id: Date.now(), name: form.name, channel: form.channel, status: form.status, sent: 0, opens: 0, clicks: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), subject: form.subject, budget: parseInt(form.budget) || 0, spent: 0, startDate: form.startDate, endDate: form.endDate }]);
+      const newCampaign = { id: Date.now(), name: form.name, channel: form.channel, status: form.status, sent: 0, opens: 0, clicks: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), subject: form.subject, budget: parseInt(form.budget) || 0, spent: 0, startDate: form.startDate, endDate: form.endDate };
+      setCampaigns([...campaigns, newCampaign]);
+      syncCampaignToCalendar(newCampaign);
     }
     setShowModal(false);
   };

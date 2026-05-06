@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS } from '@/contexts/CMSContext';
+import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS, ProjectItem } from '@/contexts/CMSContext';
 
 interface Props {
   content?: FeaturedProjectsContent;
@@ -72,7 +72,44 @@ function ProjectCard({ project, priority = false, wide = false }: {
 export default function FeaturedProjects({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
-  const projects = c.projects ?? DEFAULT_FEATURED_PROJECTS.projects;
+  const cmsProjects = c.projects ?? DEFAULT_FEATURED_PROJECTS.projects;
+
+  const [allProjects, setAllProjects] = useState<ProjectItem[]>(cmsProjects);
+
+  useEffect(() => {
+    // Merge admin-managed projects from localStorage with CMS projects
+    try {
+      const stored = localStorage.getItem('admin_projects');
+      if (stored) {
+        const adminProjects = JSON.parse(stored) as Array<{
+          id: number; name: string; developer: string; location: string;
+          type: string; completion: string; price: string; units: number;
+          sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
+        }>;
+        // Convert admin projects to ProjectItem format
+        const adminConverted: ProjectItem[] = adminProjects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          developer: p.developer,
+          location: p.location,
+          type: p.type,
+          completion: p.completion,
+          price: p.price,
+          units: p.units,
+          sold: p.sold,
+          image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+          alt: p.alt || p.name,
+          tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
+        }));
+        // Merge: keep CMS projects, append new admin ones not already in CMS
+        const cmsIds = new Set(cmsProjects.map((p) => p.id));
+        const newAdminProjects = adminConverted.filter((p) => !cmsIds.has(p.id));
+        setAllProjects([...cmsProjects, ...newAdminProjects]);
+      }
+    } catch {
+      // fallback to CMS projects
+    }
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -90,6 +127,8 @@ export default function FeaturedProjects({ content }: Props) {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const projects = allProjects;
 
   return (
     <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PinLocationMap from '@/components/ui/PinLocationMap';
 import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 
@@ -95,7 +95,16 @@ const emptyBasicForm: ProjectFormState = {
 };
 
 export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted-foreground text-sm">Loading...</div>}>
+      <ProjectsPageInner />
+    </Suspense>
+  );
+}
+
+function ProjectsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
@@ -153,6 +162,19 @@ export default function ProjectsPage() {
   useEffect(() => {
     setProjectList(loadProjects());
   }, []);
+
+  // Handle ?edit=<id> query param from project detail page
+  useEffect(() => {
+    const editId = searchParams?.get('edit');
+    if (editId && projectList.length > 0) {
+      const project = projectList.find((p) => p.id.toString() === editId);
+      if (project) {
+        openEdit(project);
+        // Clear the query param without navigation
+        router.replace('/admin/projects');
+      }
+    }
+  }, [searchParams, projectList]);
 
   // Poll for new imports
   useEffect(() => {

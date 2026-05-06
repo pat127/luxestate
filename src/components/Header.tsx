@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
+import { useCMS } from '@/contexts/CMSContext';
 
 const navLinks = [
   { label: 'Residential', href: '/residential' },
@@ -17,6 +18,10 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const { branding } = useCMS();
+
+  // Use CMS logo_url if set, otherwise fall back to default app logo
+  const logoSrc = branding?.logo_url || '/assets/images/app_logo.png';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -49,11 +54,12 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <AppLogo
+              src={logoSrc}
               size={36}
               className="transition-transform duration-300 group-hover:scale-105"
             />
             <span className="text-foreground font-bold text-xl tracking-tight hidden sm:block">
-              Cove Estates
+              {branding?.company_name || 'Cove Estates'}
             </span>
           </Link>
 
