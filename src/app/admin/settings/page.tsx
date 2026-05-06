@@ -2,17 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import {
-  useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS,
-  DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE,
-  DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS,
-  HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail,
-} from '@/contexts/CMSContext';
+import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 
-type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
+type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities' | 'Property Detail' | 'Project Detail';
 
-const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields', 'Communities'];
+const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields', 'Communities', 'Property Detail', 'Project Detail'];
 
 interface FieldOption { id: number; value: string; }
 interface PropertyFieldGroup {
@@ -1217,12 +1212,14 @@ function CommunitiesManager() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { pages: cmsPages, branding: cmsBranding, saveAll, lastSaved } = useCMS();
+  const { pages: cmsPages, branding: cmsBranding, propertyDetail: cmsPropertyDetail, projectDetail: cmsProjectDetail, saveAll, lastSaved } = useCMS();
   const [activeTab, setActiveTab] = useState<SettingsTab>('Company');
   const [saved, setSaved] = useState(false);
   const [pages, setPages] = useState<PageConfig[]>(cmsPages);
   const [activePage, setActivePage] = useState<PageKey>('home');
   const [branding, setBranding] = useState<BrandingConfig>(cmsBranding);
+  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(cmsPropertyDetail);
+  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(cmsProjectDetail);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const logoInputRef = React.useRef<HTMLInputElement>(null);
   const initializedRef = React.useRef(false);
@@ -1232,9 +1229,11 @@ export default function SettingsPage() {
     if (!initializedRef.current && (cmsPages.length > 0 || cmsBranding.company_name)) {
       setPages(cmsPages);
       setBranding(cmsBranding);
+      setPropertyDetail(cmsPropertyDetail);
+      setProjectDetail(cmsProjectDetail);
       initializedRef.current = true;
     }
-  }, [cmsPages, cmsBranding]);
+  }, [cmsPages, cmsBranding, cmsPropertyDetail, cmsProjectDetail]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1249,13 +1248,94 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    saveAll(pages, branding);
+    saveAll(pages, branding, propertyDetail, projectDetail);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const currentPage = pages.find((p) => p.key === activePage) || pages[0];
   const updatePage = (updated: PageConfig) => setPages(pages.map((p) => p.key === updated.key ? updated : p));
+
+  // ─── Property Detail helpers ──────────────────────────────────────────────
+  const updatePD = (patch: Partial<PropertyDetailContent>) => setPropertyDetail((prev) => ({ ...prev, ...patch }));
+  const updatePDHighlight = (idx: number, val: string) => {
+    const h = [...propertyDetail.highlights];
+    h[idx] = val;
+    updatePD({ highlights: h });
+  };
+  const addPDHighlight = () => updatePD({ highlights: [...propertyDetail.highlights, ''] });
+  const removePDHighlight = (idx: number) => updatePD({ highlights: propertyDetail.highlights.filter((_, i) => i !== idx) });
+
+  const updatePDAmenity = (idx: number, field: 'icon' | 'label', val: string) => {
+    const a = propertyDetail.amenities.map((am, i) => i === idx ? { ...am, [field]: val } : am);
+    updatePD({ amenities: a });
+  };
+  const addPDAmenity = () => updatePD({ amenities: [...propertyDetail.amenities, { icon: 'StarIcon', label: '' }] });
+  const removePDAmenity = (idx: number) => updatePD({ amenities: propertyDetail.amenities.filter((_, i) => i !== idx) });
+
+  const updatePDImage = (idx: number, field: 'src' | 'alt', val: string) => {
+    const imgs = propertyDetail.images.map((im, i) => i === idx ? { ...im, [field]: val } : im);
+    updatePD({ images: imgs });
+  };
+  const addPDImage = () => updatePD({ images: [...propertyDetail.images, { src: '', alt: '' }] });
+  const removePDImage = (idx: number) => updatePD({ images: propertyDetail.images.filter((_, i) => i !== idx) });
+
+  const updatePDPOI = (idx: number, field: 'label' | 'distance', val: string) => {
+    const pois = propertyDetail.pois.map((p, i) => i === idx ? { ...p, [field]: val } : p);
+    updatePD({ pois: pois });
+  };
+  const addPDPOI = () => updatePD({ pois: [...propertyDetail.pois, { label: '', distance: '' }] });
+  const removePDPOI = (idx: number) => updatePD({ pois: propertyDetail.pois.filter((_, i) => i !== idx) });
+
+  // ─── Project Detail helpers ───────────────────────────────────────────────
+  const updatePRD = (patch: Partial<ProjectDetailContent>) => setProjectDetail((prev) => ({ ...prev, ...patch }));
+  const updatePRDHighlight = (idx: number, val: string) => {
+    const h = [...projectDetail.highlights];
+    h[idx] = val;
+    updatePRD({ highlights: h });
+  };
+  const addPRDHighlight = () => updatePRD({ highlights: [...projectDetail.highlights, ''] });
+  const removePRDHighlight = (idx: number) => updatePRD({ highlights: projectDetail.highlights.filter((_, i) => i !== idx) });
+
+  const updatePRDAmenity = (idx: number, field: 'icon' | 'label', val: string) => {
+    const a = projectDetail.amenities.map((am, i) => i === idx ? { ...am, [field]: val } : am);
+    updatePRD({ amenities: a });
+  };
+  const addPRDAmenity = () => updatePRD({ amenities: [...projectDetail.amenities, { icon: 'StarIcon', label: '' }] });
+  const removePRDAmenity = (idx: number) => updatePRD({ amenities: projectDetail.amenities.filter((_, i) => i !== idx) });
+
+  const updatePRDImage = (idx: number, field: 'src' | 'alt', val: string) => {
+    const imgs = projectDetail.images.map((im, i) => i === idx ? { ...im, [field]: val } : im);
+    updatePRD({ images: imgs });
+  };
+  const addPRDImage = () => updatePRD({ images: [...projectDetail.images, { src: '', alt: '' }] });
+  const removePRDImage = (idx: number) => updatePRD({ images: projectDetail.images.filter((_, i) => i !== idx) });
+
+  const updatePRDPOI = (idx: number, field: 'label' | 'distance', val: string) => {
+    const pois = projectDetail.pois.map((p, i) => i === idx ? { ...p, [field]: val } : p);
+    updatePRD({ pois: pois });
+  };
+  const addPRDPOI = () => updatePRD({ pois: [...projectDetail.pois, { label: '', distance: '' }] });
+  const removePRDPOI = (idx: number) => updatePRD({ pois: projectDetail.pois.filter((_, i) => i !== idx) });
+
+  const updatePRDUnitType = (idx: number, field: keyof ProjectDetailContent['unitTypes'][0], val: string | number) => {
+    const ut = projectDetail.unitTypes.map((u, i) => i === idx ? { ...u, [field]: val } : u);
+    updatePRD({ unitTypes: ut });
+  };
+  const addPRDUnitType = () => updatePRD({ unitTypes: [...projectDetail.unitTypes, { type: '', area: '', price: '', available: 0 }] });
+  const removePRDUnitType = (idx: number) => updatePRD({ unitTypes: projectDetail.unitTypes.filter((_, i) => i !== idx) });
+
+  const updatePRDPayment = (idx: number, field: keyof ProjectDetailContent['paymentPlan'][0], val: string | number) => {
+    const pp = projectDetail.paymentPlan.map((p, i) => i === idx ? { ...p, [field]: val } : p);
+    updatePRD({ paymentPlan: pp });
+  };
+
+  const updatePRDConstruction = (idx: number, field: 'phase' | 'complete', val: string | number) => {
+    const cp = projectDetail.constructionProgress.map((p, i) => i === idx ? { ...p, [field]: val } : p);
+    updatePRD({ constructionProgress: cp });
+  };
+  const addPRDConstruction = () => updatePRD({ constructionProgress: [...projectDetail.constructionProgress, { phase: '', complete: 0 }] });
+  const removePRDConstruction = (idx: number) => updatePRD({ constructionProgress: projectDetail.constructionProgress.filter((_, i) => i !== idx) });
 
   return (
     <div className="p-6">
@@ -1461,6 +1541,423 @@ export default function SettingsPage() {
 
         {activeTab === 'Property Fields' && <PropertyFieldsManager />}
         {activeTab === 'Communities' && <CommunitiesManager />}
+
+        {/* ─── Property Detail Tab ─────────────────────────────────────────── */}
+        {activeTab === 'Property Detail' && (
+          <div className="space-y-8">
+            <SectionHeader title="Property Detail Page" description="Edit all content shown on the property detail landing page (/properties/[id]). Changes are live after saving." />
+
+            {/* Core Info */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Core Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Property Name" value={propertyDetail.name} onChange={(v) => updatePD({ name: v })} />
+                <InputField label="Location" value={propertyDetail.location} onChange={(v) => updatePD({ location: v })} />
+              </div>
+              <InputField label="Full Address" value={propertyDetail.address} onChange={(v) => updatePD({ address: v })} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Price" value={propertyDetail.price} onChange={(v) => updatePD({ price: v })} placeholder="AED 85,000,000" />
+                <InputField label="Price Per Sqft" value={propertyDetail.pricePerSqft} onChange={(v) => updatePD({ pricePerSqft: v })} placeholder="AED 8,200 / sqft" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Beds</label>
+                  <input type="number" value={propertyDetail.beds} onChange={(e) => updatePD({ beds: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Baths</label>
+                  <input type="number" value={propertyDetail.baths} onChange={(e) => updatePD({ baths: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Sqft</label>
+                  <input type="number" value={propertyDetail.sqft} onChange={(e) => updatePD({ sqft: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <InputField label="Reference" value={propertyDetail.reference} onChange={(v) => updatePD({ reference: v })} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <InputField label="Type" value={propertyDetail.type} onChange={(v) => updatePD({ type: v })} />
+                <InputField label="Status" value={propertyDetail.status} onChange={(v) => updatePD({ status: v })} />
+                <InputField label="Completion" value={propertyDetail.completion} onChange={(v) => updatePD({ completion: v })} />
+                <InputField label="Floors" value={propertyDetail.floors} onChange={(v) => updatePD({ floors: v })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <InputField label="Parking" value={propertyDetail.parking} onChange={(v) => updatePD({ parking: v })} />
+                <InputField label="View" value={propertyDetail.view} onChange={(v) => updatePD({ view: v })} />
+                <InputField label="Furnishing" value={propertyDetail.furnishing} onChange={(v) => updatePD({ furnishing: v })} />
+              </div>
+              <TextareaField label="Description (use double line break for paragraphs)" value={propertyDetail.description} onChange={(v) => updatePD({ description: v })} rows={6} />
+            </div>
+
+            {/* Images */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Gallery Images</h3>
+                <button onClick={addPDImage} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add Image
+                </button>
+              </div>
+              {propertyDetail.images.map((img, idx) => (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border border-border bg-card">
+                  <InputField label={`Image ${idx + 1} URL`} value={img.src} onChange={(v) => updatePDImage(idx, 'src', v)} placeholder="https://..." />
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <InputField label="Alt Text" value={img.alt} onChange={(v) => updatePDImage(idx, 'alt', v)} placeholder="Describe the image" />
+                    </div>
+                    <button onClick={() => removePDImage(idx)} className="mb-0.5 p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors flex-shrink-0">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Highlights */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Key Highlights</h3>
+                <button onClick={addPDHighlight} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add
+                </button>
+              </div>
+              {propertyDetail.highlights.map((h, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <input value={h} onChange={(e) => updatePDHighlight(idx, e.target.value)} placeholder="Highlight point" className="flex-1 px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
+                  <button onClick={() => removePDHighlight(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors">
+                    <Icon name="TrashIcon" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Amenities */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Amenities</h3>
+                <button onClick={addPDAmenity} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {propertyDetail.amenities.map((a, idx) => (
+                  <div key={idx} className="flex gap-2 items-center p-3 border border-border bg-card">
+                    <input value={a.label} onChange={(e) => updatePDAmenity(idx, 'label', e.target.value)} placeholder="Amenity name" className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <button onClick={() => removePDAmenity(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors flex-shrink-0">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Location & Map</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Latitude</label>
+                  <input type="number" step="0.0001" value={propertyDetail.location_coords.lat} onChange={(e) => updatePD({ location_coords: { ...propertyDetail.location_coords, lat: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Longitude</label>
+                  <input type="number" step="0.0001" value={propertyDetail.location_coords.lng} onChange={(e) => updatePD({ location_coords: { ...propertyDetail.location_coords, lng: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nearby Points of Interest</p>
+                  <button onClick={addPDPOI} className="px-3 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                    <Icon name="PlusIcon" size={12} /> Add POI
+                  </button>
+                </div>
+                {propertyDetail.pois.map((poi, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input value={poi.label} onChange={(e) => updatePDPOI(idx, 'label', e.target.value)} placeholder="Location name" className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <input value={poi.distance} onChange={(e) => updatePDPOI(idx, 'distance', e.target.value)} placeholder="e.g. 5 min" className="w-28 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <button onClick={() => removePDPOI(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Agent */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Agent Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Agent Name" value={propertyDetail.agent.name} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, name: v } })} />
+                <InputField label="Agent Title" value={propertyDetail.agent.title} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, title: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Phone" value={propertyDetail.agent.phone} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, phone: v } })} />
+                <InputField label="WhatsApp Number (no +)" value={propertyDetail.agent.whatsapp} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, whatsapp: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Email" value={propertyDetail.agent.email} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, email: v } })} />
+                <InputField label="Languages" value={propertyDetail.agent.languages} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, languages: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Avatar Image URL" value={propertyDetail.agent.avatar} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatar: v } })} placeholder="https://..." />
+                <InputField label="Avatar Alt Text" value={propertyDetail.agent.avatarAlt} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatarAlt: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Listings Count</label>
+                  <input type="number" value={propertyDetail.agent.listings} onChange={(e) => updatePD({ agent: { ...propertyDetail.agent, listings: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <InputField label="Experience" value={propertyDetail.agent.experience} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, experience: v } })} placeholder="12 Years" />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+                <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
+                {saved ? 'Saved & Live!' : 'Save Property Detail'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Project Detail Tab ──────────────────────────────────────────── */}
+        {activeTab === 'Project Detail' && (
+          <div className="space-y-8">
+            <SectionHeader title="Project Detail Page" description="Edit all content shown on the project detail landing page (/projects/[id]). Changes are live after saving." />
+
+            {/* Core Info */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Core Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Project Name" value={projectDetail.name} onChange={(v) => updatePRD({ name: v })} />
+                <InputField label="Tagline" value={projectDetail.tagline} onChange={(v) => updatePRD({ tagline: v })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Developer" value={projectDetail.developer} onChange={(v) => updatePRD({ developer: v })} />
+                <InputField label="Architect" value={projectDetail.architect} onChange={(v) => updatePRD({ architect: v })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Location" value={projectDetail.location} onChange={(v) => updatePRD({ location: v })} />
+                <InputField label="Full Address" value={projectDetail.address} onChange={(v) => updatePRD({ address: v })} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <InputField label="Price From" value={projectDetail.priceFrom} onChange={(v) => updatePRD({ priceFrom: v })} />
+                <InputField label="Price To" value={projectDetail.priceTo} onChange={(v) => updatePRD({ priceTo: v })} />
+                <InputField label="Completion" value={projectDetail.completion} onChange={(v) => updatePRD({ completion: v })} />
+                <InputField label="Status" value={projectDetail.status} onChange={(v) => updatePRD({ status: v })} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Total Units</label>
+                  <input type="number" value={projectDetail.units} onChange={(e) => updatePRD({ units: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Units Sold</label>
+                  <input type="number" value={projectDetail.sold} onChange={(e) => updatePRD({ sold: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Floors</label>
+                  <input type="number" value={projectDetail.floors} onChange={(e) => updatePRD({ floors: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <InputField label="Reference" value={projectDetail.reference} onChange={(v) => updatePRD({ reference: v })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Type" value={projectDetail.type} onChange={(v) => updatePRD({ type: v })} />
+              </div>
+              <TextareaField label="Description (use double line break for paragraphs)" value={projectDetail.description} onChange={(v) => updatePRD({ description: v })} rows={6} />
+            </div>
+
+            {/* Images */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Gallery Images</h3>
+                <button onClick={addPRDImage} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add Image
+                </button>
+              </div>
+              {projectDetail.images.map((img, idx) => (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border border-border bg-card">
+                  <InputField label={`Image ${idx + 1} URL`} value={img.src} onChange={(v) => updatePRDImage(idx, 'src', v)} placeholder="https://..." />
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <InputField label="Alt Text" value={img.alt} onChange={(v) => updatePRDImage(idx, 'alt', v)} placeholder="Describe the image" />
+                    </div>
+                    <button onClick={() => removePRDImage(idx)} className="mb-0.5 p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors flex-shrink-0">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Highlights */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Key Highlights</h3>
+                <button onClick={addPRDHighlight} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add
+                </button>
+              </div>
+              {projectDetail.highlights.map((h, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <input value={h} onChange={(e) => updatePRDHighlight(idx, e.target.value)} placeholder="Highlight point" className="flex-1 px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
+                  <button onClick={() => removePRDHighlight(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors">
+                    <Icon name="TrashIcon" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Unit Types */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Unit Types & Pricing</h3>
+                <button onClick={addPRDUnitType} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add Unit Type
+                </button>
+              </div>
+              {projectDetail.unitTypes.map((u, idx) => (
+                <div key={idx} className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 border border-border bg-card items-end">
+                  <InputField label="Type" value={u.type} onChange={(v) => updatePRDUnitType(idx, 'type', v)} placeholder="1 Bedroom" />
+                  <InputField label="Area" value={u.area} onChange={(v) => updatePRDUnitType(idx, 'area', v)} placeholder="1,200 – 1,800 sqft" />
+                  <InputField label="Starting Price" value={u.price} onChange={(v) => updatePRDUnitType(idx, 'price', v)} placeholder="From AED 8,500,000" />
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Available</label>
+                      <input type="number" value={u.available} onChange={(e) => updatePRDUnitType(idx, 'available', Number(e.target.value))} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <button onClick={() => removePRDUnitType(idx)} className="mb-0.5 p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors flex-shrink-0">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Payment Plan */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Payment Plan</h3>
+              {projectDetail.paymentPlan.map((p, idx) => (
+                <div key={idx} className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 border border-border bg-card">
+                  <InputField label="Phase Name" value={p.phase} onChange={(v) => updatePRDPayment(idx, 'phase', v)} />
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Percentage</label>
+                    <input type="number" value={p.percent} onChange={(e) => updatePRDPayment(idx, 'percent', Number(e.target.value))} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  </div>
+                  <InputField label="Label" value={p.label} onChange={(v) => updatePRDPayment(idx, 'label', v)} placeholder="On Signing SPA" />
+                  <InputField label="Icon Name" value={p.icon} onChange={(v) => updatePRDPayment(idx, 'icon', v)} placeholder="PencilSquareIcon" />
+                </div>
+              ))}
+            </div>
+
+            {/* Amenities */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Amenities</h3>
+                <button onClick={addPRDAmenity} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {projectDetail.amenities.map((a, idx) => (
+                  <div key={idx} className="flex gap-2 items-center p-3 border border-border bg-card">
+                    <input value={a.label} onChange={(e) => updatePRDAmenity(idx, 'label', e.target.value)} placeholder="Amenity name" className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <button onClick={() => removePRDAmenity(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors flex-shrink-0">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Construction Progress */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2 flex-1">Construction Progress</h3>
+                <button onClick={addPRDConstruction} className="ml-4 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                  <Icon name="PlusIcon" size={12} /> Add Phase
+                </button>
+              </div>
+              {projectDetail.constructionProgress.map((phase, idx) => (
+                <div key={idx} className="flex gap-3 items-center p-3 border border-border bg-card">
+                  <input value={phase.phase} onChange={(e) => updatePRDConstruction(idx, 'phase', e.target.value)} placeholder="Phase name" className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <input type="number" min={0} max={100} value={phase.complete} onChange={(e) => updatePRDConstruction(idx, 'complete', Number(e.target.value))} className="w-20 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                  <button onClick={() => removePRDConstruction(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors">
+                    <Icon name="TrashIcon" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Location */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Location & Map</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Latitude</label>
+                  <input type="number" step="0.0001" value={projectDetail.location_coords.lat} onChange={(e) => updatePRD({ location_coords: { ...projectDetail.location_coords, lat: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Longitude</label>
+                  <input type="number" step="0.0001" value={projectDetail.location_coords.lng} onChange={(e) => updatePRD({ location_coords: { ...projectDetail.location_coords, lng: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nearby Points of Interest</p>
+                  <button onClick={addPRDPOI} className="px-3 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1">
+                    <Icon name="PlusIcon" size={12} /> Add POI
+                  </button>
+                </div>
+                {projectDetail.pois.map((poi, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input value={poi.label} onChange={(e) => updatePRDPOI(idx, 'label', e.target.value)} placeholder="Location name" className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <input value={poi.distance} onChange={(e) => updatePRDPOI(idx, 'distance', e.target.value)} placeholder="e.g. 5 min" className="w-28 px-3 py-2 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <button onClick={() => removePRDPOI(idx)} className="p-2 text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-300/50 transition-colors">
+                      <Icon name="TrashIcon" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Agent */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Agent Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Agent Name" value={projectDetail.agent.name} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, name: v } })} />
+                <InputField label="Agent Title" value={projectDetail.agent.title} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, title: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Phone" value={projectDetail.agent.phone} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, phone: v } })} />
+                <InputField label="WhatsApp Number (no +)" value={projectDetail.agent.whatsapp} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, whatsapp: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Email" value={projectDetail.agent.email} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, email: v } })} />
+                <InputField label="Languages" value={projectDetail.agent.languages} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, languages: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Avatar Image URL" value={projectDetail.agent.avatar} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatar: v } })} placeholder="https://..." />
+                <InputField label="Avatar Alt Text" value={projectDetail.agent.avatarAlt} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatarAlt: v } })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Projects Count</label>
+                  <input type="number" value={projectDetail.agent.listings} onChange={(e) => updatePRD({ agent: { ...projectDetail.agent, listings: Number(e.target.value) } })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                </div>
+                <InputField label="Experience" value={projectDetail.agent.experience} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, experience: v } })} placeholder="9 Years" />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+                <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
+                {saved ? 'Saved & Live!' : 'Save Project Detail'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
