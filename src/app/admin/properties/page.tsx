@@ -115,7 +115,7 @@ const defaultFormData: PropertyFormData = {
   longitude: '',
   imageUrls: '',
   videoUrl: '',
-  virtualTourUrl: '',
+  virtualTourUrl: ''
 };
 
 const DRAFT_KEY = 'property_draft';
@@ -123,12 +123,12 @@ const PROPERTIES_STORAGE_KEY = 'admin_properties';
 const IMPORT_STORAGE_KEY = 'imported_properties';
 
 const properties: Property[] = [
-  { id: 1, name: 'Obsidian Penthouse', location: 'Downtown Dubai', price: 'AED 28,500,000', type: 'Residential', status: 'Available', beds: 5, baths: 6, sqft: '8,200', image: "https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png", alt: 'Luxury penthouse interior', agent: 'Sarah Mitchell' },
-  { id: 2, name: 'Meridian Villa', location: 'Palm Jumeirah', price: 'AED 42,000,000', type: 'Residential', status: 'Under Offer', beds: 7, baths: 9, sqft: '14,500', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b9553347-1774335786277.png", alt: 'Modern villa exterior', agent: 'James Carter' },
-  { id: 3, name: 'Atlas Tower Office', location: 'DIFC', price: 'AED 12,000,000', type: 'Commercial', status: 'Available', sqft: '5,400', image: "https://img.rocket.new/generatedImages/rocket_gen_img_14a2a68a0-1772770575920.png", alt: 'Modern office tower', agent: 'Omar Hassan' },
-  { id: 4, name: 'The Crescent Retail', location: 'JBR', price: 'AED 8,500,000', type: 'Commercial', status: 'Sold', sqft: '3,200', image: "https://images.unsplash.com/photo-1613724962881-c5171beaeea2", alt: 'Retail space interior', agent: 'Priya Sharma' },
-  { id: 5, name: 'Vantage Estate', location: 'Emirates Hills', price: 'AED 65,000,000', type: 'Residential', status: 'Available', beds: 9, baths: 11, sqft: '22,000', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16f9fcd79-1766746361345.png", alt: 'Luxury estate exterior', agent: 'Sarah Mitchell' },
-];
+{ id: 1, name: 'Obsidian Penthouse', location: 'Downtown Dubai', price: 'AED 28,500,000', type: 'Residential', status: 'Available', beds: 5, baths: 6, sqft: '8,200', image: "https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png", alt: 'Luxury penthouse interior', agent: 'Sarah Mitchell' },
+{ id: 2, name: 'Meridian Villa', location: 'Palm Jumeirah', price: 'AED 42,000,000', type: 'Residential', status: 'Under Offer', beds: 7, baths: 9, sqft: '14,500', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b9553347-1774335786277.png", alt: 'Modern villa exterior', agent: 'James Carter' },
+{ id: 3, name: 'Atlas Tower Office', location: 'DIFC', price: 'AED 12,000,000', type: 'Commercial', status: 'Available', sqft: '5,400', image: "https://img.rocket.new/generatedImages/rocket_gen_img_14a2a68a0-1772770575920.png", alt: 'Modern office tower', agent: 'Omar Hassan' },
+{ id: 4, name: 'The Crescent Retail', location: 'JBR', price: 'AED 8,500,000', type: 'Commercial', status: 'Sold', sqft: '3,200', image: "https://images.unsplash.com/photo-1613724962881-c5171beaeea2", alt: 'Retail space interior', agent: 'Priya Sharma' },
+{ id: 5, name: 'Vantage Estate', location: 'Emirates Hills', price: 'AED 65,000,000', type: 'Residential', status: 'Available', beds: 9, baths: 11, sqft: '22,000', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16f9fcd79-1766746361345.png", alt: 'Luxury estate exterior', agent: 'Sarah Mitchell' }];
+
 
 function loadProperties(): Property[] {
   if (typeof window === 'undefined') return properties;
@@ -136,8 +136,8 @@ function loadProperties(): Property[] {
     const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
     const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
     let base: Property[] = stored ? JSON.parse(stored) : properties;
-    const existingIds = new Set(base.map(p => p.id));
-    const newImports = imported.filter(p => !existingIds.has(p.id));
+    const existingIds = new Set(base.map((p) => p.id));
+    const newImports = imported.filter((p) => !existingIds.has(p.id));
     if (newImports.length > 0) {
       base = [...base, ...newImports];
       localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
@@ -157,7 +157,7 @@ function saveProperties(list: Property[]) {
 const statusColors: Record<string, string> = {
   Available: 'text-emerald-400 bg-emerald-400/10',
   'Under Offer': 'text-yellow-400 bg-yellow-400/10',
-  Sold: 'text-red-400 bg-red-400/10',
+  Sold: 'text-red-400 bg-red-400/10'
 };
 
 function generateRefNumber() {
@@ -200,9 +200,9 @@ export default function PropertiesPage() {
     const interval = setInterval(() => {
       const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
       if (imported.length > 0) {
-        setPropertyList(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newImports = imported.filter(p => !existingIds.has(p.id));
+        setPropertyList((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newImports = imported.filter((p) => !existingIds.has(p.id));
           if (newImports.length === 0) return prev;
           const updated = [...prev, ...newImports];
           localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
@@ -229,9 +229,9 @@ export default function PropertiesPage() {
           setHasDraft(true);
           setDraftTime(parsed.savedAt || 'Just now');
         } catch {
+
           // ignore
-        }
-      }
+        }}
     }
   }, []);
 
@@ -297,7 +297,7 @@ export default function PropertiesPage() {
       availability: property.status,
       bedrooms: property.beds?.toString() || '',
       bathrooms: property.baths?.toString() || '',
-      areaSqFt: property.sqft?.replace(/,/g, '') || '',
+      areaSqFt: property.sqft?.replace(/,/g, '') || ''
     });
     setActiveTab('basic');
     setShowModal(true);
@@ -323,9 +323,9 @@ export default function PropertiesPage() {
           setShowModal(true);
           setActiveTab('basic');
         } catch {
+
           // ignore
-        }
-      }
+        }}
     }
   };
 
@@ -345,7 +345,7 @@ export default function PropertiesPage() {
       const location = formData.locationArea || 'Dubai';
       setFormData((prev) => ({
         ...prev,
-        description: `Discover this exceptional ${title} nestled in the heart of ${location}. This stunning property offers an unparalleled living experience with world-class amenities, breathtaking views, and meticulous attention to detail. Perfect for discerning buyers seeking the pinnacle of luxury real estate.`,
+        description: `Discover this exceptional ${title} nestled in the heart of ${location}. This stunning property offers an unparalleled living experience with world-class amenities, breathtaking views, and meticulous attention to detail. Perfect for discerning buyers seeking the pinnacle of luxury real estate.`
       }));
       setAiGenerating(false);
     }, 1200);
@@ -358,18 +358,18 @@ export default function PropertiesPage() {
   const handleCreateProperty = () => {
     if (editingProperty) {
       const updated = propertyList.map((p) =>
-        p.id === editingProperty.id
-          ? {
-              ...p,
-              name: formData.title || p.name,
-              location: formData.locationArea || p.location,
-              price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
-              status: formData.availability || p.status,
-              beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
-              baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
-              sqft: formData.areaSqFt || p.sqft,
-            }
-          : p
+      p.id === editingProperty.id ?
+      {
+        ...p,
+        name: formData.title || p.name,
+        location: formData.locationArea || p.location,
+        price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
+        status: formData.availability || p.status,
+        beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
+        baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
+        sqft: formData.areaSqFt || p.sqft
+      } :
+      p
       );
       updatePropertyList(updated);
     } else {
@@ -385,7 +385,7 @@ export default function PropertiesPage() {
         sqft: formData.areaSqFt || '',
         image: formData.imageUrls.split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
         alt: formData.title || 'Property',
-        agent: '',
+        agent: ''
       };
       updatePropertyList([...propertyList, newProp]);
     }
@@ -457,7 +457,7 @@ export default function PropertiesPage() {
         </body></html>
       `;
       const pw = window.open('', '_blank');
-      if (pw) { pw.document.write(printContent); pw.document.close(); }
+      if (pw) {pw.document.write(printContent);pw.document.close();}
     }
     setTimeout(() => setPdfGenerating(null), 1500);
   };
@@ -465,8 +465,8 @@ export default function PropertiesPage() {
   const allFilteredProperties = propertyList.filter((p) => {
     const matchType = activeType === 'All' || p.type === activeType;
     const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.location.toLowerCase().includes(search.toLowerCase());
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.location.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
@@ -488,8 +488,8 @@ export default function PropertiesPage() {
 
   const toggleSelect = (id: number) => {
     const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
+    if (newSet.has(id)) newSet.delete(id);else
+    newSet.add(id);
     setSelectedIds(newSet);
   };
 
@@ -516,19 +516,19 @@ export default function PropertiesPage() {
     clearSelection();
   };
 
-  const tabs: { id: ModalTab; label: string }[] = [
-    { id: 'basic', label: 'Basic Info' },
-    { id: 'dimensions', label: 'Dimensions' },
-    { id: 'features', label: 'Features' },
-    { id: 'location', label: 'Location' },
-    { id: 'media', label: 'Media' },
-  ];
+  const tabs: {id: ModalTab;label: string;}[] = [
+  { id: 'basic', label: 'Basic Info' },
+  { id: 'dimensions', label: 'Dimensions' },
+  { id: 'features', label: 'Features' },
+  { id: 'location', label: 'Location' },
+  { id: 'media', label: 'Media' }];
+
 
   const inputClass =
-    'w-full bg-[#1a1f2e] border border-[#2a3040] text-sm text-white placeholder:text-gray-500 px-3 py-2.5 focus:outline-none focus:border-[#c9a84c]/50 transition-colors';
+  'w-full bg-[#1a1f2e] border border-[#2a3040] text-sm text-white placeholder:text-gray-500 px-3 py-2.5 focus:outline-none focus:border-[#c9a84c]/50 transition-colors';
   const labelClass = 'block text-xs font-medium text-gray-300 mb-1.5';
   const selectClass =
-    'w-full bg-[#1a1f2e] border border-[#2a3040] text-sm text-white px-3 py-2.5 focus:outline-none focus:border-[#c9a84c]/50 transition-colors appearance-none cursor-pointer';
+  'w-full bg-[#1a1f2e] border border-[#2a3040] text-sm text-white px-3 py-2.5 focus:outline-none focus:border-[#c9a84c]/50 transition-colors appearance-none cursor-pointer';
 
   const isVilla = formData.propertyType === 'Villa';
   const isLand = formData.propertyType === 'Land';
@@ -542,91 +542,91 @@ export default function PropertiesPage() {
         </div>
         <button
           onClick={handleOpenModal}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+          
           <Icon name="PlusIcon" size={14} />
           Add Property
         </button>
       </div>
 
       {/* Draft Banner */}
-      {hasDraft && !showModal && (
-        <div className="mb-4 flex items-center justify-between bg-[#1a2035] border border-[#2a3a5c] px-4 py-2.5">
+      {hasDraft && !showModal &&
+      <div className="mb-4 flex items-center justify-between bg-[#1a2035] border border-[#2a3a5c] px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-blue-300">
             <Icon name="DocumentTextIcon" size={15} className="text-blue-400" />
             <span>You have an unsaved draft from {draftTime}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleDiscard}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1"
-            >
+            onClick={handleDiscard}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1">
+            
               <Icon name="TrashIcon" size={13} />Discard
             </button>
             <button
-              onClick={handleRestore}
-              className="flex items-center gap-1.5 text-xs bg-[#c9a84c] text-black font-semibold px-3 py-1.5 hover:bg-[#d4b86a] transition-colors"
-            >
+            onClick={handleRestore}
+            className="flex items-center gap-1.5 text-xs bg-[#c9a84c] text-black font-semibold px-3 py-1.5 hover:bg-[#d4b86a] transition-colors">
+            
               <Icon name="ArrowPathIcon" size={13} />Restore
             </button>
           </div>
         </div>
-      )}
+      }
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex items-center border border-border">
-          {(['All', 'Residential', 'Commercial'] as PropertyType[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveType(t)}
-              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
-                activeType === t
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+          {(['All', 'Residential', 'Commercial'] as PropertyType[]).map((t) =>
+          <button
+            key={t}
+            onClick={() => setActiveType(t)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeType === t ?
+            'bg-primary text-primary-foreground' :
+            'text-muted-foreground hover:text-foreground'}`
+            }>
+            
               {t}
             </button>
-          ))}
+          )}
         </div>
         <div className="relative flex-1 max-w-xs">
           <Icon
             name="MagnifyingGlassIcon"
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          
           <input
             type="text"
             placeholder="Search properties..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
-          />
+            className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
+          
         </div>
         <div className="ml-auto flex items-center border border-border">
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 transition-colors ${
-              viewMode === 'grid' ?'bg-primary text-primary-foreground' :'text-muted-foreground hover:text-foreground'
-            }`}
-          >
+            viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`
+            }>
+            
             <Icon name="Squares2X2Icon" size={14} />
           </button>
           <button
             onClick={() => setViewMode('list')}
             className={`p-2 transition-colors ${
-              viewMode === 'list' ?'bg-primary text-primary-foreground' :'text-muted-foreground hover:text-foreground'
-            }`}
-          >
+            viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`
+            }>
+            
             <Icon name="ListBulletIcon" size={14} />
           </button>
         </div>
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
+      {selectedIds.size > 0 &&
+      <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
             <select value={bulkStatusValue} onChange={(e) => setBulkStatusValue(e.target.value)} className="px-2 py-1.5 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50">
@@ -644,62 +644,62 @@ export default function PropertiesPage() {
           </div>
           <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"><Icon name="XMarkIcon" size={14} /></button>
         </div>
-      )}
+      }
 
-      {viewMode === 'grid' ? (
-        <div>
+      {viewMode === 'grid' ?
+      <div>
           {/* Select All row for grid view */}
-          {filtered.length > 0 && (
-            <div className="flex items-center gap-2 mb-3 px-1">
+          {filtered.length > 0 &&
+        <div className="flex items-center gap-2 mb-3 px-1">
               <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
               <span className="text-xs text-muted-foreground">Select all {filtered.length} properties</span>
             </div>
-          )}
+        }
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((property) => (
-              <div
-                key={property.id}
-                className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors group ${selectedIds.has(property.id) ? 'border-primary/40' : 'border-border'}`}
-              >
+            {filtered.map((property) =>
+          <div
+            key={property.id}
+            className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors group ${selectedIds.has(property.id) ? 'border-primary/40' : 'border-border'}`}>
+            
                 <div className="relative h-48 overflow-hidden">
                   <div className="absolute top-2 left-2 z-10">
                     <input type="checkbox" checked={selectedIds.has(property.id)} onChange={() => toggleSelect(property.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" onClick={(e) => e.stopPropagation()} />
                   </div>
                   <AppImage
-                    src={property.image}
-                    alt={property.alt}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="400px"
-                  />
+                src={property.image}
+                alt={property.alt}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                sizes="400px" />
+              
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute top-3 left-3 flex gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-primary text-primary-foreground">
                       {property.type}
                     </span>
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${
-                        statusColors[property.status] || ''
-                      }`}
-                    >
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${
+                  statusColors[property.status] || ''}`
+                  }>
+                  
                       {property.status}
                     </span>
                   </div>
                   {/* Quick action buttons on hover */}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => handleShareProperty(property)}
-                      title="Share"
-                      className="w-7 h-7 bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                    >
+                  onClick={() => handleShareProperty(property)}
+                  title="Share"
+                  className="w-7 h-7 bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors">
+                  
                       <Icon name="ShareIcon" size={12} />
                     </button>
                     <button
-                      onClick={() => handleDownloadPDF(property)}
-                      title="PDF Brochure"
-                      disabled={pdfGenerating === property.id}
-                      className="w-7 h-7 bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors disabled:opacity-60"
-                    >
+                  onClick={() => handleDownloadPDF(property)}
+                  title="PDF Brochure"
+                  disabled={pdfGenerating === property.id}
+                  className="w-7 h-7 bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors disabled:opacity-60">
+                  
                       <Icon name="DocumentArrowDownIcon" size={12} />
                     </button>
                   </div>
@@ -714,18 +714,18 @@ export default function PropertiesPage() {
                     {property.location}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-3">
-                    {property.beds && (
-                      <span className="flex items-center gap-1">
+                    {property.beds &&
+                <span className="flex items-center gap-1">
                         <Icon name="HomeIcon" size={11} className="text-primary" />
                         {property.beds} Beds
                       </span>
-                    )}
-                    {property.baths && (
-                      <span className="flex items-center gap-1">
+                }
+                    {property.baths &&
+                <span className="flex items-center gap-1">
                         <Icon name="SparklesIcon" size={11} className="text-primary" />
                         {property.baths} Baths
                       </span>
-                    )}
+                }
                     <span className="flex items-center gap-1">
                       <Icon name="ArrowsPointingOutIcon" size={11} className="text-primary" />
                       {property.sqft} sqft
@@ -735,74 +735,74 @@ export default function PropertiesPage() {
                     <span className="text-xs text-muted-foreground">{property.agent}</span>
                     <div className="flex gap-1">
                       <button
-                        onClick={() => handleShareProperty(property)}
-                        title="Share"
-                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
-                      >
+                    onClick={() => handleShareProperty(property)}
+                    title="Share"
+                    className="p-1.5 text-muted-foreground hover:text-primary transition-colors">
+                    
                         <Icon name="ShareIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => handleDownloadPDF(property)}
-                        title="PDF"
-                        disabled={pdfGenerating === property.id}
-                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60"
-                      >
+                    onClick={() => handleDownloadPDF(property)}
+                    title="PDF"
+                    disabled={pdfGenerating === property.id}
+                    className="p-1.5 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60">
+                    
                         <Icon name="DocumentArrowDownIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => router.push(`/admin/properties/${property.id}`)}
-                        title="View Details"
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
+                    onClick={() => router.push(`/admin/properties/${property.id}`)}
+                    title="View Details"
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                    
                         <Icon name="EyeIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => handleEditProperty(property)}
-                        title="Edit"
-                        className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors"
-                      >
+                    onClick={() => handleEditProperty(property)}
+                    title="Edit"
+                    className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors">
+                    
                         <Icon name="PencilIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => setPropertyList(propertyList.filter((p) => p.id !== property.id))}
-                        title="Delete"
-                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
-                      >
+                    onClick={() => setPropertyList(propertyList.filter((p) => p.id !== property.id))}
+                    title="Delete"
+                    className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors">
+                    
                         <Icon name="TrashIcon" size={13} />
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+          )}
           </div>
-        </div>
-      ) : (
-        <div className="bg-card border border-border overflow-x-auto">
+        </div> :
+
+      <div className="bg-card border border-border overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-border">
                 <th className="px-4 py-3 w-10">
                   <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
                 </th>
-                {['Property', 'Type', 'Location', 'Price', 'Status', 'Agent', 'Actions'].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                  >
+                {['Property', 'Type', 'Location', 'Price', 'Status', 'Agent', 'Actions'].map((h) =>
+              <th
+                key={h}
+                className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                
                     {h}
                   </th>
-                ))}
+              )}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p, i) => (
-                <tr
-                  key={p.id}
-                  className={`border-b border-border hover:bg-white/2 transition-colors ${
-                    selectedIds.has(p.id) ? 'bg-primary/5' : i % 2 === 0 ? '' : 'bg-white/[0.01]'
-                  }`}
-                >
+              {filtered.map((p, i) =>
+            <tr
+              key={p.id}
+              className={`border-b border-border hover:bg-white/2 transition-colors ${
+              selectedIds.has(p.id) ? 'bg-primary/5' : i % 2 === 0 ? '' : 'bg-white/[0.01]'}`
+              }>
+              
                   <td className="px-4 py-3">
                     <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
                   </td>
@@ -816,10 +816,10 @@ export default function PropertiesPage() {
                   <td className="px-4 py-3 text-sm font-bold text-primary">{p.price}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${
-                        statusColors[p.status] || ''
-                      }`}
-                    >
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${
+                  statusColors[p.status] || ''}`
+                  }>
+                  
                       {p.status}
                     </span>
                   </td>
@@ -827,53 +827,53 @@ export default function PropertiesPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button
-                        onClick={() => handleShareProperty(p)}
-                        title="Share"
-                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
-                      >
+                    onClick={() => handleShareProperty(p)}
+                    title="Share"
+                    className="p-1.5 text-muted-foreground hover:text-primary transition-colors">
+                    
                         <Icon name="ShareIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => handleDownloadPDF(p)}
-                        title="PDF"
-                        disabled={pdfGenerating === p.id}
-                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60"
-                      >
+                    onClick={() => handleDownloadPDF(p)}
+                    title="PDF"
+                    disabled={pdfGenerating === p.id}
+                    className="p-1.5 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60">
+                    
                         <Icon name="DocumentArrowDownIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => router.push(`/admin/properties/${p.id}`)}
-                        title="View"
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
+                    onClick={() => router.push(`/admin/properties/${p.id}`)}
+                    title="View"
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                    
                         <Icon name="EyeIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => handleEditProperty(p)}
-                        title="Edit"
-                        className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors"
-                      >
+                    onClick={() => handleEditProperty(p)}
+                    title="Edit"
+                    className="p-1.5 text-muted-foreground hover:text-[#c9a84c] transition-colors">
+                    
                         <Icon name="PencilIcon" size={13} />
                       </button>
                       <button
-                        onClick={() => setPropertyList(propertyList.filter((pr) => pr.id !== p.id))}
-                        title="Delete"
-                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
-                      >
+                    onClick={() => setPropertyList(propertyList.filter((pr) => pr.id !== p.id))}
+                    title="Delete"
+                    className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors">
+                    
                         <Icon name="TrashIcon" size={13} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+            )}
             </tbody>
           </table>
         </div>
-      )}
+      }
 
       {/* Bulk Delete Confirm */}
-      {bulkDeleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      {bulkDeleteConfirm &&
+      <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-card border border-border w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center">
@@ -891,31 +891,31 @@ export default function PropertiesPage() {
             </div>
           </div>
         </div>
-      )}
+      }
 
       {/* Share Modal */}
-      {shareProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {shareProperty &&
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setShareProperty(null)} />
           <div className="relative w-full max-w-md bg-[#12151f] border border-[#2a3040] shadow-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-white">Share Property</h3>
               <button
-                onClick={() => setShareProperty(null)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
+              onClick={() => setShareProperty(null)}
+              className="text-gray-400 hover:text-white transition-colors">
+              
                 <Icon name="XMarkIcon" size={18} />
               </button>
             </div>
             <div className="flex items-center gap-3 mb-5 p-3 bg-[#1a1a1a] border border-[#2a2a2a]">
               <div className="relative w-12 h-12 flex-shrink-0 overflow-hidden">
                 <AppImage
-                  src={shareProperty.image}
-                  alt={shareProperty.alt}
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
+                src={shareProperty.image}
+                alt={shareProperty.alt}
+                fill
+                className="object-cover"
+                sizes="48px" />
+              
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{shareProperty.name}</p>
@@ -925,56 +925,56 @@ export default function PropertiesPage() {
             <p className="text-xs text-gray-400 mb-3">Share via:</p>
             <div className="grid grid-cols-3 gap-3 mb-5">
               {[
-                { label: 'WhatsApp', icon: 'ChatBubbleLeftRightIcon', color: 'text-emerald-400', href: `https://wa.me/?text=${encodeURIComponent(shareProperty.name + ' - ' + shareProperty.price + ' | https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` },
-                { label: 'Email', icon: 'EnvelopeIcon', color: 'text-blue-400', href: `mailto:?subject=${encodeURIComponent(shareProperty.name)}&body=${encodeURIComponent('Check out this property: https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` },
-                { label: 'LinkedIn', icon: 'GlobeAltIcon', color: 'text-sky-400', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` },
-              ].map(({ label, icon, color, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 border border-[#2a3040] hover:border-[#c9a84c]/40 transition-colors"
-                >
+            { label: 'WhatsApp', icon: 'ChatBubbleLeftRightIcon', color: 'text-emerald-400', href: `https://wa.me/?text=${encodeURIComponent(shareProperty.name + ' - ' + shareProperty.price + ' | https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` },
+            { label: 'Email', icon: 'EnvelopeIcon', color: 'text-blue-400', href: `mailto:?subject=${encodeURIComponent(shareProperty.name)}&body=${encodeURIComponent('Check out this property: https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` },
+            { label: 'LinkedIn', icon: 'GlobeAltIcon', color: 'text-sky-400', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://luxestate6357.builtwithrocket.new/admin/properties/' + shareProperty.id)}` }].
+            map(({ label, icon, color, href }) =>
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 p-3 border border-[#2a3040] hover:border-[#c9a84c]/40 transition-colors">
+              
                   <Icon name={icon as any} size={20} className={color} />
                   <span className="text-xs text-gray-300">{label}</span>
                 </a>
-              ))}
+            )}
             </div>
             <div className="mb-4">
               <p className="text-xs text-gray-400 mb-2">Copy link:</p>
               <div className="flex gap-2">
                 <input
-                  type="text"
-                  readOnly
-                  value={`https://luxestate6357.builtwithrocket.new/admin/properties/${shareProperty.id}`}
-                  className="flex-1 bg-[#1a1a1a] border border-[#333] text-xs text-gray-300 px-3 py-2 focus:outline-none"
-                />
+                type="text"
+                readOnly
+                value={`https://luxestate6357.builtwithrocket.new/admin/properties/${shareProperty.id}`}
+                className="flex-1 bg-[#1a1a1a] border border-[#333] text-xs text-gray-300 px-3 py-2 focus:outline-none" />
+              
                 <button
-                  onClick={() => handleCopyLink(shareProperty.id)}
-                  className={`px-4 py-2 text-xs font-bold transition-colors ${
-                    copied ? 'bg-emerald-500 text-white' : 'bg-[#c9a84c] text-black hover:bg-[#d4b86a]'
-                  }`}
-                >
+                onClick={() => handleCopyLink(shareProperty.id)}
+                className={`px-4 py-2 text-xs font-bold transition-colors ${
+                copied ? 'bg-emerald-500 text-white' : 'bg-[#c9a84c] text-black hover:bg-[#d4b86a]'}`
+                }>
+                
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>
             <button
-              onClick={() => { handleDownloadPDF(shareProperty); setShareProperty(null); }}
-              disabled={pdfGenerating === shareProperty.id}
-              className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#c9a84c]/40 text-sm text-[#c9a84c] hover:bg-[#c9a84c]/10 transition-colors disabled:opacity-60"
-            >
+            onClick={() => {handleDownloadPDF(shareProperty);setShareProperty(null);}}
+            disabled={pdfGenerating === shareProperty.id}
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#c9a84c]/40 text-sm text-[#c9a84c] hover:bg-[#c9a84c]/10 transition-colors disabled:opacity-60">
+            
               <Icon name="DocumentArrowDownIcon" size={14} />
               {pdfGenerating === shareProperty.id ? 'Generating...' : 'Download PDF Brochure'}
             </button>
           </div>
         </div>
-      )}
+      }
 
       {/* Add/Edit Property Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {showModal &&
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={handleClose} />
           <div className="relative w-full max-w-2xl bg-[#12151f] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh]">
             {/* Modal Header */}
@@ -983,71 +983,71 @@ export default function PropertiesPage() {
                 {editingProperty ? `Edit Property — ${editingProperty.name}` : 'Add New Property'}
               </h2>
               <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-              >
+              onClick={handleClose}
+              className="text-gray-400 hover:text-white transition-colors p-1">
+              
                 <Icon name="XMarkIcon" size={18} />
               </button>
             </div>
 
             {/* Draft Banner */}
-            {hasDraft && !editingProperty && (
-              <div className="mx-6 mt-4 flex items-center justify-between bg-[#1a2035] border border-[#2a3a5c] px-4 py-2.5">
+            {hasDraft && !editingProperty &&
+          <div className="mx-6 mt-4 flex items-center justify-between bg-[#1a2035] border border-[#2a3a5c] px-4 py-2.5">
                 <div className="flex items-center gap-2 text-sm text-blue-300">
                   <Icon name="DocumentTextIcon" size={15} className="text-blue-400" />
                   <span>You have an unsaved draft from {draftTime}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleDiscard}
-                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1"
-                  >
+                onClick={handleDiscard}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1">
+                
                     <Icon name="TrashIcon" size={13} />
                     Discard
                   </button>
                   <button
-                    onClick={handleRestore}
-                    className="flex items-center gap-1.5 text-xs bg-[#c9a84c] text-black font-semibold px-3 py-1.5 hover:bg-[#d4b86a] transition-colors"
-                  >
+                onClick={handleRestore}
+                className="flex items-center gap-1.5 text-xs bg-[#c9a84c] text-black font-semibold px-3 py-1.5 hover:bg-[#d4b86a] transition-colors">
+                
                     <Icon name="ArrowPathIcon" size={13} />
                     Restore
                   </button>
                 </div>
               </div>
-            )}
+          }
 
             {/* Tabs */}
             <div className="flex border-b border-[#2a3040] px-6 mt-4">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === tab.id
-                      ? 'border-[#c9a84c] text-[#c9a84c]'
-                      : 'border-transparent text-gray-400 hover:text-white'
-                  }`}
-                >
+              {tabs.map((tab) =>
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id ?
+              'border-[#c9a84c] text-[#c9a84c]' :
+              'border-transparent text-gray-400 hover:text-white'}`
+              }>
+              
                   {tab.label}
                 </button>
-              ))}
+            )}
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {/* Basic Info Tab */}
-              {activeTab === 'basic' && (
-                <div className="space-y-4">
+              {activeTab === 'basic' &&
+            <div className="space-y-4">
                   {/* Property Title */}
                   <div>
                     <label className={labelClass}>Property Title *</label>
                     <input
-                      type="text"
-                      placeholder="e.g., Luxury Villa in Palm Jumeirah"
-                      value={formData.title}
-                      onChange={(e) => handleChange('title', e.target.value)}
-                      className={inputClass}
-                    />
+                  type="text"
+                  placeholder="e.g., Luxury Villa in Palm Jumeirah"
+                  value={formData.title}
+                  onChange={(e) => handleChange('title', e.target.value)}
+                  className={inputClass} />
+                
                   </div>
 
                   {/* Reference Number + Availability */}
@@ -1059,17 +1059,17 @@ export default function PropertiesPage() {
                       </label>
                       <div className="flex gap-2">
                         <input
-                          type="text"
-                          placeholder="Leave empty to auto-generate"
-                          value={formData.referenceNumber}
-                          onChange={(e) => handleChange('referenceNumber', e.target.value)}
-                          className={inputClass}
-                        />
+                      type="text"
+                      placeholder="Leave empty to auto-generate"
+                      value={formData.referenceNumber}
+                      onChange={(e) => handleChange('referenceNumber', e.target.value)}
+                      className={inputClass} />
+                    
                         <button
-                          onClick={handleAutoGenerateRef}
-                          title="Auto-generate"
-                          className="px-2.5 bg-[#1a1f2e] border border-[#2a3040] text-gray-400 hover:text-[#c9a84c] transition-colors flex-shrink-0"
-                        >
+                      onClick={handleAutoGenerateRef}
+                      title="Auto-generate"
+                      className="px-2.5 bg-[#1a1f2e] border border-[#2a3040] text-gray-400 hover:text-[#c9a84c] transition-colors flex-shrink-0">
+                      
                           <Icon name="ArrowPathIcon" size={14} />
                         </button>
                       </div>
@@ -1078,10 +1078,10 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Availability</label>
                       <div className="relative">
                         <select
-                          value={formData.availability}
-                          onChange={(e) => handleChange('availability', e.target.value)}
-                          className={selectClass}
-                        >
+                      value={formData.availability}
+                      onChange={(e) => handleChange('availability', e.target.value)}
+                      className={selectClass}>
+                      
                           <option>Available</option>
                           <option>Under Offer</option>
                           <option>Sold</option>
@@ -1099,10 +1099,10 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Completion</label>
                       <div className="relative">
                         <select
-                          value={formData.completion}
-                          onChange={(e) => handleChange('completion', e.target.value)}
-                          className={selectClass}
-                        >
+                      value={formData.completion}
+                      onChange={(e) => handleChange('completion', e.target.value)}
+                      className={selectClass}>
+                      
                           <option>Ready</option>
                           <option>Under Construction</option>
                           <option>Off Plan</option>
@@ -1123,21 +1123,21 @@ export default function PropertiesPage() {
                     <div className="flex items-center justify-between mb-1.5">
                       <label className={labelClass + ' mb-0'}>Description *</label>
                       <button
-                        onClick={handleAiGenerate}
-                        disabled={aiGenerating}
-                        className="flex items-center gap-1.5 text-xs bg-[#1a1f2e] border border-[#2a3040] text-[#c9a84c] px-3 py-1.5 hover:bg-[#c9a84c]/10 transition-colors disabled:opacity-60"
-                      >
+                    onClick={handleAiGenerate}
+                    disabled={aiGenerating}
+                    className="flex items-center gap-1.5 text-xs bg-[#1a1f2e] border border-[#2a3040] text-[#c9a84c] px-3 py-1.5 hover:bg-[#c9a84c]/10 transition-colors disabled:opacity-60">
+                    
                         <Icon name="SparklesIcon" size={13} />
                         {aiGenerating ? 'Generating...' : 'AI Generate'}
                       </button>
                     </div>
                     <textarea
-                      placeholder="Detailed property description..."
-                      value={formData.description}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                      rows={4}
-                      className={inputClass + ' resize-none'}
-                    />
+                  placeholder="Detailed property description..."
+                  value={formData.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  rows={4}
+                  className={inputClass + ' resize-none'} />
+                
                   </div>
 
                   {/* Property Type + Listing Type */}
@@ -1146,10 +1146,10 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Property Type *</label>
                       <div className="relative">
                         <select
-                          value={formData.propertyType}
-                          onChange={(e) => handleChange('propertyType', e.target.value)}
-                          className={selectClass}
-                        >
+                      value={formData.propertyType}
+                      onChange={(e) => handleChange('propertyType', e.target.value)}
+                      className={selectClass}>
+                      
                           <option>Apartment</option>
                           <option>Villa</option>
                           <option>Townhouse</option>
@@ -1168,10 +1168,10 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Listing Type *</label>
                       <div className="relative">
                         <select
-                          value={formData.listingType}
-                          onChange={(e) => handleChange('listingType', e.target.value)}
-                          className={selectClass}
-                        >
+                      value={formData.listingType}
+                      onChange={(e) => handleChange('listingType', e.target.value)}
+                      className={selectClass}>
+                      
                           <option>For Sale</option>
                           <option>For Rent</option>
                           <option>Short Term</option>
@@ -1187,22 +1187,22 @@ export default function PropertiesPage() {
                     <div>
                       <label className={labelClass}>Price (AED) *</label>
                       <input
-                        type="text"
-                        placeholder="5000000"
-                        value={formData.priceAED}
-                        onChange={(e) => handleChange('priceAED', e.target.value)}
-                        className={inputClass}
-                      />
+                    type="text"
+                    placeholder="5000000"
+                    value={formData.priceAED}
+                    onChange={(e) => handleChange('priceAED', e.target.value)}
+                    className={inputClass} />
+                  
                     </div>
                     <div>
                       <label className={labelClass}>Price per Sq Ft</label>
                       <input
-                        type="text"
-                        placeholder="Auto-calculated or enter"
-                        value={formData.pricePerSqFt}
-                        onChange={(e) => handleChange('pricePerSqFt', e.target.value)}
-                        className={inputClass + ' text-gray-400'}
-                      />
+                    type="text"
+                    placeholder="Auto-calculated or enter"
+                    value={formData.pricePerSqFt}
+                    onChange={(e) => handleChange('pricePerSqFt', e.target.value)}
+                    className={inputClass + ' text-gray-400'} />
+                  
                     </div>
                   </div>
 
@@ -1211,20 +1211,20 @@ export default function PropertiesPage() {
                     <div>
                       <label className={labelClass}>Service Charge (AED/year)</label>
                       <input
-                        type="text"
-                        placeholder="e.g., 25000"
-                        value={formData.serviceCharge}
-                        onChange={(e) => handleChange('serviceCharge', e.target.value)}
-                        className={inputClass}
-                      />
+                    type="text"
+                    placeholder="e.g., 25000"
+                    value={formData.serviceCharge}
+                    onChange={(e) => handleChange('serviceCharge', e.target.value)}
+                    className={inputClass} />
+                  
                     </div>
                   </div>
                 </div>
-              )}
+            }
 
               {/* Dimensions Tab */}
-              {activeTab === 'dimensions' && (
-                <div className="space-y-5">
+              {activeTab === 'dimensions' &&
+            <div className="space-y-5">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon name="HomeIcon" size={16} className="text-[#c9a84c]" />
                     <h3 className="text-base font-semibold text-white">
@@ -1233,8 +1233,8 @@ export default function PropertiesPage() {
                   </div>
 
                   {/* Standard fields for non-land types */}
-                  {!isLand && (
-                    <div className="grid grid-cols-3 gap-4">
+                  {!isLand &&
+              <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className={labelClass}>Bedrooms</label>
                         <input type="number" placeholder="0" value={formData.bedrooms} onChange={(e) => handleChange('bedrooms', e.target.value)} className={inputClass} min="0" />
@@ -1248,11 +1248,11 @@ export default function PropertiesPage() {
                         <input type="text" placeholder="0" value={formData.areaSqFt} onChange={(e) => handleChange('areaSqFt', e.target.value)} className={inputClass} />
                       </div>
                     </div>
-                  )}
+              }
 
                   {/* Villa-specific fields */}
-                  {isVilla && (
-                    <div className="space-y-4">
+                  {isVilla &&
+              <div className="space-y-4">
                       <div className="flex items-center gap-2 py-2 px-3 bg-[#c9a84c]/10 border border-[#c9a84c]/20">
                         <Icon name="HomeModernIcon" size={14} className="text-[#c9a84c]" />
                         <span className="text-xs font-semibold text-[#c9a84c] uppercase tracking-wider">Villa Specific Fields</span>
@@ -1270,11 +1270,11 @@ export default function PropertiesPage() {
                         </div>
                       </div>
                     </div>
-                  )}
+              }
 
                   {/* Land-specific fields */}
-                  {isLand && (
-                    <div className="space-y-4">
+                  {isLand &&
+              <div className="space-y-4">
                       <div className="flex items-center gap-2 py-2 px-3 bg-[#c9a84c]/10 border border-[#c9a84c]/20">
                         <Icon name="MapIcon" size={14} className="text-[#c9a84c]" />
                         <span className="text-xs font-semibold text-[#c9a84c] uppercase tracking-wider">Land Specific Fields</span>
@@ -1320,11 +1320,11 @@ export default function PropertiesPage() {
                         </div>
                       </div>
                     </div>
-                  )}
+              }
 
                   {/* Built-up Area + Plot Area for non-villa, non-land */}
-                  {!isVilla && !isLand && (
-                    <div className="grid grid-cols-2 gap-4">
+                  {!isVilla && !isLand &&
+              <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={labelClass}>Built-up Area (sq ft)</label>
                         <input type="text" placeholder="0" value={formData.builtUpArea} onChange={(e) => handleChange('builtUpArea', e.target.value)} className={inputClass} />
@@ -1334,13 +1334,13 @@ export default function PropertiesPage() {
                         <input type="text" placeholder="0" value={formData.plotArea} onChange={(e) => handleChange('plotArea', e.target.value)} className={inputClass} />
                       </div>
                     </div>
-                  )}
+              }
                 </div>
-              )}
+            }
 
               {/* Features Tab */}
-              {activeTab === 'features' && (
-                <div className="space-y-5">
+              {activeTab === 'features' &&
+            <div className="space-y-5">
                   {/* Furnishing + View */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1377,34 +1377,34 @@ export default function PropertiesPage() {
                   {/* Feature Checkboxes */}
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { key: 'balcony', label: 'Balcony' },
-                      { key: 'maidRoom', label: 'Maid Room' },
-                      { key: 'studyRoom', label: 'Study Room' },
-                      { key: 'privatePool', label: 'Private Pool' },
-                      { key: 'privateGarden', label: 'Private Garden' },
-                    ].map(({ key, label }) => (
-                      <label key={key} className="flex items-center gap-2.5 cursor-pointer group">
+                { key: 'balcony', label: 'Balcony' },
+                { key: 'maidRoom', label: 'Maid Room' },
+                { key: 'studyRoom', label: 'Study Room' },
+                { key: 'privatePool', label: 'Private Pool' },
+                { key: 'privateGarden', label: 'Private Garden' }].
+                map(({ key, label }) =>
+                <label key={key} className="flex items-center gap-2.5 cursor-pointer group">
                         <input
-                          type="checkbox"
-                          checked={formData[key as keyof PropertyFormData] as boolean}
-                          onChange={(e) => handleChange(key as keyof PropertyFormData, e.target.checked)}
-                          className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer"
-                        />
+                    type="checkbox"
+                    checked={formData[key as keyof PropertyFormData] as boolean}
+                    onChange={(e) => handleChange(key as keyof PropertyFormData, e.target.checked)}
+                    className="w-4 h-4 border border-[#2a3040] bg-[#1a1f2e] accent-[#c9a84c] cursor-pointer" />
+                  
                         <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{label}</span>
                       </label>
-                    ))}
+                )}
                   </div>
 
                   {/* Amenities */}
                   <div>
                     <label className={labelClass}>Amenities (comma separated)</label>
                     <input
-                      type="text"
-                      placeholder="e.g., Swimming Pool, Gym, Concierge, Beach Access"
-                      value={formData.amenities}
-                      onChange={(e) => handleChange('amenities', e.target.value)}
-                      className={inputClass}
-                    />
+                  type="text"
+                  placeholder="e.g., Swimming Pool, Gym, Concierge, Beach Access"
+                  value={formData.amenities}
+                  onChange={(e) => handleChange('amenities', e.target.value)}
+                  className={inputClass} />
+                
                   </div>
 
                   {/* Featured + Published */}
@@ -1419,23 +1419,23 @@ export default function PropertiesPage() {
                     </label>
                   </div>
                 </div>
-              )}
+            }
 
               {/* Location Tab */}
-              {activeTab === 'location' && (
-                <div className="space-y-4">
+              {activeTab === 'location' &&
+            <div className="space-y-4">
                   {/* Emirate */}
                   <div>
                     <label className={labelClass}>Emirate *</label>
                     <div className="relative">
                       <select
-                        value={formData.emirate}
-                        onChange={(e) => handleChange('emirate', e.target.value)}
-                        className={selectClass}
-                      >
-                        {UAE_EMIRATES.map((em) => (
-                          <option key={em} value={em}>{em}</option>
-                        ))}
+                    value={formData.emirate}
+                    onChange={(e) => handleChange('emirate', e.target.value)}
+                    className={selectClass}>
+                    
+                        {UAE_EMIRATES.map((em) =>
+                    <option key={em} value={em}>{em}</option>
+                    )}
                       </select>
                       <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -1447,14 +1447,14 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Area / District *</label>
                       <div className="relative">
                         <select
-                          value={formData.locationArea}
-                          onChange={(e) => handleChange('locationArea', e.target.value)}
-                          className={selectClass}
-                        >
+                      value={formData.locationArea}
+                      onChange={(e) => handleChange('locationArea', e.target.value)}
+                      className={selectClass}>
+                      
                           <option value="">Select area...</option>
-                          {availableAreas.map((area) => (
-                            <option key={area} value={area}>{area}</option>
-                          ))}
+                          {availableAreas.map((area) =>
+                      <option key={area} value={area}>{area}</option>
+                      )}
                         </select>
                         <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
@@ -1463,15 +1463,15 @@ export default function PropertiesPage() {
                       <label className={labelClass}>Community *</label>
                       <div className="relative">
                         <select
-                          value={formData.community}
-                          onChange={(e) => handleChange('community', e.target.value)}
-                          className={selectClass}
-                          disabled={availableCommunities.length === 0}
-                        >
+                      value={formData.community}
+                      onChange={(e) => handleChange('community', e.target.value)}
+                      className={selectClass}
+                      disabled={availableCommunities.length === 0}>
+                      
                           <option value="">Select community...</option>
-                          {availableCommunities.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
+                          {availableCommunities.map((c) =>
+                      <option key={c} value={c}>{c}</option>
+                      )}
                         </select>
                         <Icon name="ChevronDownIcon" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
@@ -1482,78 +1482,78 @@ export default function PropertiesPage() {
                   <div>
                     <label className={labelClass}>Full Address</label>
                     <input
-                      type="text"
-                      placeholder="Full street address"
-                      value={formData.fullAddress}
-                      onChange={(e) => handleChange('fullAddress', e.target.value)}
-                      className={inputClass}
-                    />
+                  type="text"
+                  placeholder="Full street address"
+                  value={formData.fullAddress}
+                  onChange={(e) => handleChange('fullAddress', e.target.value)}
+                  className={inputClass} />
+                
                   </div>
 
                   {/* Pin Location Map */}
                   <PinLocationMap
-                    value={{ lat: parseFloat(formData.latitude) || 25.2048, lng: parseFloat(formData.longitude) || 55.2708, address: formData.fullAddress }}
-                    onChange={(val) => { handleChange('latitude', val.lat.toString()); handleChange('longitude', val.lng.toString()); if (val.address) handleChange('fullAddress', val.address); }}
-                    label="Pin Location on Map"
-                  />
+                value={{ lat: parseFloat(formData.latitude) || 25.2048, lng: parseFloat(formData.longitude) || 55.2708, address: formData.fullAddress }}
+                onChange={(val) => {handleChange('latitude', val.lat.toString());handleChange('longitude', val.lng.toString());if (val.address) handleChange('fullAddress', val.address);}}
+                label="Pin Location on Map" />
+              
                 </div>
-              )}
+            }
 
               {/* Media Tab */}
-              {activeTab === 'media' && (
-                <div className="space-y-4">
+              {activeTab === 'media' &&
+            <div className="space-y-4">
                   <div>
                     <label className={labelClass}>Image URLs (comma separated)</label>
                     <textarea
-                      placeholder="https://image1.jpg, https://image2.jpg"
-                      value={formData.imageUrls}
-                      onChange={(e) => handleChange('imageUrls', e.target.value)}
-                      rows={3}
-                      className={inputClass + ' resize-none'}
-                    />
+                  placeholder="https://image1.jpg, https://image2.jpg"
+                  value={formData.imageUrls}
+                  onChange={(e) => handleChange('imageUrls', e.target.value)}
+                  rows={3}
+                  className={inputClass + ' resize-none'} />
+                
                   </div>
                   <div>
                     <label className={labelClass}>Video URL (YouTube/Vimeo)</label>
                     <input
-                      type="text"
-                      placeholder="https://youtube.com/watch?v=..."
-                      value={formData.videoUrl}
-                      onChange={(e) => handleChange('videoUrl', e.target.value)}
-                      className={inputClass}
-                    />
+                  type="text"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={formData.videoUrl}
+                  onChange={(e) => handleChange('videoUrl', e.target.value)}
+                  className={inputClass} />
+                
                   </div>
                   <div>
                     <label className={labelClass}>Virtual Tour URL</label>
                     <input
-                      type="text"
-                      placeholder="https://matterport.com/..."
-                      value={formData.virtualTourUrl}
-                      onChange={(e) => handleChange('virtualTourUrl', e.target.value)}
-                      className={inputClass}
-                    />
+                  type="text"
+                  placeholder="https://matterport.com/..."
+                  value={formData.virtualTourUrl}
+                  onChange={(e) => handleChange('virtualTourUrl', e.target.value)}
+                  className={inputClass} />
+                
                   </div>
                 </div>
-              )}
+            }
             </div>
 
             {/* Modal Footer */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#2a3040]">
               <button
-                onClick={handleClose}
-                className="px-5 py-2 text-sm text-gray-300 hover:text-white border border-[#2a3040] hover:border-[#3a4050] transition-colors"
-              >
+              onClick={handleClose}
+              className="px-5 py-2 text-sm text-gray-300 hover:text-white border border-[#2a3040] hover:border-[#3a4050] transition-colors">
+              
                 Cancel
               </button>
               <button
-                onClick={handleCreateProperty}
-                className="px-5 py-2 text-sm font-semibold bg-[#c9a84c] text-black hover:bg-[#d4b86a] transition-colors"
-              >
+              onClick={handleCreateProperty}
+              className="px-5 py-2 text-sm font-semibold bg-[#c9a84c] text-black hover:bg-[#d4b86a] transition-colors">
+              
                 {editingProperty ? 'Save Changes' : 'Create Property'}
               </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

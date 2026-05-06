@@ -30,7 +30,7 @@ const commercialListings = [
   capRate: '7.4%',
   occupancy: '94%',
   status: 'Available',
-  image: "https://images.unsplash.com/photo-1572108671593-e8f73b218b64",
+  image: "https://images.unsplash.com/photo-1618387151139-d2743df0431f",
   alt: 'Modern mixed-use development interior, dark architectural finishes, dramatic lighting, urban luxury atmosphere',
   featured: false
 },
@@ -58,7 +58,7 @@ const commercialListings = [
   capRate: '8.1%',
   occupancy: '88%',
   status: 'Available',
-  image: "https://images.unsplash.com/photo-1713825773839-060039446a57",
+  image: "https://images.unsplash.com/photo-1491191968982-473e8560b7c5",
   alt: 'Dramatic luxury hotel exterior at night, dark sky, illuminated facade, South Beach architectural photography',
   featured: true
 },
@@ -72,7 +72,7 @@ const commercialListings = [
   capRate: '6.2%',
   occupancy: '95%',
   status: 'Available',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d80d0038-1773206094376.png",
+  image: "https://images.unsplash.com/photo-1640431333099-225c5ebc9c4e",
   alt: 'Modern tech campus office buildings, dark glass facades, dramatic dusk lighting, Silicon Valley architecture',
   featured: false
 },
@@ -86,7 +86,7 @@ const commercialListings = [
   capRate: '7.8%',
   occupancy: '91%',
   status: 'Available',
-  image: "https://images.unsplash.com/photo-1678986423236-2c57c44f4d99",
+  image: "https://images.unsplash.com/photo-1707277305448-914736fc743c",
   alt: 'Modern mixed-use tower in Dallas, dark glass and steel, dramatic city skyline backdrop, architectural photography',
   featured: false
 }];

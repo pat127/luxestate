@@ -19,7 +19,7 @@ const projects = [
   statusColor: 'text-primary border-primary/30 bg-primary/10',
   sold: 62,
   type: 'Residential',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b6ed9c96-1775545509435.png",
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d19a2364-1775545512506.png",
   alt: 'Dramatic architectural rendering of luxury tower, dark glass and steel, Hudson Yards skyline, cinematic dusk lighting, deep shadows',
   description: 'A 62-story residential tower defining the Hudson Yards skyline. Each residence features floor-to-ceiling glass, private sky terraces, and unobstructed river views.',
   featured: true,
@@ -38,7 +38,7 @@ const projects = [
   statusColor: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10',
   sold: 28,
   type: 'Residential',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_199704e74-1776417510556.png",
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_14243a416-1777959939436.png",
   alt: 'Futuristic luxury residence rendering, flowing organic architecture, Beverly Hills hillside, dramatic dusk lighting',
   description: '32 ultra-luxury residences with fluid, organic architecture by Zaha Hadid. Private pools, rooftop lounges, and concierge services included.',
   featured: false,
@@ -57,7 +57,7 @@ const projects = [
   statusColor: 'text-primary border-primary/30 bg-primary/10',
   sold: 85,
   type: 'Mixed-Use',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1ac0cbc6e-1772816226219.png",
+  image: "https://images.unsplash.com/photo-1726808856053-88a76debd4e1",
   alt: 'Luxury Miami Beach mixed-use development rendering, geometric white facade, palm trees, dramatic ocean backdrop, golden hour lighting',
   description: "BIG\'s signature stacked-volume design creates 120 residences above curated retail and a members-only beach club on the most coveted stretch of Miami Beach.",
   featured: false,
@@ -76,7 +76,7 @@ const projects = [
   statusColor: 'text-purple-400 border-purple-400/30 bg-purple-400/10',
   sold: 0,
   type: 'Commercial',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d42ae87d-1777056039498.png",
+  image: "https://images.unsplash.com/photo-1646517003387-613118ef9e5f",
   alt: 'Modern tech campus architectural rendering, dark glass buildings, dramatic Silicon Valley dusk lighting, geometric precision',
   description: 'Three interconnected Class A office buildings designed for the next generation of technology companies. Net-zero carbon, LEED Platinum certified.',
   featured: false,
@@ -259,6 +259,6 @@ export default function ProjectsGallery() {
           </Link>
         )}
       </div>
-    </section>
-  );
+    </section>);
+
 }

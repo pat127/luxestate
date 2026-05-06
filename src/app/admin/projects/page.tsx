@@ -24,10 +24,10 @@ interface Project {
   published?: boolean;
 }
 
-interface UnitType { id: number; name: string; size: string; price: string; }
-interface PaymentMilestone { id: number; label: string; percentage: string; dueDate: string; }
-interface ProjectImage { id: number; url: string; caption: string; }
-interface FloorPlan { id: number; url: string; label: string; }
+interface UnitType {id: number;name: string;size: string;price: string;}
+interface PaymentMilestone {id: number;label: string;percentage: string;dueDate: string;}
+interface ProjectImage {id: number;url: string;caption: string;}
+interface FloorPlan {id: number;url: string;label: string;}
 
 const PROPERTY_TYPES = ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'];
 const AMENITIES = ['Swimming Pool', 'Gym', 'Kids Play Area', 'Parks', 'Retail', 'Mosque', 'School', 'Concierge', 'Security', 'Parking', 'Beach Access', 'Golf Course'];
@@ -36,11 +36,11 @@ const PROJECTS_STORAGE_KEY = 'admin_projects';
 const IMPORT_STORAGE_KEY = 'imported_projects';
 
 const initialProjects: Project[] = [
-  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', status: 'Active', units: 240, sold: 180, completion: 'Q4 2026', price: 'AED 1.2M+', image: "https://images.unsplash.com/photo-1614224352143-ef0bcc52828d", alt: 'Modern residential tower', featured: true, published: true },
-  { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', status: 'Active', units: 320, sold: 210, completion: 'Q2 2027', price: 'AED 900K+', image: "https://images.unsplash.com/photo-1665764067489-963b7a9cbd88", alt: 'Marina bay towers', featured: false, published: true },
-  { id: 3, name: 'Palm Grove Villas', developer: 'Nakheel', location: 'Palm Jumeirah', type: 'Completed', status: 'Completed', units: 48, sold: 48, completion: 'Q1 2024', price: 'AED 8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1df31bcea-1775263716366.png", alt: 'Palm grove villa', featured: true, published: true },
-  { id: 4, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', status: 'Launching', units: 180, sold: 0, completion: 'Q3 2028', price: 'AED 1.8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b96bd8b8-1772209204179.png", alt: 'Creek horizon project', featured: false, published: false },
-];
+{ id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', status: 'Active', units: 240, sold: 180, completion: 'Q4 2026', price: 'AED 1.2M+', image: "https://images.unsplash.com/photo-1700391488389-7ad0b572b299", alt: 'Modern residential tower', featured: true, published: true },
+{ id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', status: 'Active', units: 320, sold: 210, completion: 'Q2 2027', price: 'AED 900K+', image: "https://images.unsplash.com/photo-1690710513317-dc76760d409a", alt: 'Marina bay towers', featured: false, published: true },
+{ id: 3, name: 'Palm Grove Villas', developer: 'Nakheel', location: 'Palm Jumeirah', type: 'Completed', status: 'Completed', units: 48, sold: 48, completion: 'Q1 2024', price: 'AED 8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d6c5561f-1772578497366.png", alt: 'Palm grove villa', featured: true, published: true },
+{ id: 4, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', status: 'Launching', units: 180, sold: 0, completion: 'Q3 2028', price: 'AED 1.8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_10fd3b150-1768441578667.png", alt: 'Creek horizon project', featured: false, published: false }];
+
 
 function loadProjects(): Project[] {
   if (typeof window === 'undefined') return initialProjects;
@@ -48,8 +48,8 @@ function loadProjects(): Project[] {
     const stored = localStorage.getItem(PROJECTS_STORAGE_KEY);
     const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Project[];
     let base: Project[] = stored ? JSON.parse(stored) : initialProjects;
-    const existingIds = new Set(base.map(p => p.id));
-    const newImports = imported.filter(p => !existingIds.has(p.id));
+    const existingIds = new Set(base.map((p) => p.id));
+    const newImports = imported.filter((p) => !existingIds.has(p.id));
     if (newImports.length > 0) {
       base = [...base, ...newImports];
       localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
@@ -70,28 +70,28 @@ const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
   Completed: 'text-blue-400 bg-blue-400/10',
   Launching: 'text-primary bg-primary/10',
-  'On Hold': 'text-orange-400 bg-orange-400/10',
+  'On Hold': 'text-orange-400 bg-orange-400/10'
 };
 
 type TabId = 'basic' | 'units' | 'location' | 'payment' | 'media' | 'docs';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'basic', label: 'Basic' },
-  { id: 'units', label: 'Units' },
-  { id: 'location', label: 'Location' },
-  { id: 'payment', label: 'Payment' },
-  { id: 'media', label: 'Media' },
-  { id: 'docs', label: 'Docs' },
-];
+const TABS: {id: TabId;label: string;}[] = [
+{ id: 'basic', label: 'Basic' },
+{ id: 'units', label: 'Units' },
+{ id: 'location', label: 'Location' },
+{ id: 'payment', label: 'Payment' },
+{ id: 'media', label: 'Media' },
+{ id: 'docs', label: 'Docs' }];
+
 
 interface ProjectFormState {
-  name: string; developer: string; description: string; type: string; status: string;
-  startingPrice: string; handoverDate: string; completionYear: string; featured: boolean; published: boolean;
+  name: string;developer: string;description: string;type: string;status: string;
+  startingPrice: string;handoverDate: string;completionYear: string;featured: boolean;published: boolean;
 }
 
 const emptyBasicForm: ProjectFormState = {
   name: '', developer: '', description: '', type: 'Off-Plan', status: 'Active',
-  startingPrice: '', handoverDate: '', completionYear: '', featured: false, published: false,
+  startingPrice: '', handoverDate: '', completionYear: '', featured: false, published: false
 };
 
 export default function ProjectsPage() {
@@ -159,9 +159,9 @@ export default function ProjectsPage() {
     const interval = setInterval(() => {
       const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Project[];
       if (imported.length > 0) {
-        setProjectList(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newImports = imported.filter(p => !existingIds.has(p.id));
+        setProjectList((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newImports = imported.filter((p) => !existingIds.has(p.id));
           if (newImports.length === 0) return prev;
           const updated = [...prev, ...newImports];
           localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
@@ -179,8 +179,8 @@ export default function ProjectsPage() {
   };
 
   const filtered = projectList.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.developer.toLowerCase().includes(search.toLowerCase())
+  p.name.toLowerCase().includes(search.toLowerCase()) ||
+  p.developer.toLowerCase().includes(search.toLowerCase())
   );
 
   // Bulk selection helpers
@@ -200,8 +200,8 @@ export default function ProjectsPage() {
 
   const toggleSelect = (id: number) => {
     const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
+    if (newSet.has(id)) newSet.delete(id);else
+    newSet.add(id);
     setSelectedIds(newSet);
   };
 
@@ -253,14 +253,14 @@ export default function ProjectsPage() {
   const resetModal = () => {
     setActiveTab('basic');
     setBasicForm(emptyBasicForm);
-    setTotalUnits(''); setAvailableUnits(''); setMinBedrooms('0'); setMaxBedrooms('6');
-    setSizeRange(''); setSelectedPropertyTypes([]); setSelectedAmenities([]); setUnitTypes([]);
-    setLocationSearch(''); setEmirate('Dubai'); setLocationArea(''); setCommunity(''); setSubCommunity('');
-    setFullAddress(''); setLatitude('25.0657'); setLongitude('55.1713');
-    setAvailableAreas(getAreasForEmirate('Dubai')); setAvailableCommunities([]);
-    setPaymentPlanSummary(''); setPostHandoverPlan(''); setMilestones([]);
-    setProjectImages([]); setFloorPlans([]); setMasterPlanUrl(''); setVideoUrl(''); setVirtualTourUrl('');
-    setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
+    setTotalUnits('');setAvailableUnits('');setMinBedrooms('0');setMaxBedrooms('6');
+    setSizeRange('');setSelectedPropertyTypes([]);setSelectedAmenities([]);setUnitTypes([]);
+    setLocationSearch('');setEmirate('Dubai');setLocationArea('');setCommunity('');setSubCommunity('');
+    setFullAddress('');setLatitude('25.0657');setLongitude('55.1713');
+    setAvailableAreas(getAreasForEmirate('Dubai'));setAvailableCommunities([]);
+    setPaymentPlanSummary('');setPostHandoverPlan('');setMilestones([]);
+    setProjectImages([]);setFloorPlans([]);setMasterPlanUrl('');setVideoUrl('');setVirtualTourUrl('');
+    setBrochureUrl('');setFactsheetUrl('');setPriceListUrl('');
   };
 
   const openNew = () => {
@@ -281,7 +281,7 @@ export default function ProjectsPage() {
       handoverDate: project.completion,
       completionYear: '',
       featured: project.featured || false,
-      published: project.published || false,
+      published: project.published || false
     });
     setLocationArea(project.location);
     setEmirate('Dubai');
@@ -303,7 +303,7 @@ export default function ProjectsPage() {
         completion: basicForm.handoverDate || p.completion,
         location: locationArea || p.location,
         featured: basicForm.featured,
-        published: basicForm.published,
+        published: basicForm.published
       } : p));
     } else {
       updateProjectList([...projectList, {
@@ -320,7 +320,7 @@ export default function ProjectsPage() {
         image: projectImages[0]?.url || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
         alt: basicForm.name,
         featured: basicForm.featured,
-        published: basicForm.published,
+        published: basicForm.published
       }]);
     }
     setShowModal(false);
@@ -328,7 +328,7 @@ export default function ProjectsPage() {
     setEditProject(null);
   };
 
-  const handleClose = () => { setShowModal(false); resetModal(); setEditProject(null); };
+  const handleClose = () => {setShowModal(false);resetModal();setEditProject(null);};
 
   const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
   const labelCls = "block text-xs text-[#aaa] mb-1";
@@ -342,8 +342,8 @@ export default function ProjectsPage() {
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+          
           <Icon name="PlusIcon" size={14} />
           Add Project
         </button>
@@ -356,13 +356,13 @@ export default function ProjectsPage() {
           placeholder="Search projects..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
-        />
+          className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
+        
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
+      {selectedIds.size > 0 &&
+      <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
             <select value={bulkStatusValue} onChange={(e) => setBulkStatusValue(e.target.value)} className="px-2 py-1.5 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50">
@@ -380,19 +380,19 @@ export default function ProjectsPage() {
           </div>
           <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"><Icon name="XMarkIcon" size={14} /></button>
         </div>
-      )}
+      }
 
       {/* Select All row */}
-      {filtered.length > 0 && (
-        <div className="flex items-center gap-2 mb-3 px-1">
+      {filtered.length > 0 &&
+      <div className="flex items-center gap-2 mb-3 px-1">
           <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
           <span className="text-xs text-muted-foreground">Select all {filtered.length} projects</span>
         </div>
-      )}
+      }
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filtered.map((project) => {
-          const soldPct = project.units > 0 ? Math.round((project.sold / project.units) * 100) : 0;
+          const soldPct = project.units > 0 ? Math.round(project.sold / project.units * 100) : 0;
           return (
             <div key={project.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(project.id) ? 'border-primary/40' : 'border-border'}`}>
               <div className="relative h-44 overflow-hidden">
@@ -442,14 +442,14 @@ export default function ProjectsPage() {
                   <button onClick={() => router.push(`/admin/projects/${project.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View Details</button>
                 </div>
               </div>
-            </div>
-          );
+            </div>);
+
         })}
       </div>
 
       {/* Bulk Delete Confirm */}
-      {bulkDeleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      {bulkDeleteConfirm &&
+      <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-card border border-border w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center">
@@ -467,11 +467,11 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
-      )}
+      }
 
       {/* Add/Edit Project Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      {showModal &&
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="relative w-full max-w-2xl bg-[#111] border border-[#2a2a2a] shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
@@ -483,27 +483,27 @@ export default function ProjectsPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[#2a2a2a] px-6 pt-3 gap-1">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === tab.id
-                      ? 'border-[#c9a84c] text-[#c9a84c] bg-[#c9a84c]/5'
-                      : 'border-transparent text-[#888] hover:text-white'
-                  }`}
-                >
+              {TABS.map((tab) =>
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id ?
+              'border-[#c9a84c] text-[#c9a84c] bg-[#c9a84c]/5' :
+              'border-transparent text-[#888] hover:text-white'}`
+              }>
+              
                   {tab.label}
                 </button>
-              ))}
+            )}
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
 
               {/* BASIC TAB */}
-              {activeTab === 'basic' && (
-                <div className="space-y-4">
+              {activeTab === 'basic' &&
+            <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={labelCls}>Project Name *</label>
@@ -553,11 +553,11 @@ export default function ProjectsPage() {
                     </label>
                   </div>
                 </div>
-              )}
+            }
 
               {/* UNITS TAB */}
-              {activeTab === 'units' && (
-                <div className="space-y-5">
+              {activeTab === 'units' &&
+            <div className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={labelCls}>Total Units</label>
@@ -585,9 +585,9 @@ export default function ProjectsPage() {
                   <div>
                     <label className={labelCls}>Property Types</label>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {PROPERTY_TYPES.map((type) => (
-                        <button key={type} type="button" onClick={() => toggleTag(selectedPropertyTypes, setSelectedPropertyTypes, type)} className={`px-3 py-1.5 text-xs border transition-colors ${selectedPropertyTypes.includes(type) ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-[#c9a84c]' : 'bg-transparent border-[#333] text-[#aaa] hover:border-[#555]'}`}>{type}</button>
-                      ))}
+                      {PROPERTY_TYPES.map((type) =>
+                  <button key={type} type="button" onClick={() => toggleTag(selectedPropertyTypes, setSelectedPropertyTypes, type)} className={`px-3 py-1.5 text-xs border transition-colors ${selectedPropertyTypes.includes(type) ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-[#c9a84c]' : 'bg-transparent border-[#333] text-[#aaa] hover:border-[#555]'}`}>{type}</button>
+                  )}
                     </div>
                   </div>
                   <div>
@@ -596,8 +596,8 @@ export default function ProjectsPage() {
                       <button type="button" onClick={addUnitType} className="flex items-center gap-1 text-xs text-[#c9a84c] hover:text-[#e0b85a] transition-colors"><Icon name="PlusIcon" size={12} />Add Unit Type</button>
                     </div>
                     {unitTypes.length === 0 && <p className="text-xs text-[#555] italic">No unit types added yet.</p>}
-                    {unitTypes.map((ut) => (
-                      <div key={ut.id} className="grid grid-cols-3 gap-2 mb-2 items-center">
+                    {unitTypes.map((ut) =>
+                <div key={ut.id} className="grid grid-cols-3 gap-2 mb-2 items-center">
                         <input className={inputCls} placeholder="Type name" value={ut.name} onChange={(e) => updateUnitType(ut.id, 'name', e.target.value)} />
                         <input className={inputCls} placeholder="Size (sq.ft)" value={ut.size} onChange={(e) => updateUnitType(ut.id, 'size', e.target.value)} />
                         <div className="flex gap-1">
@@ -605,73 +605,73 @@ export default function ProjectsPage() {
                           <button type="button" onClick={() => removeUnitType(ut.id)} className="text-[#666] hover:text-red-400 transition-colors px-1"><Icon name="XMarkIcon" size={14} /></button>
                         </div>
                       </div>
-                    ))}
+                )}
                   </div>
                   <div>
                     <label className={labelCls}>Amenities</label>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {AMENITIES.map((amenity) => (
-                        <button key={amenity} type="button" onClick={() => toggleTag(selectedAmenities, setSelectedAmenities, amenity)} className={`px-3 py-1.5 text-xs border transition-colors ${selectedAmenities.includes(amenity) ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-[#c9a84c]' : 'bg-transparent border-[#333] text-[#aaa] hover:border-[#555]'}`}>{amenity}</button>
-                      ))}
+                      {AMENITIES.map((amenity) =>
+                  <button key={amenity} type="button" onClick={() => toggleTag(selectedAmenities, setSelectedAmenities, amenity)} className={`px-3 py-1.5 text-xs border transition-colors ${selectedAmenities.includes(amenity) ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-[#c9a84c]' : 'bg-transparent border-[#333] text-[#aaa] hover:border-[#555]'}`}>{amenity}</button>
+                  )}
                     </div>
                   </div>
                 </div>
-              )}
+            }
 
               {/* LOCATION TAB */}
-              {activeTab === 'location' && (
-                <div className="space-y-4">
+              {activeTab === 'location' &&
+            <div className="space-y-4">
                   {/* Emirate */}
                   <div>
                     <label className={labelCls}>Emirate *</label>
                     <select
-                      className={inputCls}
-                      value={emirate}
-                      onChange={(e) => {
-                        setEmirate(e.target.value);
-                        const areas = getAreasForEmirate(e.target.value);
-                        setAvailableAreas(areas);
-                        setLocationArea('');
-                        setCommunity('');
-                        setAvailableCommunities([]);
-                      }}
-                    >
-                      {UAE_EMIRATES.map((em) => (
-                        <option key={em} value={em}>{em}</option>
-                      ))}
+                  className={inputCls}
+                  value={emirate}
+                  onChange={(e) => {
+                    setEmirate(e.target.value);
+                    const areas = getAreasForEmirate(e.target.value);
+                    setAvailableAreas(areas);
+                    setLocationArea('');
+                    setCommunity('');
+                    setAvailableCommunities([]);
+                  }}>
+                  
+                      {UAE_EMIRATES.map((em) =>
+                  <option key={em} value={em}>{em}</option>
+                  )}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={labelCls}>Area / District *</label>
                       <select
-                        className={inputCls}
-                        value={locationArea}
-                        onChange={(e) => {
-                          setLocationArea(e.target.value);
-                          const comms = getCommunitiesForArea(e.target.value);
-                          setAvailableCommunities(comms);
-                          setCommunity('');
-                        }}
-                      >
+                    className={inputCls}
+                    value={locationArea}
+                    onChange={(e) => {
+                      setLocationArea(e.target.value);
+                      const comms = getCommunitiesForArea(e.target.value);
+                      setAvailableCommunities(comms);
+                      setCommunity('');
+                    }}>
+                    
                         <option value="">Select area...</option>
-                        {availableAreas.map((area) => (
-                          <option key={area} value={area}>{area}</option>
-                        ))}
+                        {availableAreas.map((area) =>
+                    <option key={area} value={area}>{area}</option>
+                    )}
                       </select>
                     </div>
                     <div>
                       <label className={labelCls}>Community *</label>
                       <select
-                        className={inputCls}
-                        value={community}
-                        onChange={(e) => setCommunity(e.target.value)}
-                        disabled={availableCommunities.length === 0}
-                      >
+                    className={inputCls}
+                    value={community}
+                    onChange={(e) => setCommunity(e.target.value)}
+                    disabled={availableCommunities.length === 0}>
+                    
                         <option value="">Select community...</option>
-                        {availableCommunities.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
+                        {availableCommunities.map((c) =>
+                    <option key={c} value={c}>{c}</option>
+                    )}
                       </select>
                     </div>
                   </div>
@@ -686,16 +686,16 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                   <PinLocationMap
-                    value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
-                    onChange={(val) => { setLatitude(val.lat.toString()); setLongitude(val.lng.toString()); if (val.address) setFullAddress(val.address); }}
-                    label="Pin Location on Map"
-                  />
+                value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
+                onChange={(val) => {setLatitude(val.lat.toString());setLongitude(val.lng.toString());if (val.address) setFullAddress(val.address);}}
+                label="Pin Location on Map" />
+              
                 </div>
-              )}
+            }
 
               {/* PAYMENT TAB */}
-              {activeTab === 'payment' && (
-                <div className="space-y-5">
+              {activeTab === 'payment' &&
+            <div className="space-y-5">
                   <div>
                     <label className={labelCls}>Payment Plan Summary</label>
                     <textarea className={`${inputCls} resize-none`} rows={3} placeholder="e.g., 60/40 payment plan with 5 years post-handover" value={paymentPlanSummary} onChange={(e) => setPaymentPlanSummary(e.target.value)} />
@@ -710,8 +710,8 @@ export default function ProjectsPage() {
                       <button type="button" onClick={addMilestone} className="flex items-center gap-1 text-xs text-[#c9a84c] hover:text-[#e0b85a] transition-colors"><Icon name="PlusIcon" size={12} />Add Milestone</button>
                     </div>
                     {milestones.length === 0 && <p className="text-xs text-[#555] italic">No milestones added yet.</p>}
-                    {milestones.map((m) => (
-                      <div key={m.id} className="grid grid-cols-3 gap-2 mb-2 items-center">
+                    {milestones.map((m) =>
+                <div key={m.id} className="grid grid-cols-3 gap-2 mb-2 items-center">
                         <input className={inputCls} placeholder="Label (e.g., On Booking)" value={m.label} onChange={(e) => updateMilestone(m.id, 'label', e.target.value)} />
                         <input className={inputCls} placeholder="% (e.g., 10)" value={m.percentage} onChange={(e) => updateMilestone(m.id, 'percentage', e.target.value)} />
                         <div className="flex gap-1">
@@ -719,27 +719,27 @@ export default function ProjectsPage() {
                           <button type="button" onClick={() => removeMilestone(m.id)} className="text-[#666] hover:text-red-400 transition-colors px-1"><Icon name="XMarkIcon" size={14} /></button>
                         </div>
                       </div>
-                    ))}
+                )}
                   </div>
                 </div>
-              )}
+            }
 
               {/* MEDIA TAB */}
-              {activeTab === 'media' && (
-                <div className="space-y-5">
+              {activeTab === 'media' &&
+            <div className="space-y-5">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className={labelCls + ' mb-0'}>Project Images</label>
                       <button type="button" onClick={addProjectImage} className="flex items-center gap-1 text-xs text-[#c9a84c] hover:text-[#e0b85a] transition-colors"><Icon name="PlusIcon" size={12} />Add Image</button>
                     </div>
                     {projectImages.length === 0 && <p className="text-xs text-[#555] italic">No images added yet.</p>}
-                    {projectImages.map((img) => (
-                      <div key={img.id} className="flex gap-2 mb-2 items-center">
+                    {projectImages.map((img) =>
+                <div key={img.id} className="flex gap-2 mb-2 items-center">
                         <input className={`${inputCls} flex-1`} placeholder="Image URL (https://...)" value={img.url} onChange={(e) => updateProjectImage(img.id, 'url', e.target.value)} />
                         <input className={`${inputCls} w-36`} placeholder="Caption" value={img.caption} onChange={(e) => updateProjectImage(img.id, 'caption', e.target.value)} />
                         <button type="button" onClick={() => removeProjectImage(img.id)} className="text-[#666] hover:text-red-400 transition-colors px-1"><Icon name="XMarkIcon" size={14} /></button>
                       </div>
-                    ))}
+                )}
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -747,13 +747,13 @@ export default function ProjectsPage() {
                       <button type="button" onClick={addFloorPlan} className="flex items-center gap-1 text-xs text-[#c9a84c] hover:text-[#e0b85a] transition-colors"><Icon name="PlusIcon" size={12} />Add Floor Plan</button>
                     </div>
                     {floorPlans.length === 0 && <p className="text-xs text-[#555] italic">No floor plans added yet.</p>}
-                    {floorPlans.map((fp) => (
-                      <div key={fp.id} className="flex gap-2 mb-2 items-center">
+                    {floorPlans.map((fp) =>
+                <div key={fp.id} className="flex gap-2 mb-2 items-center">
                         <input className={`${inputCls} flex-1`} placeholder="Floor Plan URL (https://...)" value={fp.url} onChange={(e) => updateFloorPlan(fp.id, 'url', e.target.value)} />
                         <input className={`${inputCls} w-36`} placeholder="Label (e.g., 2BR)" value={fp.label} onChange={(e) => updateFloorPlan(fp.id, 'label', e.target.value)} />
                         <button type="button" onClick={() => removeFloorPlan(fp.id)} className="text-[#666] hover:text-red-400 transition-colors px-1"><Icon name="XMarkIcon" size={14} /></button>
                       </div>
-                    ))}
+                )}
                   </div>
                   <div>
                     <label className={labelCls}>Master Plan Image URL</label>
@@ -770,11 +770,11 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                 </div>
-              )}
+            }
 
               {/* DOCS TAB */}
-              {activeTab === 'docs' && (
-                <div className="space-y-5">
+              {activeTab === 'docs' &&
+            <div className="space-y-5">
                   <div>
                     <label className={labelCls}>Brochure/Factsheet URL (PDF)</label>
                     <input className={inputCls} placeholder="https://...pdf" value={brochureUrl} onChange={(e) => setBrochureUrl(e.target.value)} />
@@ -789,7 +789,7 @@ export default function ProjectsPage() {
                     <input className={inputCls} placeholder="https://...pdf" value={priceListUrl} onChange={(e) => setPriceListUrl(e.target.value)} />
                   </div>
                 </div>
-              )}
+            }
             </div>
 
             {/* Footer */}
@@ -801,7 +801,7 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

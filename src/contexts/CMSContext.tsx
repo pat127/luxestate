@@ -233,7 +233,7 @@ export interface PropertyDetailContent {
   amenities: PropertyAmenity[];
   images: PropertyImage[];
   agent: PropertyAgent;
-  location_coords: { lat: number; lng: number };
+  location_coords: {lat: number;lng: number;};
   pois: PropertyPOI[];
   similar: PropertySimilar[];
 }
@@ -296,7 +296,7 @@ export interface ProjectDetailContent {
   images: PropertyImage[];
   constructionProgress: ProjectConstructionPhase[];
   agent: PropertyAgent;
-  location_coords: { lat: number; lng: number };
+  location_coords: {lat: number;lng: number;};
   pois: PropertyPOI[];
   similar: ProjectSimilar[];
 }
@@ -401,7 +401,7 @@ export const DEFAULT_TESTIMONIALS: TestimonialsContent = {
   { name: 'Thomas Blackwell', location: 'Upper East Side, New York', quote: 'The caliber of off-market opportunities they surfaced was extraordinary.', role: 'Investment Banker', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1bfef8bd5-1763295388609.png', imageAlt: 'Professional man in tailored dark suit, confident expression, studio portrait' },
   { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png', imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
   { name: 'James Whitfield', location: 'Palm Beach, Florida', quote: 'Truly exceptional service.', role: 'Family Office Director', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1651cfc0b-1763295052209.png', imageAlt: 'Professional man in dark jacket, confident posture, studio portrait' },
-  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: 'https://images.unsplash.com/photo-1636200063467-5408d3d08473', imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
+  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1683642765567-3c6873f793e4", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
 
   awards: [
   { title: 'Forbes Global Properties', category: 'Top 10 Luxury Brokerages', year: '2025' },
@@ -455,59 +455,59 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
   furnishing: 'Fully Furnished',
   description: `An extraordinary duplex penthouse crowning One Palm — the most prestigious address on Palm Jumeirah. Spanning two full floors with 270-degree panoramic views of the Arabian Gulf, Dubai Marina skyline, and the iconic Burj Al Arab, this residence redefines ultra-luxury living in Dubai.\n\nDesigned by the world-renowned Dorchester Collection, every detail has been curated to the highest standard. Bespoke Italian marble, hand-selected artworks, and a private rooftop terrace with an infinity pool create an unparalleled living experience.`,
   highlights: [
-    'Private rooftop infinity pool & terrace',
-    'Dorchester Collection interior design',
-    'Direct beach access & private marina berth',
-    '270° panoramic sea & skyline views',
-    'Smart home automation throughout',
-    'Private elevator & dedicated concierge',
-  ],
+  'Private rooftop infinity pool & terrace',
+  'Dorchester Collection interior design',
+  'Direct beach access & private marina berth',
+  '270° panoramic sea & skyline views',
+  'Smart home automation throughout',
+  'Private elevator & dedicated concierge'],
+
   amenities: [
-    { icon: 'SparklesIcon', label: 'Infinity Pool' },
-    { icon: 'HomeIcon', label: 'Private Beach' },
-    { icon: 'ShieldCheckIcon', label: '24/7 Security' },
-    { icon: 'StarIcon', label: 'Concierge' },
-    { icon: 'BoltIcon', label: 'Smart Home' },
-    { icon: 'TrophyIcon', label: 'Fitness Center' },
-    { icon: 'GlobeAltIcon', label: 'Spa & Wellness' },
-    { icon: 'BuildingOfficeIcon', label: 'Business Lounge' },
-    { icon: 'MusicalNoteIcon', label: 'Cinema Room' },
-    { icon: 'FireIcon', label: 'Rooftop Terrace' },
-    { icon: 'ArrowsPointingOutIcon', label: 'Valet Parking' },
-    { icon: 'MapPinIcon', label: 'Marina Berth' },
-  ],
+  { icon: 'SparklesIcon', label: 'Infinity Pool' },
+  { icon: 'HomeIcon', label: 'Private Beach' },
+  { icon: 'ShieldCheckIcon', label: '24/7 Security' },
+  { icon: 'StarIcon', label: 'Concierge' },
+  { icon: 'BoltIcon', label: 'Smart Home' },
+  { icon: 'TrophyIcon', label: 'Fitness Center' },
+  { icon: 'GlobeAltIcon', label: 'Spa & Wellness' },
+  { icon: 'BuildingOfficeIcon', label: 'Business Lounge' },
+  { icon: 'MusicalNoteIcon', label: 'Cinema Room' },
+  { icon: 'FireIcon', label: 'Rooftop Terrace' },
+  { icon: 'ArrowsPointingOutIcon', label: 'Valet Parking' },
+  { icon: 'MapPinIcon', label: 'Marina Berth' }],
+
   images: [
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png', alt: 'Luxury penthouse living room with floor-to-ceiling windows overlooking Palm Jumeirah and Arabian Gulf, white marble floors, bespoke furniture' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_17d8ac43a-1766837430470.png', alt: 'Master bedroom suite with panoramic sea views, king bed, dark wood accents, and private terrace access' },
-    { src: 'https://images.unsplash.com/photo-1679265441414-d5ed0aed8a38', alt: 'Private rooftop infinity pool with Dubai Marina skyline backdrop at golden hour' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_173dd8d64-1772641736960.png', alt: 'Gourmet kitchen with Italian marble countertops, integrated appliances, and island seating' },
-    { src: 'https://images.unsplash.com/photo-1537726235470-8504e3beef77', alt: 'Dining area with dramatic chandelier, floor-to-ceiling windows, and sea views' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_192331c36-1777354895465.png', alt: 'Outdoor terrace with lounge seating, fire pit, and unobstructed Burj Al Arab views at dusk' },
-  ],
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png', alt: 'Luxury penthouse living room with floor-to-ceiling windows overlooking Palm Jumeirah and Arabian Gulf, white marble floors, bespoke furniture' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_17d8ac43a-1766837430470.png', alt: 'Master bedroom suite with panoramic sea views, king bed, dark wood accents, and private terrace access' },
+  { src: 'https://images.unsplash.com/photo-1679265441414-d5ed0aed8a38', alt: 'Private rooftop infinity pool with Dubai Marina skyline backdrop at golden hour' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_173dd8d64-1772641736960.png', alt: 'Gourmet kitchen with Italian marble countertops, integrated appliances, and island seating' },
+  { src: 'https://images.unsplash.com/photo-1537726235470-8504e3beef77', alt: 'Dining area with dramatic chandelier, floor-to-ceiling windows, and sea views' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_192331c36-1777354895465.png', alt: 'Outdoor terrace with lounge seating, fire pit, and unobstructed Burj Al Arab views at dusk' }],
+
   agent: {
     name: 'Alexandra Voss',
     title: 'Senior Luxury Property Consultant',
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: 'https://img.rocket.new/generatedImages/rocket_gen_img_16f0638be-1763300671799.png',
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15831eb38-1768374767097.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
-    languages: 'English, Arabic, French',
+    languages: 'English, Arabic, French'
   },
   location_coords: { lat: 25.1124, lng: 55.1390 },
   pois: [
-    { label: 'Dubai Mall', distance: '12 min' },
-    { label: 'Dubai Airport', distance: '25 min' },
-    { label: 'Marina Walk', distance: '8 min' },
-    { label: 'Burj Al Arab', distance: '5 min' },
-  ],
+  { label: 'Dubai Mall', distance: '12 min' },
+  { label: 'Dubai Airport', distance: '25 min' },
+  { label: 'Marina Walk', distance: '8 min' },
+  { label: 'Burj Al Arab', distance: '5 min' }],
+
   similar: [
-    { id: 2, name: 'Sky Villa, Address Sky View', location: 'Downtown Dubai', price: 'AED 62,000,000', beds: 4, baths: 5, sqft: 7200, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_169be6201-1772109576210.png', alt: 'Sky villa with Downtown Dubai skyline and Burj Khalifa views, modern luxury interior', href: '/properties/2' },
-    { id: 3, name: 'Signature Villa, Emirates Hills', location: 'Emirates Hills, Dubai', price: 'AED 120,000,000', beds: 7, baths: 8, sqft: 18000, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_10c4732d9-1772210224317.png', alt: 'Grand Emirates Hills villa with golf course views, private pool, and lush landscaping', href: '/properties/3' },
-    { id: 4, name: 'Penthouse, DIFC Living', location: 'DIFC, Dubai', price: 'AED 45,000,000', beds: 3, baths: 4, sqft: 5800, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_15dbdfb47-1773138915166.png', alt: 'DIFC penthouse with city skyline views, contemporary design, and rooftop terrace', href: '/properties/4' },
-  ],
+  { id: 2, name: 'Sky Villa, Address Sky View', location: 'Downtown Dubai', price: 'AED 62,000,000', beds: 4, baths: 5, sqft: 7200, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_169be6201-1772109576210.png', alt: 'Sky villa with Downtown Dubai skyline and Burj Khalifa views, modern luxury interior', href: '/properties/2' },
+  { id: 3, name: 'Signature Villa, Emirates Hills', location: 'Emirates Hills, Dubai', price: 'AED 120,000,000', beds: 7, baths: 8, sqft: 18000, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_10c4732d9-1772210224317.png', alt: 'Grand Emirates Hills villa with golf course views, private pool, and lush landscaping', href: '/properties/3' },
+  { id: 4, name: 'Penthouse, DIFC Living', location: 'DIFC, Dubai', price: 'AED 45,000,000', beds: 3, baths: 4, sqft: 5800, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_15dbdfb47-1773138915166.png', alt: 'DIFC penthouse with city skyline views, contemporary design, and rooftop terrace', href: '/properties/4' }]
+
 };
 
 // ─── Project Detail Default ───────────────────────────────────────────────────
@@ -531,82 +531,82 @@ export const DEFAULT_PROJECT_DETAIL: ProjectDetailContent = {
   reference: 'CE-OOT-001',
   description: `One Obsidian Tower is a landmark 62-story residential tower rising above Business Bay — Dubai's most dynamic address. Designed by the legendary Foster & Partners, the tower's dark glass facade captures and reflects the city's ever-changing light, creating a living sculpture on the skyline.\n\nWith only 84 residences across 62 floors, One Obsidian Tower offers an unmatched level of exclusivity. Each home features floor-to-ceiling glass, private sky terraces, and panoramic views of the Burj Khalifa, Dubai Creek, and the Arabian Gulf.\n\nResidents enjoy a curated collection of amenities spanning three dedicated floors — from the infinity sky pool on the 55th floor to the private cinema, members' lounge, and a world-class spa.`,
   highlights: [
-    'Only 84 residences across 62 floors',
-    'Foster & Partners architecture',
-    'Sky infinity pool on 55th floor',
-    'Private sky terraces on all units',
-    'Panoramic Burj Khalifa views',
-    'Dedicated concierge & lifestyle team',
-    'Smart home automation throughout',
-    'LEED Gold certified building',
-  ],
+  'Only 84 residences across 62 floors',
+  'Foster & Partners architecture',
+  'Sky infinity pool on 55th floor',
+  'Private sky terraces on all units',
+  'Panoramic Burj Khalifa views',
+  'Dedicated concierge & lifestyle team',
+  'Smart home automation throughout',
+  'LEED Gold certified building'],
+
   unitTypes: [
-    { type: '1 Bedroom', area: '1,200 – 1,800 sqft', price: 'From AED 8,500,000', available: 8 },
-    { type: '2 Bedroom', area: '2,100 – 3,200 sqft', price: 'From AED 14,000,000', available: 6 },
-    { type: '3 Bedroom', area: '3,800 – 5,500 sqft', price: 'From AED 24,000,000', available: 5 },
-    { type: 'Sky Villa', area: '7,200 – 9,800 sqft', price: 'From AED 55,000,000', available: 3 },
-    { type: 'Penthouse', area: '12,000 – 18,000 sqft', price: 'From AED 85,000,000', available: 2 },
-  ],
+  { type: '1 Bedroom', area: '1,200 – 1,800 sqft', price: 'From AED 8,500,000', available: 8 },
+  { type: '2 Bedroom', area: '2,100 – 3,200 sqft', price: 'From AED 14,000,000', available: 6 },
+  { type: '3 Bedroom', area: '3,800 – 5,500 sqft', price: 'From AED 24,000,000', available: 5 },
+  { type: 'Sky Villa', area: '7,200 – 9,800 sqft', price: 'From AED 55,000,000', available: 3 },
+  { type: 'Penthouse', area: '12,000 – 18,000 sqft', price: 'From AED 85,000,000', available: 2 }],
+
   paymentPlan: [
-    { phase: 'Booking', percent: 10, label: 'On Signing SPA', icon: 'PencilSquareIcon' },
-    { phase: '1st Instalment', percent: 20, label: 'Within 30 Days', icon: 'CalendarIcon' },
-    { phase: 'Construction', percent: 40, label: 'During Construction (4 Instalments)', icon: 'BuildingOfficeIcon' },
-    { phase: 'Handover', percent: 30, label: 'On Completion Q3 2027', icon: 'KeyIcon' },
-  ],
+  { phase: 'Booking', percent: 10, label: 'On Signing SPA', icon: 'PencilSquareIcon' },
+  { phase: '1st Instalment', percent: 20, label: 'Within 30 Days', icon: 'CalendarIcon' },
+  { phase: 'Construction', percent: 40, label: 'During Construction (4 Instalments)', icon: 'BuildingOfficeIcon' },
+  { phase: 'Handover', percent: 30, label: 'On Completion Q3 2027', icon: 'KeyIcon' }],
+
   amenities: [
-    { icon: 'SparklesIcon', label: 'Sky Infinity Pool' },
-    { icon: 'HomeIcon', label: 'Private Beach Club' },
-    { icon: 'ShieldCheckIcon', label: '24/7 Concierge' },
-    { icon: 'StarIcon', label: 'Members Lounge' },
-    { icon: 'BoltIcon', label: 'Smart Home' },
-    { icon: 'TrophyIcon', label: 'Fitness & Wellness' },
-    { icon: 'GlobeAltIcon', label: 'Spa & Hammam' },
-    { icon: 'BuildingOfficeIcon', label: 'Business Centre' },
-    { icon: 'MusicalNoteIcon', label: 'Private Cinema' },
-    { icon: 'FireIcon', label: 'Sky Terrace Lounge' },
-    { icon: 'ArrowsPointingOutIcon', label: 'Valet Parking' },
-    { icon: 'MapPinIcon', label: 'Helipad' },
-  ],
+  { icon: 'SparklesIcon', label: 'Sky Infinity Pool' },
+  { icon: 'HomeIcon', label: 'Private Beach Club' },
+  { icon: 'ShieldCheckIcon', label: '24/7 Concierge' },
+  { icon: 'StarIcon', label: 'Members Lounge' },
+  { icon: 'BoltIcon', label: 'Smart Home' },
+  { icon: 'TrophyIcon', label: 'Fitness & Wellness' },
+  { icon: 'GlobeAltIcon', label: 'Spa & Hammam' },
+  { icon: 'BuildingOfficeIcon', label: 'Business Centre' },
+  { icon: 'MusicalNoteIcon', label: 'Private Cinema' },
+  { icon: 'FireIcon', label: 'Sky Terrace Lounge' },
+  { icon: 'ArrowsPointingOutIcon', label: 'Valet Parking' },
+  { icon: 'MapPinIcon', label: 'Helipad' }],
+
   images: [
-    { src: 'https://images.unsplash.com/photo-1685534830735-9cbdfe7b955b', alt: 'One Obsidian Tower exterior rendering at dusk, dark glass facade reflecting Dubai skyline, dramatic lighting' },
-    { src: 'https://images.unsplash.com/photo-1578200228871-2d5389cc82f6', alt: 'Sky infinity pool on 55th floor with panoramic Burj Khalifa and Business Bay views at golden hour' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_15b6c49fe-1769420947258.png', alt: 'Luxury 3-bedroom residence interior with floor-to-ceiling windows, marble floors, and Dubai Creek views' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_17f985e3a-1774106261093.png', alt: 'Tower lobby with double-height ceilings, dark marble, and bespoke art installation' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_18177980c-1777959943189.png', alt: 'Members lounge with panoramic city views, bespoke furniture, and curated art collection' },
-    { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_1ce78b5ae-1764745340163.png', alt: 'Sky terrace lounge at night with fire features, city lights backdrop, and outdoor dining' },
-  ],
+  { src: 'https://images.unsplash.com/photo-1685534830735-9cbdfe7b955b', alt: 'One Obsidian Tower exterior rendering at dusk, dark glass facade reflecting Dubai skyline, dramatic lighting' },
+  { src: 'https://images.unsplash.com/photo-1578200228871-2d5389cc82f6', alt: 'Sky infinity pool on 55th floor with panoramic Burj Khalifa and Business Bay views at golden hour' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_15b6c49fe-1769420947258.png', alt: 'Luxury 3-bedroom residence interior with floor-to-ceiling windows, marble floors, and Dubai Creek views' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_17f985e3a-1774106261093.png', alt: 'Tower lobby with double-height ceilings, dark marble, and bespoke art installation' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_18177980c-1777959943189.png', alt: 'Members lounge with panoramic city views, bespoke furniture, and curated art collection' },
+  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_1ce78b5ae-1764745340163.png', alt: 'Sky terrace lounge at night with fire features, city lights backdrop, and outdoor dining' }],
+
   constructionProgress: [
-    { phase: 'Foundation & Basement', complete: 100 },
-    { phase: 'Core & Structure (Floors 1–30)', complete: 100 },
-    { phase: 'Core & Structure (Floors 31–62)', complete: 65 },
-    { phase: 'Facade & Glazing', complete: 40 },
-    { phase: 'MEP & Fit-Out', complete: 20 },
-    { phase: 'Amenities & Landscaping', complete: 5 },
-  ],
+  { phase: 'Foundation & Basement', complete: 100 },
+  { phase: 'Core & Structure (Floors 1–30)', complete: 100 },
+  { phase: 'Core & Structure (Floors 31–62)', complete: 65 },
+  { phase: 'Facade & Glazing', complete: 40 },
+  { phase: 'MEP & Fit-Out', complete: 20 },
+  { phase: 'Amenities & Landscaping', complete: 5 }],
+
   agent: {
     name: 'Marcus Al-Rashid',
     title: 'Off-Plan Investment Specialist',
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'marcus@coveestates.com',
-    avatar: 'https://img.rocket.new/generatedImages/rocket_gen_img_18fcd4c37-1772439322102.png',
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_10ff7b3a0-1772221573304.png",
     avatarAlt: 'Marcus Al-Rashid, Off-Plan Investment Specialist at Cove Estates',
     listings: 31,
     experience: '9 Years',
-    languages: 'English, Arabic',
+    languages: 'English, Arabic'
   },
   location_coords: { lat: 25.1865, lng: 55.2615 },
   pois: [
-    { label: 'Dubai Mall', distance: '8 min' },
-    { label: 'Dubai Airport', distance: '20 min' },
-    { label: 'DIFC', distance: '5 min' },
-    { label: 'Burj Khalifa', distance: '6 min' },
-  ],
+  { label: 'Dubai Mall', distance: '8 min' },
+  { label: 'Dubai Airport', distance: '20 min' },
+  { label: 'DIFC', distance: '5 min' },
+  { label: 'Burj Khalifa', distance: '6 min' }],
+
   similar: [
-    { id: 2, name: 'Seraphine Residences', location: 'Beverly Hills, CA', priceFrom: 'From AED 14,000,000', completion: 'Q1 2027', units: 32, image: 'https://img.rocket.new/generatedImages/rocket_gen_img_14243a416-1777959939436.png', alt: 'Seraphine Residences luxury tower rendering, flowing organic architecture, dramatic dusk lighting', href: '/projects/2' },
-    { id: 3, name: 'The Monarch', location: 'Miami Beach, FL', priceFrom: 'From AED 4,200,000', completion: 'Q4 2026', units: 120, image: 'https://img.rocket.new/generatedImages/rocket_gen_img_154e899f1-1777959941243.png', alt: 'The Monarch luxury mixed-use development, geometric white facade, ocean backdrop, golden hour', href: '/projects/3' },
-    { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1709eb335-1777959940300.png', alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' },
-  ],
+  { id: 2, name: 'Seraphine Residences', location: 'Beverly Hills, CA', priceFrom: 'From AED 14,000,000', completion: 'Q1 2027', units: 32, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1a5a737aa-1778059435159.png", alt: 'Seraphine Residences luxury tower rendering, flowing organic architecture, dramatic dusk lighting', href: '/projects/2' },
+  { id: 3, name: 'The Monarch', location: 'Miami Beach, FL', priceFrom: 'From AED 4,200,000', completion: 'Q4 2026', units: 120, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1064062a9-1778059435164.png", alt: 'The Monarch luxury mixed-use development, geometric white facade, ocean backdrop, golden hour', href: '/projects/3' },
+  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1db286f0f-1778059435816.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
+
 };
 
 export const DEFAULT_PAGES: PageConfig[] = [
@@ -616,7 +616,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Where Architecture Becomes Legacy',
   hero_subheadline: 'Ultra-premium properties for discerning buyers',
   hero_description: 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.',
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f930205d-1764676806048.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1de1aff6c-1773039815800.png",
   hero_eyebrow: 'Curated Luxury Properties',
   cta_primary_text: 'Explore Properties',
   cta_primary_link: '/residential',
@@ -755,27 +755,27 @@ function mergeWithDefaults(stored: PageConfig): PageConfig {
   return {
     ...stored,
     hero_stats: stored.hero_stats && stored.hero_stats.length > 0 ? stored.hero_stats : DEFAULT_HERO_STATS,
-    featured_properties_content: stored.featured_properties_content
-      ? { ...DEFAULT_FEATURED_PROPERTIES, ...stored.featured_properties_content }
-      : DEFAULT_FEATURED_PROPERTIES,
-    featured_projects_content: stored.featured_projects_content
-      ? { ...DEFAULT_FEATURED_PROJECTS, ...stored.featured_projects_content }
-      : DEFAULT_FEATURED_PROJECTS,
-    why_luxestate_content: stored.why_luxestate_content
-      ? { ...DEFAULT_WHY_LUXESTATE, ...stored.why_luxestate_content }
-      : DEFAULT_WHY_LUXESTATE,
-    testimonials_content: stored.testimonials_content
-      ? { ...DEFAULT_TESTIMONIALS, ...stored.testimonials_content }
-      : DEFAULT_TESTIMONIALS,
-    contact_content: stored.contact_content
-      ? { ...DEFAULT_CONTACT, ...stored.contact_content }
-      : DEFAULT_CONTACT,
-    mortgage_content: stored.mortgage_content
-      ? { ...DEFAULT_MORTGAGE, ...stored.mortgage_content }
-      : DEFAULT_MORTGAGE,
-    homepage_blocks: stored.homepage_blocks && stored.homepage_blocks.length > 0
-      ? stored.homepage_blocks
-      : DEFAULT_HOMEPAGE_BLOCKS,
+    featured_properties_content: stored.featured_properties_content ?
+    { ...DEFAULT_FEATURED_PROPERTIES, ...stored.featured_properties_content } :
+    DEFAULT_FEATURED_PROPERTIES,
+    featured_projects_content: stored.featured_projects_content ?
+    { ...DEFAULT_FEATURED_PROJECTS, ...stored.featured_projects_content } :
+    DEFAULT_FEATURED_PROJECTS,
+    why_luxestate_content: stored.why_luxestate_content ?
+    { ...DEFAULT_WHY_LUXESTATE, ...stored.why_luxestate_content } :
+    DEFAULT_WHY_LUXESTATE,
+    testimonials_content: stored.testimonials_content ?
+    { ...DEFAULT_TESTIMONIALS, ...stored.testimonials_content } :
+    DEFAULT_TESTIMONIALS,
+    contact_content: stored.contact_content ?
+    { ...DEFAULT_CONTACT, ...stored.contact_content } :
+    DEFAULT_CONTACT,
+    mortgage_content: stored.mortgage_content ?
+    { ...DEFAULT_MORTGAGE, ...stored.mortgage_content } :
+    DEFAULT_MORTGAGE,
+    homepage_blocks: stored.homepage_blocks && stored.homepage_blocks.length > 0 ?
+    stored.homepage_blocks :
+    DEFAULT_HOMEPAGE_BLOCKS
   };
 }
 
@@ -807,9 +807,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
         if (data.lastSaved) setLastSaved(data.lastSaved);
       }
     } catch {
+
       // use defaults
-    }
-    setLoaded(true);
+    }setLoaded(true);
   }, []);
 
   const getPage = useCallback((key: PageKey): PageConfig => {
@@ -844,15 +844,15 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
     try {
       localStorage.setItem(CMS_STORAGE_KEY, JSON.stringify({ pages: newPages, branding: newBranding, propertyDetail: pd, projectDetail: prd, lastSaved: ts }));
     } catch {
+
       // storage unavailable
-    }
-  }, [propertyDetail, projectDetail]);
+    }}, [propertyDetail, projectDetail]);
 
   return (
     <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved }}>
       {children}
-    </CMSContext.Provider>
-  );
+    </CMSContext.Provider>);
+
 }
 
 export function useCMS() {

@@ -91,7 +91,7 @@ export default function Footer() {
             <div className="space-y-2 mt-1">
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="PhoneIcon" size={12} className="text-primary flex-shrink-0" />
-                +971 50 886 2683
+                <a href="tel:+971508862683" className="hover:text-primary transition-colors duration-300">+971 50 886 2683</a>
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="EnvelopeIcon" size={12} className="text-primary flex-shrink-0" />

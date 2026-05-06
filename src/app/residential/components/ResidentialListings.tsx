@@ -23,7 +23,7 @@ const listings = [
 {
   id: 3, name: 'The Whitmore', location: 'Tribeca, New York', price: '$9,800,000',
   beds: 3, baths: 3, sqft: '3,600', tag: 'Townhouse', status: 'Available',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_19ee75bca-1777301753727.png",
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_13ea07da3-1776709679264.png",
   alt: 'Luxury Tribeca townhouse, dark brick and steel, refined architectural detail, moody lighting',
   featured: false
 },
@@ -37,21 +37,21 @@ const listings = [
 {
   id: 5, name: 'Vantage Estate', location: 'Malibu, CA', price: '$65,000,000',
   beds: 9, baths: 11, sqft: '22,000', tag: 'Estate', status: 'Available',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d77ade9b-1773162376685.png",
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1cca8b9b9-1772907665016.png",
   alt: 'Sprawling Malibu oceanfront estate, cliffside setting, modernist architecture, dramatic shadows',
   featured: true
 },
 {
   id: 6, name: 'The Crescent', location: 'Miami Beach, FL', price: '$18,500,000',
   beds: 4, baths: 5, sqft: '6,400', tag: 'Residence', status: 'Available',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d4d7b951-1770224323123.png",
+  image: "https://images.unsplash.com/photo-1670233507518-389adeaf791a",
   alt: 'Miami Beach luxury residence, geometric facade, palm silhouettes at dusk, moody sky',
   featured: false
 },
 {
   id: 7, name: 'Solstice Manor', location: 'Greenwich, CT', price: '$22,000,000',
   beds: 8, baths: 10, sqft: '18,000', tag: 'Estate', status: 'Available',
-  image: "https://images.unsplash.com/photo-1640966120895-b01739b6187e",
+  image: "https://images.unsplash.com/photo-1618308722560-8b3897bbd67e",
   alt: 'Grand Connecticut manor estate, sweeping grounds, classical architecture with modern updates, moody overcast sky',
   featured: false
 },
