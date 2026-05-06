@@ -28,7 +28,7 @@ export default function ProjectsHero() {
     <section className="relative min-h-[75vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
         <AppImage
-          src="https://img.rocket.new/generatedImages/rocket_gen_img_11f0f8934-1772201742256.png"
+          src={page.hero_image || "https://img.rocket.new/generatedImages/rocket_gen_img_11f0f8934-1772201742256.png"}
           alt="Architectural rendering of luxury new development, dramatic dusk lighting, modern geometric forms, dark sky with warm interior glow from floor-to-ceiling glass"
           fill
           priority

@@ -153,7 +153,7 @@ export default function ResidentialListings() {
       {viewMode === 'grid' &&
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
           {filtered.map((property, i) =>
-        <div key={property.id} className="animate-on-scroll property-card bg-card border border-border group cursor-pointer" style={{ transitionDelay: `${i * 60}ms` }}>
+        <Link key={property.id} href={`/properties/${property.id}`} className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block" style={{ transitionDelay: `${i * 60}ms` }}>
               <div className="relative h-64 overflow-hidden">
                 <AppImage
               src={property.image}
@@ -161,7 +161,6 @@ export default function ResidentialListings() {
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 33vw" />
-
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
@@ -199,7 +198,7 @@ export default function ResidentialListings() {
                   <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>
                 </div>
               </div>
-            </div>
+            </Link>
         )}
         </div>
       }
@@ -208,7 +207,7 @@ export default function ResidentialListings() {
       {viewMode === 'list' &&
       <div className="space-y-3 stagger-children">
           {filtered.map((property, i) =>
-        <div key={property.id} className="animate-on-scroll flex flex-col md:flex-row bg-card border border-border group hover:border-primary/30 transition-all duration-300 cursor-pointer" style={{ transitionDelay: `${i * 40}ms` }}>
+        <Link key={property.id} href={`/properties/${property.id}`} className="animate-on-scroll flex flex-col md:flex-row bg-card border border-border group hover:border-primary/30 transition-all duration-300 cursor-pointer block" style={{ transitionDelay: `${i * 40}ms` }}>
               <div className="relative w-full md:w-64 h-48 md:h-auto flex-shrink-0 overflow-hidden">
                 <AppImage src={property.image} alt={property.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="300px" />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
@@ -233,13 +232,13 @@ export default function ResidentialListings() {
                   <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="SparklesIcon" size={14} className="text-primary" />{property.baths} Bathrooms</span>
                   <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="ArrowsPointingOutIcon" size={14} className="text-primary" />{property.sqft} sqft</span>
                   <div className="ml-auto">
-                    <Link href="#contact" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5 hover:gap-4 transition-all duration-300">
-                      Inquire <Icon name="ArrowRightIcon" size={12} />
-                    </Link>
+                    <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5">
+                      View Details <Icon name="ArrowRightIcon" size={12} />
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
         )}
         </div>
       }

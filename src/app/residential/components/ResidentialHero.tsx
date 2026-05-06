@@ -29,7 +29,7 @@ export default function ResidentialHero() {
     <section className="relative min-h-[70vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
         <AppImage
-          src="https://images.unsplash.com/photo-1585796607580-6a24cd13362c"
+          src={page.hero_image || "https://images.unsplash.com/photo-1585796607580-6a24cd13362c"}
           alt="Luxury modern residence exterior, dark glass and steel, dramatic dusk lighting, deep shadows, atmospheric architectural photography"
           fill
           priority

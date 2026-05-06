@@ -146,9 +146,10 @@ export default function CommercialListings() {
       {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
         {filtered.map((listing, i) =>
-        <div
+        <Link
           key={listing.id}
-          className="animate-on-scroll property-card bg-card border border-border group cursor-pointer"
+          href={`/properties/${listing.id}`}
+          className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block"
           style={{ transitionDelay: `${i * 70}ms` }}>
 
             <div className="relative h-56 overflow-hidden">
@@ -208,15 +209,12 @@ export default function CommercialListings() {
                 </div>
               </div>
 
-              <Link
-              href="#contact"
-              className="flex items-center justify-between w-full border-t border-border pt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">
-
-                Request Investment Memo
+              <div className="flex items-center justify-between w-full border-t border-border pt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">
+                View Property Details
                 <Icon name="ArrowRightIcon" size={12} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
+              </div>
             </div>
-          </div>
+          </Link>
         )}
       </div>
 

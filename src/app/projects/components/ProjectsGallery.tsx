@@ -59,7 +59,7 @@ const projects = [
   type: 'Mixed-Use',
   image: "https://img.rocket.new/generatedImages/rocket_gen_img_1ac0cbc6e-1772816226219.png",
   alt: 'Luxury Miami Beach mixed-use development rendering, geometric white facade, palm trees, dramatic ocean backdrop, golden hour lighting',
-  description: 'BIG\'s signature stacked-volume design creates 120 residences above curated retail and a members-only beach club on the most coveted stretch of Miami Beach.',
+  description: "BIG\'s signature stacked-volume design creates 120 residences above curated retail and a members-only beach club on the most coveted stretch of Miami Beach.",
   featured: false,
   colSpan: 'md:col-span-1'
 },
@@ -97,7 +97,7 @@ const projects = [
   type: 'Residential',
   image: "https://img.rocket.new/generatedImages/rocket_gen_img_1986b4e27-1777301754164.png",
   alt: 'Dark luxury lakefront residences, Kengo Kuma natural material architecture, Chicago lake at night, dramatic atmospheric lighting',
-  description: 'Kengo Kuma\'s nature-inspired materiality meets Chicago\'s dramatic lakefront. Only 3 residences remain in this nearly sold-out collection.',
+  description: "Kengo Kuma\'s nature-inspired materiality meets Chicago\'s dramatic lakefront. Only 3 residences remain in this nearly sold-out collection.",
   featured: false,
   colSpan: 'md:col-span-1'
 },
@@ -124,7 +124,6 @@ const projects = [
 
 export default function ProjectsGallery() {
   const [activeType, setActiveType] = useState('All');
-  const [selectedProject, setSelectedProject] = useState<typeof projects[0] | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const types = ['All', 'Residential', 'Commercial', 'Mixed-Use'];
 
@@ -175,20 +174,12 @@ export default function ProjectsGallery() {
       </div>
 
       {/* Projects Grid */}
-      {/*
-         BENTO GRID MAP (2 cols):
-         Row 1: [col-1+2: One Obsidian Tower cs-2] (featured)
-         Row 2: [col-1: Seraphine cs-1] [col-2: The Monarch cs-1]
-         Row 3: [col-1+2: Celestia Office Park cs-2]
-         Row 4: [col-1: Noir Residences cs-1] [col-2: The Halcyon cs-1]
-         Placed 6/6 ✓
-        */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children animate-on-scroll">
         {filtered.map((project, i) =>
-        <div
+        <Link
           key={project.id}
-          onClick={() => setSelectedProject(project)}
-          className={`animate-on-scroll property-card bg-card border border-border group cursor-pointer ${project.colSpan}`}
+          href={`/projects/${project.id}`}
+          className={`animate-on-scroll property-card bg-card border border-border group cursor-pointer block ${project.colSpan}`}
           style={{ transitionDelay: `${i * 70}ms` }}>
 
             <div className={`relative overflow-hidden ${project.featured ? 'h-80' : 'h-64'}`}>
@@ -260,86 +251,14 @@ export default function ProjectsGallery() {
 
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 line-clamp-2">{project.description}</p>
 
-              <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5 hover:gap-4 transition-all duration-300">
+              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5 w-fit group-hover:gap-4 transition-all duration-300">
                 View Project Details
                 <Icon name="ArrowRightIcon" size={12} />
-              </button>
+              </span>
             </div>
-          </div>
+          </Link>
         )}
       </div>
-
-      {/* Project Detail Modal */}
-      {selectedProject &&
-      <div
-        className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center p-6 md:p-10"
-        onClick={() => setSelectedProject(null)}>
-
-          <div
-          className="bg-card border border-border max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}>
-
-            <div className="relative h-72 overflow-hidden">
-              <AppImage
-              src={selectedProject.image}
-              alt={selectedProject.alt}
-              fill
-              className="object-cover"
-              sizes="800px" />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <button
-              onClick={() => setSelectedProject(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center text-foreground hover:border-primary transition-colors">
-
-                <Icon name="XMarkIcon" size={18} />
-              </button>
-              <div className="absolute bottom-5 left-5">
-                <h2 className="text-white font-black text-2xl md:text-3xl tracking-tight">{selectedProject.name}</h2>
-                <p className="text-white/70 text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-                  <Icon name="MapPinIcon" size={11} className="text-primary" />
-                  {selectedProject.location}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                {[
-              { label: 'Architect', value: selectedProject.architect },
-              { label: 'Developer', value: selectedProject.developer },
-              { label: 'Completion', value: selectedProject.completion },
-              { label: 'Starting From', value: selectedProject.priceFrom }].
-              map((item) =>
-              <div key={item.label} className="border border-border p-3">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest mb-1">{item.label}</p>
-                    <p className="text-foreground font-bold text-sm">{item.value}</p>
-                  </div>
-              )}
-              </div>
-
-              <p className="text-foreground/80 leading-relaxed mb-8">{selectedProject.description}</p>
-
-              <div className="flex flex-col md:flex-row gap-4">
-                <Link
-                href="#contact"
-                onClick={() => setSelectedProject(null)}
-                className="flex-1 flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
-
-                  Register Priority Interest
-                  <Icon name="ArrowRightIcon" size={14} className="transition-transform group-hover:translate-x-1" />
-                </Link>
-                <button
-                onClick={() => setSelectedProject(null)}
-                className="flex items-center justify-center gap-2 border border-border text-muted-foreground px-8 py-4 text-xs font-bold uppercase tracking-widest hover:border-primary hover:text-primary transition-all duration-300">
-
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-    </section>);
-
+    </section>
+  );
 }

@@ -7,18 +7,18 @@ import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
 
 const ALL_PROPERTIES = [
-  { id: 1, title: 'Obsidian Penthouse', location: 'Downtown Dubai', community: 'Burj Khalifa District', type: 'Residential', category: 'property', price: 'AED 28,500,000', href: '/residential' },
-  { id: 2, title: 'Meridian Villa', location: 'Palm Jumeirah', community: 'The Fronds', type: 'Residential', category: 'property', price: 'AED 42,000,000', href: '/residential' },
-  { id: 3, title: 'Atlas Tower Office', location: 'DIFC', community: 'Gate Village', type: 'Commercial', category: 'property', price: 'AED 12,000,000', href: '/commercial' },
-  { id: 4, title: 'The Crescent Retail', location: 'JBR', community: 'Bahar', type: 'Commercial', category: 'property', price: 'AED 8,500,000', href: '/commercial' },
-  { id: 5, title: 'Vantage Estate', location: 'Emirates Hills', community: 'Sector E', type: 'Residential', category: 'property', price: 'AED 65,000,000', href: '/residential' },
+  { id: 1, title: 'Obsidian Penthouse', location: 'Downtown Dubai', community: 'Burj Khalifa District', type: 'Residential', category: 'property', price: 'AED 28,500,000', href: '/properties/1' },
+  { id: 2, title: 'Meridian Villa', location: 'Palm Jumeirah', community: 'The Fronds', type: 'Residential', category: 'property', price: 'AED 42,000,000', href: '/properties/2' },
+  { id: 3, title: 'Atlas Tower Office', location: 'DIFC', community: 'Gate Village', type: 'Commercial', category: 'property', price: 'AED 12,000,000', href: '/properties/3' },
+  { id: 4, title: 'The Crescent Retail', location: 'JBR', community: 'Bahar', type: 'Commercial', category: 'property', price: 'AED 8,500,000', href: '/properties/4' },
+  { id: 5, title: 'Vantage Estate', location: 'Emirates Hills', community: 'Sector E', type: 'Residential', category: 'property', price: 'AED 65,000,000', href: '/properties/5' },
 ];
 
 const ALL_PROJECTS = [
-  { id: 1, title: 'Skyline Residences', location: 'Downtown Dubai', community: 'Burj Khalifa District', developer: 'Emaar', type: 'Off-Plan', category: 'project', price: 'AED 1.2M+', href: '/projects' },
-  { id: 2, title: 'Marina Bay Towers', location: 'Dubai Marina', community: 'Marina Promenade', developer: 'DAMAC', type: 'Off-Plan', category: 'project', price: 'AED 900K+', href: '/projects' },
-  { id: 3, title: 'Palm Grove Villas', location: 'Palm Jumeirah', community: 'Garden Homes', developer: 'Nakheel', type: 'Completed', category: 'project', price: 'AED 8M+', href: '/projects' },
-  { id: 4, title: 'Creek Horizon', location: 'Dubai Creek', community: 'Creek Horizon', developer: 'Meraas', type: 'Off-Plan', category: 'project', price: 'AED 1.8M+', href: '/projects' },
+  { id: 1, title: 'Skyline Residences', location: 'Downtown Dubai', community: 'Burj Khalifa District', developer: 'Emaar', type: 'Off-Plan', category: 'project', price: 'AED 1.2M+', href: '/projects/1' },
+  { id: 2, title: 'Marina Bay Towers', location: 'Dubai Marina', community: 'Marina Promenade', developer: 'DAMAC', type: 'Off-Plan', category: 'project', price: 'AED 900K+', href: '/projects/2' },
+  { id: 3, title: 'Palm Grove Villas', location: 'Palm Jumeirah', community: 'Garden Homes', developer: 'Nakheel', type: 'Completed', category: 'project', price: 'AED 8M+', href: '/projects/3' },
+  { id: 4, title: 'Creek Horizon', location: 'Dubai Creek', community: 'Creek Horizon', developer: 'Meraas', type: 'Off-Plan', category: 'project', price: 'AED 1.8M+', href: '/projects/4' },
 ];
 
 const ALL_LISTINGS = [...ALL_PROPERTIES, ...ALL_PROJECTS];
@@ -43,8 +43,6 @@ export default function HeroSection() {
   const statsRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [propertyTypeFilter, setPropertyTypeFilter] = useState('');
-  const [priceFilter, setPriceFilter] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -76,32 +74,6 @@ export default function HeroSection() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleSearch = () => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q && !propertyTypeFilter && !priceFilter) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-    const results = ALL_LISTINGS.filter((item) => {
-      const matchQuery = !q || (
-        item.title.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q) ||
-        item.community.toLowerCase().includes(q) ||
-        item.type.toLowerCase().includes(q) ||
-        ('developer' in item && item.developer?.toLowerCase().includes(q))
-      );
-      const matchType = !propertyTypeFilter || (
-        propertyTypeFilter === 'residential' ? item.type === 'Residential' :
-        propertyTypeFilter === 'commercial' ? item.type === 'Commercial' :
-        propertyTypeFilter === 'project' ? item.category === 'project' : true
-      );
-      return matchQuery && matchType;
-    });
-    setSearchResults(results as SearchResult[]);
-    setShowResults(true);
-  };
-
   const handleInputChange = (val: string) => {
     setSearchQuery(val);
     if (!val.trim()) {
@@ -119,6 +91,24 @@ export default function HeroSection() {
     );
     setSearchResults(results as SearchResult[]);
     setShowResults(results.length > 0);
+  };
+
+  const handleSearch = () => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    const results = ALL_LISTINGS.filter((item) =>
+      item.title.toLowerCase().includes(q) ||
+      item.location.toLowerCase().includes(q) ||
+      item.community.toLowerCase().includes(q) ||
+      item.type.toLowerCase().includes(q) ||
+      ('developer' in item && item.developer?.toLowerCase().includes(q))
+    );
+    setSearchResults(results as SearchResult[]);
+    setShowResults(true);
   };
 
   const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
@@ -151,132 +141,127 @@ export default function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full pb-20 pt-40">
-        {/* Eyebrow + Headline */}
-        <div ref={headlineRef} className="mb-8">
-          <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-6">
-            <span className="h-px w-10 bg-primary" />
-            {heroEyebrow}
-            <span className="h-px w-10 bg-primary" />
-          </span>
-          <h1 className="text-hero max-w-4xl">
-            {restHeadline && <span className="text-foreground">{restHeadline} </span>}
-            <span key={lastWord} className="text-gold-shimmer">{lastWord}</span>
-          </h1>
-        </div>
+      <div className="relative z-10 w-full pb-0 pt-40">
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
+          {/* Eyebrow + Headline */}
+          <div ref={headlineRef} className="mb-8">
+            <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-6">
+              <span className="h-px w-10 bg-primary" />
+              {heroEyebrow}
+              <span className="h-px w-10 bg-primary" />
+            </span>
+            <h1 className="text-hero max-w-4xl">
+              {restHeadline && <span className="text-foreground">{restHeadline} </span>}
+              <span key={lastWord} className="text-gold-shimmer">{lastWord}</span>
+            </h1>
+          </div>
 
-        <p ref={subRef} className="text-foreground/70 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
-          {heroDescription}
-        </p>
+          <p ref={subRef} className="text-foreground/70 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
+            {heroDescription}
+          </p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-wrap gap-4 mb-10">
-          <Link
-            href={ctaPrimaryLink}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
-            {ctaPrimaryText}
-            <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-          <Link
-            href={ctaSecondaryLink}
-            className="flex items-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300">
-            {ctaSecondaryText}
-          </Link>
-        </div>
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap gap-4 mb-10">
+            <Link
+              href={ctaPrimaryLink}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
+              {ctaPrimaryText}
+              <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href={ctaSecondaryLink}
+              className="flex items-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300">
+              {ctaSecondaryText}
+            </Link>
+          </div>
 
-        {/* Inline Search Bar */}
-        <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-4 md:p-5 max-w-3xl mb-16">
-          <div ref={searchContainerRef} className="relative">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 flex items-center gap-3 border border-border bg-background px-4 py-3">
-                <Icon name="MapPinIcon" size={16} className="text-primary flex-shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search by title, location, community, type..."
-                  className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
+          {/* Inline Search Bar — no property type dropdown */}
+          <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-4 md:p-5 max-w-3xl mb-16">
+            <div ref={searchContainerRef} className="relative">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 flex items-center gap-3 border border-border bg-background px-4 py-3">
+                  <Icon name="MagnifyingGlassIcon" size={16} className="text-primary flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Search communities, properties, projects..."
+                    className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
+                </div>
+                <button
+                  onClick={handleSearch}
+                  className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
+                  Search
+                  <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </button>
               </div>
-              <select
-                value={propertyTypeFilter}
-                onChange={(e) => setPropertyTypeFilter(e.target.value)}
-                className="bg-background border border-border text-foreground text-sm px-4 py-3 outline-none focus:border-primary transition-colors cursor-pointer">
-                <option value="">Property Type</option>
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
-                <option value="project">New Development</option>
-              </select>
-              <button
-                onClick={handleSearch}
-                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
-                Search
-                <Icon name="MagnifyingGlassIcon" size={14} className="transition-transform duration-300 group-hover:scale-110" />
-              </button>
-            </div>
 
-            {showResults && (
-              <div className="absolute top-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mt-1 max-h-80 overflow-y-auto">
-                {searchResults.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                    No properties or projects found matching your search.
-                  </div>
-                ) : (
-                  <>
-                    <div className="px-4 py-2 border-b border-border bg-secondary/50">
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
-                      </span>
+              {showResults && (
+                <div className="absolute top-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mt-1 max-h-80 overflow-y-auto">
+                  {searchResults.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                      No properties or projects found matching your search.
                     </div>
-                    {searchResults.map((result) => (
-                      <Link
-                        key={`${result.category}-${result.id}`}
-                        href={result.href}
-                        onClick={() => setShowResults(false)}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-primary/5 border-b border-border last:border-0 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${result.category === 'project' ? 'bg-blue-500/10' : 'bg-primary/10'}`}>
-                            <Icon
-                              name={result.category === 'project' ? 'BuildingOffice2Icon' : 'HomeIcon'}
-                              size={14}
-                              className={result.category === 'project' ? 'text-blue-400' : 'text-primary'}
-                            />
+                  ) : (
+                    <>
+                      <div className="px-4 py-2 border-b border-border bg-secondary/50">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+                        </span>
+                      </div>
+                      {searchResults.map((result) => (
+                        <Link
+                          key={`${result.category}-${result.id}`}
+                          href={result.href}
+                          onClick={() => setShowResults(false)}
+                          className="flex items-center justify-between px-4 py-3 hover:bg-primary/5 border-b border-border last:border-0 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${result.category === 'project' ? 'bg-blue-500/10' : 'bg-primary/10'}`}>
+                              <Icon
+                                name={result.category === 'project' ? 'BuildingOffice2Icon' : 'HomeIcon'}
+                                size={14}
+                                className={result.category === 'project' ? 'text-blue-400' : 'text-primary'}
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{result.title}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Icon name="MapPinIcon" size={10} className="text-primary" />
+                                {result.location}{result.community ? ` · ${result.community}` : ''}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{result.title}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <Icon name="MapPinIcon" size={10} className="text-primary" />
-                              {result.location}{result.community ? ` · ${result.community}` : ''}
-                            </p>
+                          <div className="text-right flex-shrink-0 ml-4">
+                            <p className="text-sm font-bold text-primary">{result.price}</p>
+                            <div className="flex items-center gap-1 justify-end mt-0.5">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 ${result.category === 'project' ? 'bg-blue-500/10 text-blue-400' : 'bg-primary/10 text-primary'}`}>
+                                {result.category === 'project' ? 'Project' : result.type}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-4">
-                          <p className="text-sm font-bold text-primary">{result.price}</p>
-                          <div className="flex items-center gap-1 justify-end mt-0.5">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 ${result.category === 'project' ? 'bg-blue-500/10 text-blue-400' : 'bg-primary/10 text-primary'}`}>
-                              {result.category === 'project' ? 'Project' : result.type}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
+                        </Link>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats — full width strip */}
         {stats.length > 0 && (
-          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl">
-            {stats.map((stat, i) => (
-              <div key={i} className="border-l border-primary/30 pl-4">
-                <p className="text-2xl font-black text-primary tracking-tighter">{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</p>
-              </div>
-            ))}
+          <div ref={statsRef} className="w-full border-t border-border/40 bg-background/60 backdrop-blur-md">
+            <div className="max-w-7xl mx-auto px-6 md:px-10 py-6 flex items-center justify-between gap-4 flex-wrap md:flex-nowrap">
+              {stats.map((stat, i) => (
+                <div key={i} className="flex-1 min-w-[120px] border-l border-primary/30 pl-4 first:border-l-0 first:pl-0">
+                  <p className="text-2xl font-black text-primary tracking-tighter">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

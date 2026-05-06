@@ -28,7 +28,7 @@ export default function CommercialHero() {
     <section className="relative min-h-[70vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
         <AppImage
-          src="https://images.unsplash.com/photo-1715568162669-1772f6e7a81d"
+          src={page.hero_image || "https://images.unsplash.com/photo-1715568162669-1772f6e7a81d"}
           alt="Dramatic glass skyscraper towers at dusk, dark steel and glass facade, city financial district, deep shadows, cinematic architectural photography"
           fill
           priority

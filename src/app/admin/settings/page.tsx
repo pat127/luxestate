@@ -623,11 +623,9 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
             <div className="sm:col-span-2">
               <TextareaField label="Hero Description" value={page.hero_description} onChange={(v) => onChange({ ...page, hero_description: v })} />
             </div>
-            {isHome && (
-              <div className="sm:col-span-2">
-                <InputField label="Hero Background Image URL" value={page.hero_image ?? ''} onChange={(v) => onChange({ ...page, hero_image: v })} placeholder="https://..." />
-              </div>
-            )}
+            <div className="sm:col-span-2">
+              <InputField label="Hero Background Image URL" value={page.hero_image ?? ''} onChange={(v) => onChange({ ...page, hero_image: v })} placeholder="https://..." />
+            </div>
             <InputField label="Primary CTA Text" value={page.cta_primary_text} onChange={(v) => onChange({ ...page, cta_primary_text: v })} />
             <InputField label="Primary CTA Link" value={page.cta_primary_link} onChange={(v) => onChange({ ...page, cta_primary_link: v })} />
             <InputField label="Secondary CTA Text" value={page.cta_secondary_text} onChange={(v) => onChange({ ...page, cta_secondary_text: v })} />
