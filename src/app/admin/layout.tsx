@@ -76,10 +76,14 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const pathname = usePathname();
-  const { currentUser, setCurrentUser, can } = useRole();
+  const { currentUser, setCurrentUser, can, isRole } = useRole();
 
   const crmLinks = allCrmLinks.filter((l) => can(l.permission));
-  const cmsLinks = allCmsLinks.filter((l) => can(l.permission));
+  const cmsLinks = allCmsLinks.filter((l) => {
+    // CMS section visible only to super_admin (CEO) and marketing roles
+    if (!isRole('super_admin', 'marketing')) return false;
+    return can(l.permission);
+  });
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

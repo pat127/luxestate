@@ -5,35 +5,26 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
+import { UAE_LOCATIONS } from '@/lib/uaeLocations';
 
-const ALL_PROPERTIES = [
-  { id: 1, title: 'Obsidian Penthouse', location: 'Downtown Dubai', community: 'Burj Khalifa District', type: 'Residential', category: 'property', price: 'AED 28,500,000', href: '/properties/1' },
-  { id: 2, title: 'Meridian Villa', location: 'Palm Jumeirah', community: 'The Fronds', type: 'Residential', category: 'property', price: 'AED 42,000,000', href: '/properties/2' },
-  { id: 3, title: 'Atlas Tower Office', location: 'DIFC', community: 'Gate Village', type: 'Commercial', category: 'property', price: 'AED 12,000,000', href: '/properties/3' },
-  { id: 4, title: 'The Crescent Retail', location: 'JBR', community: 'Bahar', type: 'Commercial', category: 'property', price: 'AED 8,500,000', href: '/properties/4' },
-  { id: 5, title: 'Vantage Estate', location: 'Emirates Hills', community: 'Sector E', type: 'Residential', category: 'property', price: 'AED 65,000,000', href: '/properties/5' },
-];
-
-const ALL_PROJECTS = [
-  { id: 1, title: 'Skyline Residences', location: 'Downtown Dubai', community: 'Burj Khalifa District', developer: 'Emaar', type: 'Off-Plan', category: 'project', price: 'AED 1.2M+', href: '/projects/1' },
-  { id: 2, title: 'Marina Bay Towers', location: 'Dubai Marina', community: 'Marina Promenade', developer: 'DAMAC', type: 'Off-Plan', category: 'project', price: 'AED 900K+', href: '/projects/2' },
-  { id: 3, title: 'Palm Grove Villas', location: 'Palm Jumeirah', community: 'Garden Homes', developer: 'Nakheel', type: 'Completed', category: 'project', price: 'AED 8M+', href: '/projects/3' },
-  { id: 4, title: 'Creek Horizon', location: 'Dubai Creek', community: 'Creek Horizon', developer: 'Meraas', type: 'Off-Plan', category: 'project', price: 'AED 1.8M+', href: '/projects/4' },
-];
-
-const ALL_LISTINGS = [...ALL_PROPERTIES, ...ALL_PROJECTS];
-
-interface SearchResult {
-  id: number;
-  title: string;
-  location: string;
-  community: string;
-  type: string;
-  category: 'property' | 'project';
-  price: string;
-  href: string;
-  developer?: string;
+interface LocationSuggestion {
+  label: string;
+  type: 'area' | 'community';
+  emirate: string;
 }
+
+function buildLocationSuggestions(): LocationSuggestion[] {
+  const suggestions: LocationSuggestion[] = [];
+  UAE_LOCATIONS.forEach((loc) => {
+    suggestions.push({ label: loc.area, type: 'area', emirate: loc.emirate });
+    loc.communities.forEach((c) => {
+      suggestions.push({ label: c, type: 'community', emirate: loc.emirate });
+    });
+  });
+  return suggestions;
+}
+
+const ALL_LOCATION_SUGGESTIONS = buildLocationSuggestions();
 
 export default function HeroSection() {
   const page = useCMSPage('home');
@@ -43,8 +34,8 @@ export default function HeroSection() {
   const statsRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,7 +58,7 @@ export default function HeroSection() {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setShowResults(false);
+        setShowSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -77,38 +68,21 @@ export default function HeroSection() {
   const handleInputChange = (val: string) => {
     setSearchQuery(val);
     if (!val.trim()) {
-      setSearchResults([]);
-      setShowResults(false);
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
     const q = val.toLowerCase();
-    const results = ALL_LISTINGS.filter((item) =>
-      item.title.toLowerCase().includes(q) ||
-      item.location.toLowerCase().includes(q) ||
-      item.community.toLowerCase().includes(q) ||
-      item.type.toLowerCase().includes(q) ||
-      ('developer' in item && item.developer?.toLowerCase().includes(q))
-    );
-    setSearchResults(results as SearchResult[]);
-    setShowResults(results.length > 0);
+    const results = ALL_LOCATION_SUGGESTIONS.filter(
+      (s) => s.label.toLowerCase().includes(q)
+    ).slice(0, 8);
+    setSuggestions(results);
+    setShowSuggestions(results.length > 0);
   };
 
-  const handleSearch = () => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-    const results = ALL_LISTINGS.filter((item) =>
-      item.title.toLowerCase().includes(q) ||
-      item.location.toLowerCase().includes(q) ||
-      item.community.toLowerCase().includes(q) ||
-      item.type.toLowerCase().includes(q) ||
-      ('developer' in item && item.developer?.toLowerCase().includes(q))
-    );
-    setSearchResults(results as SearchResult[]);
-    setShowResults(true);
+  const handleSelectSuggestion = (suggestion: LocationSuggestion) => {
+    setSearchQuery(suggestion.label);
+    setShowSuggestions(false);
   };
 
   const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
@@ -175,7 +149,7 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          {/* Inline Search Bar — no property type dropdown */}
+          {/* Search Bar with community/city predictive text */}
           <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-4 md:p-5 max-w-3xl mb-16">
             <div ref={searchContainerRef} className="relative">
               <div className="flex flex-col md:flex-row gap-3">
@@ -185,66 +159,51 @@ export default function HeroSection() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => handleInputChange(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="Search communities, properties, projects..."
+                    onFocus={() => {
+                      if (searchQuery.trim() && suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setShowSuggestions(false);
+                    }}
+                    placeholder="Search communities or areas..."
                     className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
                 </div>
                 <button
-                  onClick={handleSearch}
+                  onClick={() => setShowSuggestions(false)}
                   className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
                   Search
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
               </div>
 
-              {showResults && (
-                <div className="absolute top-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mt-1 max-h-80 overflow-y-auto">
-                  {searchResults.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      No properties or projects found matching your search.
-                    </div>
-                  ) : (
-                    <>
-                      <div className="px-4 py-2 border-b border-border bg-secondary/50">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
-                        </span>
+              {/* Suggestions dropdown — positioned upward to avoid being covered by stats */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mb-1 max-h-72 overflow-y-auto">
+                  <div className="px-4 py-2 border-b border-border bg-secondary/50">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Communities &amp; Areas
+                    </span>
+                  </div>
+                  {suggestions.map((s, idx) => (
+                    <button
+                      key={idx}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSelectSuggestion(s)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary/5 border-b border-border last:border-0 transition-colors text-left group"
+                    >
+                      <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 bg-primary/10">
+                        <Icon
+                          name={s.type === 'area' ? 'MapIcon' : 'MapPinIcon'}
+                          size={13}
+                          className="text-primary"
+                        />
                       </div>
-                      {searchResults.map((result) => (
-                        <Link
-                          key={`${result.category}-${result.id}`}
-                          href={result.href}
-                          onClick={() => setShowResults(false)}
-                          className="flex items-center justify-between px-4 py-3 hover:bg-primary/5 border-b border-border last:border-0 transition-colors group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${result.category === 'project' ? 'bg-blue-500/10' : 'bg-primary/10'}`}>
-                              <Icon
-                                name={result.category === 'project' ? 'BuildingOffice2Icon' : 'HomeIcon'}
-                                size={14}
-                                className={result.category === 'project' ? 'text-blue-400' : 'text-primary'}
-                              />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{result.title}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Icon name="MapPinIcon" size={10} className="text-primary" />
-                                {result.location}{result.community ? ` · ${result.community}` : ''}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0 ml-4">
-                            <p className="text-sm font-bold text-primary">{result.price}</p>
-                            <div className="flex items-center gap-1 justify-end mt-0.5">
-                              <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 ${result.category === 'project' ? 'bg-blue-500/10 text-blue-400' : 'bg-primary/10 text-primary'}`}>
-                                {result.category === 'project' ? 'Project' : result.type}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </>
-                  )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">{s.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{s.emirate} · {s.type === 'area' ? 'Area' : 'Community'}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

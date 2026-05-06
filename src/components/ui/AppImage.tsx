@@ -22,6 +22,10 @@ interface AppImageProps {
     [key: string]: any;
 }
 
+// Tiny 1x1 transparent placeholder for blur effect
+const BLUR_DATA_URL =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 const AppImage = memo(function AppImage({
     src,
     alt,
@@ -29,7 +33,7 @@ const AppImage = memo(function AppImage({
     height,
     className = '',
     priority = false,
-    quality = 85,
+    quality = 80,
     placeholder = 'empty',
     blurDataURL,
     fill = false,
@@ -43,9 +47,6 @@ const AppImage = memo(function AppImage({
     const [imageSrc, setImageSrc] = useState(src);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
-
-    const isExternalUrl = useMemo(() => typeof imageSrc === 'string' && imageSrc.startsWith('http'), [imageSrc]);
-    const resolvedUnoptimized = unoptimized || isExternalUrl;
 
     const handleError = useCallback(() => {
         if (!hasError && imageSrc !== fallbackSrc) {
@@ -62,7 +63,7 @@ const AppImage = memo(function AppImage({
 
     const imageClassName = useMemo(() => {
         const classes = [className];
-        if (isLoading) classes.push('bg-gray-200');
+        if (isLoading) classes.push('bg-gray-900/20');
         if (onClick) classes.push('cursor-pointer hover:opacity-90 transition-opacity duration-200');
         return classes.filter(Boolean).join(' ');
     }, [className, isLoading, onClick]);
@@ -73,8 +74,7 @@ const AppImage = memo(function AppImage({
             alt,
             className: imageClassName,
             quality,
-            placeholder,
-            unoptimized: resolvedUnoptimized,
+            unoptimized,
             onError: handleError,
             onLoad: handleLoad,
             onClick,
@@ -82,28 +82,31 @@ const AppImage = memo(function AppImage({
 
         if (priority) {
             baseProps.priority = true;
+            baseProps.fetchPriority = 'high';
         } else {
             baseProps.loading = loading;
         }
 
-        if (blurDataURL && placeholder === 'blur') {
-            baseProps.blurDataURL = blurDataURL;
+        // Always provide blur placeholder for smoother loading
+        if (placeholder === 'blur') {
+            baseProps.placeholder = 'blur';
+            baseProps.blurDataURL = blurDataURL || BLUR_DATA_URL;
+        } else {
+            baseProps.placeholder = 'empty';
         }
 
         return baseProps;
-    }, [imageSrc, alt, imageClassName, quality, placeholder, blurDataURL, resolvedUnoptimized, priority, loading, handleError, handleLoad, onClick]);
+    }, [imageSrc, alt, imageClassName, quality, unoptimized, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
 
     if (fill) {
         return (
-            <div className="relative" style={{ width: '100%', height: '100%' }}>
-                <Image
-                    {...imageProps}
-                    fill
-                    sizes={sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'}
-                    style={{ objectFit: 'cover' }}
-                    {...props}
-                />
-            </div>
+            <Image
+                {...imageProps}
+                fill
+                sizes={sizes || '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'}
+                style={{ objectFit: 'cover' }}
+                {...props}
+            />
         );
     }
 

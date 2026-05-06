@@ -575,7 +575,7 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
         { key: 'blocks', label: 'Blocks' },
         { key: 'properties', label: 'Properties' },
         { key: 'projects', label: 'Projects' },
-        { key: 'why', label: 'Why Us' },
+        { key: 'why', label: 'Our Process' },
         { key: 'testimonials', label: 'Testimonials' },
         { key: 'contact', label: 'Contact' },
         { key: 'mortgage', label: 'Calculator' },
@@ -684,15 +684,14 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <InputField label="Section Eyebrow" value={wy.eyebrow} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, eyebrow: v } })} />
-            <InputField label="Headline" value={wy.headline} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, headline: v } })} />
-            <InputField label="Headline Shimmer Word" value={wy.headline_shimmer} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, headline_shimmer: v } })} />
-            <InputField label="Left Panel Title" value={wy.left_title} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, left_title: v } })} />
-            <InputField label="Left Panel Subtitle" value={wy.left_subtitle} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, left_subtitle: v } })} />
+            <InputField label="Section Subtext" value={wy.subtext} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, subtext: v } })} />
             <InputField label="CTA Text" value={wy.cta_text} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, cta_text: v } })} />
             <InputField label="CTA Link" value={wy.cta_link} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, cta_link: v } })} />
-            <div className="col-span-2">
-              <TextareaField label="Subtext" value={wy.subtext} onChange={(v) => onChange({ ...page, why_luxestate_content: { ...wy, subtext: v } })} rows={2} />
-            </div>
+          </div>
+          <div className="bg-primary/5 border border-primary/20 p-3">
+            <p className="text-xs text-primary/80">
+              <span className="font-semibold">Our Process</span> — The section heading is fixed as "Our Process". Edit the eyebrow, subtext, CTA, and individual process steps below.
+            </p>
           </div>
           <WhyStepsEditor steps={wy.steps} onChange={(s) => onChange({ ...page, why_luxestate_content: { ...wy, steps: s } })} />
         </div>

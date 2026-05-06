@@ -69,12 +69,9 @@ export default function WhyLuxEstate({ content }: Props) {
     return () => stepObserver.disconnect();
   }, [steps]);
 
-  const headlineWords = c.headline.split(' ');
-  const lastHeadlineWord = headlineWords.pop();
-  const restHeadline = headlineWords.join(' ');
-
   return (
     <section className="border-t border-border bg-background py-0" ref={containerRef}>
+      {/* Section Header — merged "Our Process" */}
       <div className="max-w-7xl mx-auto px-6 md:px-10 pt-24 pb-16">
         <div className="flex flex-col md:flex-row justify-between md:items-end gap-8">
           <div>
@@ -82,8 +79,8 @@ export default function WhyLuxEstate({ content }: Props) {
               {c.eyebrow}
             </span>
             <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
-              {restHeadline && <>{restHeadline}<br /></>}
-              <span key={lastHeadlineWord} className="text-gold-shimmer">{lastHeadlineWord || c.headline_shimmer}</span>
+              Our{' '}
+              <span className="text-gold-shimmer">Process</span>
             </h2>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
@@ -97,9 +94,9 @@ export default function WhyLuxEstate({ content }: Props) {
           {/* Sticky Left */}
           <div className="lg:w-1/2 lg:h-screen lg:sticky top-0 flex flex-col justify-center py-12 lg:py-0 lg:pr-16 border-r border-border/0 lg:border-border">
             <div className="text-2xl md:text-4xl font-bold tracking-tighter mb-10">
-              <span className="text-gold-shimmer">{c.left_title}</span>
+              <span className="text-gold-shimmer">How The</span>
               <br />
-              <span className="text-muted-foreground">{c.left_subtitle}</span>
+              <span className="text-muted-foreground">Process Works</span>
             </div>
 
             <div className="hidden lg:block border-l border-border mb-10 pl-6 relative space-y-6">
@@ -163,9 +160,13 @@ export default function WhyLuxEstate({ content }: Props) {
                 </div>
 
                 <div className="relative lg:pl-10">
-                  <span className="text-7xl text-foreground/5 font-black absolute -left-2 -top-8 select-none">
-                    {step.number}
-                  </span>
+                  {/* Step number — positioned clearly above the title, no overlap */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-4xl font-black text-primary/20 leading-none select-none w-14 flex-shrink-0">
+                      {step.number}
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
 
                   <div className="w-full aspect-video bg-card border border-border relative overflow-hidden mb-8 block lg:hidden">
                     <AppImage src={step.image} alt={step.imageAlt} fill className="object-cover opacity-60" sizes="100vw" />
@@ -177,10 +178,10 @@ export default function WhyLuxEstate({ content }: Props) {
                     </div>
                   </div>
 
-                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tighter relative z-10">
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tighter">
                     {step.title}
                   </h3>
-                  <p className="text-muted-foreground leading-relaxed mb-8 relative z-10 text-sm md:text-base">
+                  <p className="text-muted-foreground leading-relaxed mb-8 text-sm md:text-base">
                     {step.description}
                   </p>
 

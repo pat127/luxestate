@@ -374,8 +374,8 @@ export const DEFAULT_FEATURED_PROJECTS: FeaturedProjectsContent = {
 
 export const DEFAULT_WHY_LUXESTATE: WhyLuxEstateContent = {
   eyebrow: 'The Cove Estates Difference',
-  headline: 'How We',
-  headline_shimmer: 'Deliver',
+  headline: 'Our',
+  headline_shimmer: 'Process',
   subtext: 'Three decades of combined expertise, an unmatched off-market network, and a singular obsession with client outcomes.',
   left_title: 'How The',
   left_subtitle: 'Process Works',
