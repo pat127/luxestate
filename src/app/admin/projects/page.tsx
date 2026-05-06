@@ -32,12 +32,39 @@ interface FloorPlan { id: number; url: string; label: string; }
 const PROPERTY_TYPES = ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'];
 const AMENITIES = ['Swimming Pool', 'Gym', 'Kids Play Area', 'Parks', 'Retail', 'Mosque', 'School', 'Concierge', 'Security', 'Parking', 'Beach Access', 'Golf Course'];
 
+const PROJECTS_STORAGE_KEY = 'admin_projects';
+const IMPORT_STORAGE_KEY = 'imported_projects';
+
 const initialProjects: Project[] = [
   { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', status: 'Active', units: 240, sold: 180, completion: 'Q4 2026', price: 'AED 1.2M+', image: "https://images.unsplash.com/photo-1614224352143-ef0bcc52828d", alt: 'Modern residential tower', featured: true, published: true },
   { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', status: 'Active', units: 320, sold: 210, completion: 'Q2 2027', price: 'AED 900K+', image: "https://images.unsplash.com/photo-1665764067489-963b7a9cbd88", alt: 'Marina bay towers', featured: false, published: true },
   { id: 3, name: 'Palm Grove Villas', developer: 'Nakheel', location: 'Palm Jumeirah', type: 'Completed', status: 'Completed', units: 48, sold: 48, completion: 'Q1 2024', price: 'AED 8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1df31bcea-1775263716366.png", alt: 'Palm grove villa', featured: true, published: true },
   { id: 4, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', status: 'Launching', units: 180, sold: 0, completion: 'Q3 2028', price: 'AED 1.8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b96bd8b8-1772209204179.png", alt: 'Creek horizon project', featured: false, published: false },
 ];
+
+function loadProjects(): Project[] {
+  if (typeof window === 'undefined') return initialProjects;
+  try {
+    const stored = localStorage.getItem(PROJECTS_STORAGE_KEY);
+    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Project[];
+    let base: Project[] = stored ? JSON.parse(stored) : initialProjects;
+    const existingIds = new Set(base.map(p => p.id));
+    const newImports = imported.filter(p => !existingIds.has(p.id));
+    if (newImports.length > 0) {
+      base = [...base, ...newImports];
+      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+      localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(base));
+    }
+    return base;
+  } catch {
+    return initialProjects;
+  }
+}
+
+function saveProjects(list: Project[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(list));
+}
 
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
@@ -73,7 +100,7 @@ export default function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('basic');
-  const [projectList, setProjectList] = useState<Project[]>(initialProjects);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -122,6 +149,35 @@ export default function ProjectsPage() {
   const [factsheetUrl, setFactsheetUrl] = useState('');
   const [priceListUrl, setPriceListUrl] = useState('');
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    setProjectList(loadProjects());
+  }, []);
+
+  // Poll for new imports
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Project[];
+      if (imported.length > 0) {
+        setProjectList(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newImports = imported.filter(p => !existingIds.has(p.id));
+          if (newImports.length === 0) return prev;
+          const updated = [...prev, ...newImports];
+          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+          localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateProjectList = (updated: Project[]) => {
+    setProjectList(updated);
+    saveProjects(updated);
+  };
+
   const filtered = projectList.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.developer.toLowerCase().includes(search.toLowerCase())
@@ -153,23 +209,23 @@ export default function ProjectsPage() {
 
   const handleBulkStatusChange = () => {
     if (!bulkStatusValue) return;
-    setProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, status: bulkStatusValue } : p));
+    updateProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, status: bulkStatusValue } : p));
     setBulkStatusValue('');
     clearSelection();
   };
 
   const handleBulkPublish = (publish: boolean) => {
-    setProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, published: publish } : p));
+    updateProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, published: publish } : p));
     clearSelection();
   };
 
   const handleBulkFeatured = (featured: boolean) => {
-    setProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, featured } : p));
+    updateProjectList(projectList.map((p) => selectedIds.has(p.id) ? { ...p, featured } : p));
     clearSelection();
   };
 
   const handleBulkDeleteConfirmed = () => {
-    setProjectList(projectList.filter((p) => !selectedIds.has(p.id)));
+    updateProjectList(projectList.filter((p) => !selectedIds.has(p.id)));
     setBulkDeleteConfirm(false);
     clearSelection();
   };
@@ -237,7 +293,7 @@ export default function ProjectsPage() {
   const handleSave = () => {
     if (!basicForm.name) return;
     if (editProject) {
-      setProjectList(projectList.map((p) => p.id === editProject.id ? {
+      updateProjectList(projectList.map((p) => p.id === editProject.id ? {
         ...p,
         name: basicForm.name,
         developer: basicForm.developer,
@@ -250,7 +306,7 @@ export default function ProjectsPage() {
         published: basicForm.published,
       } : p));
     } else {
-      setProjectList([...projectList, {
+      updateProjectList([...projectList, {
         id: Date.now(),
         name: basicForm.name,
         developer: basicForm.developer,

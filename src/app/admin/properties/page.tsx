@@ -119,6 +119,8 @@ const defaultFormData: PropertyFormData = {
 };
 
 const DRAFT_KEY = 'property_draft';
+const PROPERTIES_STORAGE_KEY = 'admin_properties';
+const IMPORT_STORAGE_KEY = 'imported_properties';
 
 const properties: Property[] = [
   { id: 1, name: 'Obsidian Penthouse', location: 'Downtown Dubai', price: 'AED 28,500,000', type: 'Residential', status: 'Available', beds: 5, baths: 6, sqft: '8,200', image: "https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png", alt: 'Luxury penthouse interior', agent: 'Sarah Mitchell' },
@@ -127,6 +129,30 @@ const properties: Property[] = [
   { id: 4, name: 'The Crescent Retail', location: 'JBR', price: 'AED 8,500,000', type: 'Commercial', status: 'Sold', sqft: '3,200', image: "https://images.unsplash.com/photo-1613724962881-c5171beaeea2", alt: 'Retail space interior', agent: 'Priya Sharma' },
   { id: 5, name: 'Vantage Estate', location: 'Emirates Hills', price: 'AED 65,000,000', type: 'Residential', status: 'Available', beds: 9, baths: 11, sqft: '22,000', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16f9fcd79-1766746361345.png", alt: 'Luxury estate exterior', agent: 'Sarah Mitchell' },
 ];
+
+function loadProperties(): Property[] {
+  if (typeof window === 'undefined') return properties;
+  try {
+    const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
+    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
+    let base: Property[] = stored ? JSON.parse(stored) : properties;
+    const existingIds = new Set(base.map(p => p.id));
+    const newImports = imported.filter(p => !existingIds.has(p.id));
+    if (newImports.length > 0) {
+      base = [...base, ...newImports];
+      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+      localStorage.setItem(PROPERTIES_STORAGE_KEY, JSON.stringify(base));
+    }
+    return base;
+  } catch {
+    return properties;
+  }
+}
+
+function saveProperties(list: Property[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PROPERTIES_STORAGE_KEY, JSON.stringify(list));
+}
 
 const statusColors: Record<string, string> = {
   Available: 'text-emerald-400 bg-emerald-400/10',
@@ -158,11 +184,40 @@ export default function PropertiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-  const [propertyList, setPropertyList] = useState(properties);
+  const [propertyList, setPropertyList] = useState<Property[]>([]);
 
   // UAE location cascading
   const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setPropertyList(loadProperties());
+  }, []);
+
+  // Poll for new imports
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
+      if (imported.length > 0) {
+        setPropertyList(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newImports = imported.filter(p => !existingIds.has(p.id));
+          if (newImports.length === 0) return prev;
+          const updated = [...prev, ...newImports];
+          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+          localStorage.setItem(PROPERTIES_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updatePropertyList = (updated: Property[]) => {
+    setPropertyList(updated);
+    saveProperties(updated);
+  };
 
   // Check for existing draft on mount
   useEffect(() => {
@@ -302,22 +357,37 @@ export default function PropertiesPage() {
 
   const handleCreateProperty = () => {
     if (editingProperty) {
-      setPropertyList((prev) =>
-        prev.map((p) =>
-          p.id === editingProperty.id
-            ? {
-                ...p,
-                name: formData.title || p.name,
-                location: formData.locationArea || p.location,
-                price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
-                status: formData.availability || p.status,
-                beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
-                baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
-                sqft: formData.areaSqFt || p.sqft,
-              }
-            : p
-        )
+      const updated = propertyList.map((p) =>
+        p.id === editingProperty.id
+          ? {
+              ...p,
+              name: formData.title || p.name,
+              location: formData.locationArea || p.location,
+              price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
+              status: formData.availability || p.status,
+              beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
+              baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
+              sqft: formData.areaSqFt || p.sqft,
+            }
+          : p
       );
+      updatePropertyList(updated);
+    } else {
+      const newProp: Property = {
+        id: Date.now(),
+        name: formData.title || 'New Property',
+        location: formData.locationArea || '',
+        price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : 'TBD',
+        type: ['Office', 'Retail', 'Warehouse'].includes(formData.propertyType) ? 'Commercial' : 'Residential',
+        status: formData.availability || 'Available',
+        beds: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
+        baths: formData.bathrooms ? parseInt(formData.bathrooms) : undefined,
+        sqft: formData.areaSqFt || '',
+        image: formData.imageUrls.split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
+        alt: formData.title || 'Property',
+        agent: '',
+      };
+      updatePropertyList([...propertyList, newProp]);
     }
     if (typeof window !== 'undefined') {
       localStorage.removeItem(DRAFT_KEY);
@@ -427,7 +497,7 @@ export default function PropertiesPage() {
 
   const handleBulkStatusChange = () => {
     if (!bulkStatusValue) return;
-    setPropertyList(propertyList.map((p) => selectedIds.has(p.id) ? { ...p, status: bulkStatusValue } : p));
+    updatePropertyList(propertyList.map((p) => selectedIds.has(p.id) ? { ...p, status: bulkStatusValue } : p));
     setBulkStatusValue('');
     clearSelection();
   };
@@ -441,7 +511,7 @@ export default function PropertiesPage() {
   };
 
   const handleBulkDeleteConfirmed = () => {
-    setPropertyList(propertyList.filter((p) => !selectedIds.has(p.id)));
+    updatePropertyList(propertyList.filter((p) => !selectedIds.has(p.id)));
     setBulkDeleteConfirm(false);
     clearSelection();
   };

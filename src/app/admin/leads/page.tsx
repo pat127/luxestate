@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface Lead {
@@ -18,7 +18,10 @@ interface Lead {
   notes?: string;
 }
 
-const initialLeads: Lead[] = [
+const LEADS_STORAGE_KEY = 'admin_leads';
+const IMPORT_STORAGE_KEY = 'imported_leads';
+
+const seedLeads: Lead[] = [
   { id: 1, name: 'Alexander Webb', email: 'alex@example.com', phone: '+971 50 111 2222', source: 'Website', status: 'New', budget: 'AED 5M+', interest: 'Penthouse', date: 'Today', assignedAgent: 'Sarah Mitchell', nationality: 'British' },
   { id: 2, name: 'Natasha Ivanova', email: 'natasha@example.com', phone: '+971 55 333 4444', source: 'Referral', status: 'Contacted', budget: 'AED 2-5M', interest: 'Villa', date: 'Yesterday', assignedAgent: 'Omar Hassan', nationality: 'Russian' },
   { id: 3, name: 'Omar Al-Farsi', email: 'omar@example.com', phone: '+971 52 555 6666', source: 'Instagram', status: 'Qualified', budget: 'AED 10M+', interest: 'Commercial', date: '3 days ago', assignedAgent: 'James Carter', nationality: 'Emirati' },
@@ -26,6 +29,32 @@ const initialLeads: Lead[] = [
   { id: 5, name: 'Raj Patel', email: 'raj@example.com', phone: '+971 58 999 0000', source: 'Walk-in', status: 'Negotiation', budget: 'AED 3-5M', interest: 'Townhouse', date: '2 weeks ago', assignedAgent: 'Sarah Mitchell', nationality: 'Indian' },
   { id: 6, name: 'Chloe Beaumont', email: 'chloe@example.com', phone: '+971 50 222 3333', source: 'Website', status: 'Lost', budget: 'AED 500K-1M', interest: 'Studio', date: '1 month ago', assignedAgent: 'James Carter', nationality: 'French' },
 ];
+
+function loadLeads(): Lead[] {
+  if (typeof window === 'undefined') return seedLeads;
+  try {
+    const stored = localStorage.getItem(LEADS_STORAGE_KEY);
+    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Lead[];
+    let base: Lead[] = stored ? JSON.parse(stored) : seedLeads;
+    // Merge imported leads that aren't already in base (by id)
+    const existingIds = new Set(base.map(l => l.id));
+    const newImports = imported.filter(l => !existingIds.has(l.id));
+    if (newImports.length > 0) {
+      base = [...base, ...newImports];
+      // Clear imported after merging so they don't re-appear on next load
+      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(base));
+    }
+    return base;
+  } catch {
+    return seedLeads;
+  }
+}
+
+function saveLeads(leads: Lead[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+}
 
 const statusColors: Record<string, string> = {
   New: 'text-blue-400 bg-blue-400/10',
@@ -44,6 +73,7 @@ const sourceColors: Record<string, string> = {
   'Walk-in': 'text-orange-400',
   'Property Finder': 'text-red-400',
   Bayut: 'text-orange-400',
+  Import: 'text-purple-400',
 };
 
 interface LeadForm {
@@ -58,17 +88,45 @@ const emptyForm: LeadForm = {
 };
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
 
-  // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setLeads(loadLeads());
+  }, []);
+
+  // Poll for new imports every 2 seconds when page is visible
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Lead[];
+      if (imported.length > 0) {
+        setLeads(prev => {
+          const existingIds = new Set(prev.map(l => l.id));
+          const newImports = imported.filter(l => !existingIds.has(l.id));
+          if (newImports.length === 0) return prev;
+          const updated = [...prev, ...newImports];
+          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+          localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateLeads = (updated: Lead[]) => {
+    setLeads(updated);
+    saveLeads(updated);
+  };
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
 
@@ -103,13 +161,13 @@ export default function LeadsPage() {
 
   const handleBulkStatusChange = () => {
     if (!bulkStatusValue) return;
-    setLeads(leads.map((l) => selectedIds.has(l.id) ? { ...l, status: bulkStatusValue } : l));
+    updateLeads(leads.map((l) => selectedIds.has(l.id) ? { ...l, status: bulkStatusValue } : l));
     setBulkStatusValue('');
     clearSelection();
   };
 
   const handleBulkDelete = () => {
-    setLeads(leads.filter((l) => !selectedIds.has(l.id)));
+    updateLeads(leads.filter((l) => !selectedIds.has(l.id)));
     setDeleteConfirm(false);
     clearSelection();
   };
@@ -125,14 +183,14 @@ export default function LeadsPage() {
   const handleSave = () => {
     if (!form.name || !form.email) return;
     if (editLead) {
-      setLeads(leads.map(l => l.id === editLead.id ? { ...l, name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes } : l));
+      updateLeads(leads.map(l => l.id === editLead.id ? { ...l, name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes } : l));
     } else {
-      setLeads([...leads, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, date: 'Just now', nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes }]);
+      updateLeads([...leads, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, date: 'Just now', nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes }]);
     }
     setShowModal(false);
   };
 
-  const handleDelete = (id: number) => setLeads(leads.filter(l => l.id !== id));
+  const handleDelete = (id: number) => updateLeads(leads.filter(l => l.id !== id));
 
   return (
     <div className="p-6">

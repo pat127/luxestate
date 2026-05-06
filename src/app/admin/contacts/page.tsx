@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface Contact {
@@ -18,13 +18,40 @@ interface Contact {
   source?: string;
 }
 
-const initialContacts: Contact[] = [
+const CONTACTS_STORAGE_KEY = 'admin_contacts';
+const IMPORT_STORAGE_KEY = 'imported_contacts';
+
+const seedContacts: Contact[] = [
   { id: 1, name: 'James Harrington', email: 'james@example.com', phone: '+971 50 123 4567', type: 'Buyer', status: 'Active', lastContact: '2 days ago', deals: 2, nationality: 'British', assignedAgent: 'Sarah Mitchell', source: 'Website' },
   { id: 2, name: 'Sofia Al-Rashid', email: 'sofia@example.com', phone: '+971 55 987 6543', type: 'Investor', status: 'Active', lastContact: '1 week ago', deals: 5, nationality: 'Emirati', assignedAgent: 'Omar Hassan', source: 'Referral' },
   { id: 3, name: 'Marcus Chen', email: 'marcus@example.com', phone: '+971 52 456 7890', type: 'Seller', status: 'Inactive', lastContact: '3 weeks ago', deals: 1, nationality: 'Chinese', assignedAgent: 'James Carter', source: 'Walk-in' },
   { id: 4, name: 'Priya Sharma', email: 'priya@example.com', phone: '+971 56 321 0987', type: 'Buyer', status: 'Active', lastContact: 'Today', deals: 0, nationality: 'Indian', assignedAgent: 'Priya Sharma', source: 'Instagram' },
   { id: 5, name: 'David Okonkwo', email: 'david@example.com', phone: '+971 58 654 3210', type: 'Investor', status: 'Active', lastContact: '5 days ago', deals: 3, nationality: 'Nigerian', assignedAgent: 'Sarah Mitchell', source: 'LinkedIn' },
 ];
+
+function loadContacts(): Contact[] {
+  if (typeof window === 'undefined') return seedContacts;
+  try {
+    const stored = localStorage.getItem(CONTACTS_STORAGE_KEY);
+    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Contact[];
+    let base: Contact[] = stored ? JSON.parse(stored) : seedContacts;
+    const existingIds = new Set(base.map(c => c.id));
+    const newImports = imported.filter(c => !existingIds.has(c.id));
+    if (newImports.length > 0) {
+      base = [...base, ...newImports];
+      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(base));
+    }
+    return base;
+  } catch {
+    return seedContacts;
+  }
+}
+
+function saveContacts(contacts: Contact[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts));
+}
 
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
@@ -59,19 +86,45 @@ const emptyForm: ContactForm = {
 };
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [form, setForm] = useState<ContactForm>(emptyForm);
 
-  // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [bulkTypeValue, setBulkTypeValue] = useState('');
-  const [showBulkBar, setShowBulkBar] = useState(false);
   const [convertConfirm, setConvertConfirm] = useState(false);
+
+  useEffect(() => {
+    setContacts(loadContacts());
+  }, []);
+
+  // Poll for new imports
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Contact[];
+      if (imported.length > 0) {
+        setContacts(prev => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const newImports = imported.filter(c => !existingIds.has(c.id));
+          if (newImports.length === 0) return prev;
+          const updated = [...prev, ...newImports];
+          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
+          localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateContacts = (updated: Contact[]) => {
+    setContacts(updated);
+    saveContacts(updated);
+  };
 
   const types = ['All', 'Buyer', 'Investor', 'Seller', 'Tenant', 'Landlord'];
 
@@ -106,14 +159,14 @@ export default function ContactsPage() {
 
   const handleBulkStatusChange = () => {
     if (!bulkStatusValue) return;
-    setContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, status: bulkStatusValue } : c));
+    updateContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, status: bulkStatusValue } : c));
     setBulkStatusValue('');
     clearSelection();
   };
 
   const handleBulkTypeChange = () => {
     if (!bulkTypeValue) return;
-    setContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, type: bulkTypeValue } : c));
+    updateContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, type: bulkTypeValue } : c));
     setBulkTypeValue('');
     clearSelection();
   };
@@ -121,12 +174,11 @@ export default function ContactsPage() {
   const handleConvertToLead = () => {
     setConvertConfirm(false);
     clearSelection();
-    // In a real app this would create lead records; here we show success feedback
     alert(`${selectedIds.size} contact(s) converted to leads successfully.`);
   };
 
   const handleBulkDelete = () => {
-    setContacts(contacts.filter((c) => !selectedIds.has(c.id)));
+    updateContacts(contacts.filter((c) => !selectedIds.has(c.id)));
     clearSelection();
   };
 
@@ -141,14 +193,14 @@ export default function ContactsPage() {
   const handleSave = () => {
     if (!form.name || !form.email) return;
     if (editContact) {
-      setContacts(contacts.map(c => c.id === editContact.id ? { ...c, name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes } : c));
+      updateContacts(contacts.map(c => c.id === editContact.id ? { ...c, name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes } : c));
     } else {
-      setContacts([...contacts, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, lastContact: 'Just now', deals: 0, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes }]);
+      updateContacts([...contacts, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, lastContact: 'Just now', deals: 0, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes }]);
     }
     setShowModal(false);
   };
 
-  const handleDelete = (id: number) => setContacts(contacts.filter(c => c.id !== id));
+  const handleDelete = (id: number) => updateContacts(contacts.filter(c => c.id !== id));
 
   return (
     <div className="p-6">
@@ -196,7 +248,6 @@ export default function ContactsPage() {
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
-            {/* Bulk Status */}
             <div className="flex items-center gap-1">
               <select value={bulkStatusValue} onChange={(e) => setBulkStatusValue(e.target.value)} className="px-2 py-1.5 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50">
                 <option value="">Change Status...</option>
@@ -205,7 +256,6 @@ export default function ContactsPage() {
               </select>
               <button onClick={handleBulkStatusChange} disabled={!bulkStatusValue} className="px-3 py-1.5 bg-card border border-border text-xs text-foreground hover:border-primary/50 transition-colors disabled:opacity-40">Apply</button>
             </div>
-            {/* Bulk Type */}
             <div className="flex items-center gap-1">
               <select value={bulkTypeValue} onChange={(e) => setBulkTypeValue(e.target.value)} className="px-2 py-1.5 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50">
                 <option value="">Change Type...</option>
@@ -213,11 +263,9 @@ export default function ContactsPage() {
               </select>
               <button onClick={handleBulkTypeChange} disabled={!bulkTypeValue} className="px-3 py-1.5 bg-card border border-border text-xs text-foreground hover:border-primary/50 transition-colors disabled:opacity-40">Apply</button>
             </div>
-            {/* Convert to Lead */}
             <button onClick={() => setConvertConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 text-xs text-blue-400 hover:bg-blue-500/20 transition-colors">
               <Icon name="ArrowRightCircleIcon" size={13} />Convert to Lead
             </button>
-            {/* Delete */}
             <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
               <Icon name="TrashIcon" size={13} />Delete
             </button>

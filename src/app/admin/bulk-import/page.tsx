@@ -30,6 +30,15 @@ interface ValidationError {
   message: string;
 }
 
+// localStorage keys for each import type
+export const IMPORT_STORAGE_KEYS: Record<ImportType, string> = {
+  leads: 'imported_leads',
+  contacts: 'imported_contacts',
+  properties: 'imported_properties',
+  projects: 'imported_projects',
+  blogs: 'imported_blogs',
+};
+
 const importConfigs: Record<ImportType, ImportConfig> = {
   leads: {
     label: 'Leads',
@@ -122,45 +131,32 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   },
 };
 
-// Sample CSV data for preview
-const sampleParsedData: Record<ImportType, { headers: string[]; rows: string[][] }> = {
-  leads: {
-    headers: ['Full Name', 'Email', 'Phone', 'Source', 'Budget'],
-    rows: [
-      ['Ahmed Al Mansouri', 'ahmed@example.com', '+971501234567', 'Website', '2500000'],
-      ['Sarah Johnson', 'sarah@example.com', '+971502345678', 'Referral', '5000000'],
-      ['Mohammed Al Rashid', 'mohammed@example.com', '+971503456789', 'Social Media', '1200000'],
-    ],
-  },
-  contacts: {
-    headers: ['Full Name', 'Email', 'Phone', 'Type', 'Status'],
-    rows: [
-      ['James Carter', 'james@example.com', '+971504567890', 'Buyer', 'Active'],
-      ['Priya Sharma', 'priya@example.com', '+971505678901', 'Investor', 'Active'],
-    ],
-  },
-  properties: {
-    headers: ['Property Title', 'Price (AED)', 'Property Type', 'Location', 'Bedrooms', 'Area (sq ft)'],
-    rows: [
-      ['Luxury Apartment Downtown', '2500000', 'Apartment', 'Downtown Dubai', '2', '1200'],
-      ['Palm Villa', '15000000', 'Villa', 'Palm Jumeirah', '5', '8000'],
-    ],
-  },
-  projects: {
-    headers: ['Project Name', 'Developer', 'Location', 'Type', 'Total Units', 'Starting Price'],
-    rows: [
-      ['Horizon Tower', 'Emaar', 'Downtown Dubai', 'Off-Plan', '200', '1500000'],
-      ['Marina Heights', 'DAMAC', 'Dubai Marina', 'Off-Plan', '150', '900000'],
-    ],
-  },
-  blogs: {
-    headers: ['Post Title', 'Category', 'Author', 'Status', 'Publish Date'],
-    rows: [
-      ['Dubai Real Estate Market 2025', 'Market Insights', 'Sarah Mitchell', 'Published', '2025-01-15'],
-      ['Top 10 Areas to Invest in Dubai', 'Investment', 'James Carter', 'Draft', '2025-02-01'],
-    ],
-  },
-};
+function parseCSV(text: string): { headers: string[]; rows: string[][] } {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const parseRow = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+  const headers = parseRow(lines[0]);
+  const rows = lines.slice(1).filter(l => l.trim()).map(parseRow);
+  return { headers, rows };
+}
 
 function generateCSVTemplate(type: ImportType): string {
   const config = importConfigs[type];
@@ -185,6 +181,77 @@ function downloadCSV(content: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// Convert a parsed row (mapped fields) into a typed record for storage
+function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record<string, unknown> {
+  const id = Date.now() + Math.floor(Math.random() * 10000);
+  if (type === 'leads') {
+    return {
+      id,
+      name: fieldMap['name'] || 'Unknown',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      source: fieldMap['source'] || 'Import',
+      status: fieldMap['status'] || 'New',
+      budget: fieldMap['budget'] ? `AED ${fieldMap['budget']}` : '',
+      interest: fieldMap['interest'] || '',
+      nationality: fieldMap['nationality'] || '',
+      notes: fieldMap['notes'] || '',
+      assignedAgent: '',
+      date: 'Imported',
+    };
+  }
+  if (type === 'contacts') {
+    return {
+      id,
+      name: fieldMap['name'] || 'Unknown',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      type: fieldMap['type'] || 'Buyer',
+      status: fieldMap['status'] || 'Active',
+      nationality: fieldMap['nationality'] || '',
+      assignedAgent: fieldMap['assigned_agent'] || '',
+      source: 'Import',
+      lastContact: 'Imported',
+      deals: 0,
+    };
+  }
+  if (type === 'properties') {
+    return {
+      id,
+      name: fieldMap['title'] || 'Imported Property',
+      location: fieldMap['location'] || '',
+      price: fieldMap['price'] ? `AED ${parseInt(fieldMap['price']).toLocaleString()}` : 'TBD',
+      type: fieldMap['property_type'] === 'Office' || fieldMap['property_type'] === 'Retail' || fieldMap['property_type'] === 'Warehouse' ? 'Commercial' : 'Residential',
+      status: fieldMap['status'] || 'Available',
+      beds: fieldMap['bedrooms'] ? parseInt(fieldMap['bedrooms']) : undefined,
+      baths: fieldMap['bathrooms'] ? parseInt(fieldMap['bathrooms']) : undefined,
+      sqft: fieldMap['area_sqft'] || '',
+      image: (fieldMap['image_urls'] || '').split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
+      alt: fieldMap['title'] || 'Imported property',
+      agent: fieldMap['agent'] || '',
+    };
+  }
+  if (type === 'projects') {
+    return {
+      id,
+      name: fieldMap['name'] || 'Imported Project',
+      developer: fieldMap['developer'] || '',
+      location: fieldMap['location'] || '',
+      type: fieldMap['type'] || 'Off-Plan',
+      status: fieldMap['status'] || 'Active',
+      units: fieldMap['total_units'] ? parseInt(fieldMap['total_units']) : 0,
+      sold: 0,
+      completion: fieldMap['completion'] || 'TBD',
+      price: fieldMap['starting_price'] ? `AED ${parseInt(fieldMap['starting_price']).toLocaleString()}+` : 'TBD',
+      image: (fieldMap['image_urls'] || '').split(',')[0].trim() || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+      alt: fieldMap['name'] || 'Imported project',
+      featured: false,
+      published: true,
+    };
+  }
+  return { id, ...fieldMap };
+}
+
 export default function BulkImportPage() {
   const [activeType, setActiveType] = useState<ImportType>('leads');
   const [step, setStep] = useState<ImportStep>('upload');
@@ -194,10 +261,10 @@ export default function BulkImportPage() {
   const [importProgress, setImportProgress] = useState(0);
   const [mapping, setMapping] = useState<MappingState>({});
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [parsedData, setParsedData] = useState<{ headers: string[]; rows: string[][] }>({ headers: [], rows: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const config = importConfigs[activeType];
-  const parsedData = sampleParsedData[activeType];
 
   const handleTypeChange = (type: ImportType) => {
     setActiveType(type);
@@ -206,21 +273,29 @@ export default function BulkImportPage() {
     setMapping({});
     setValidationErrors([]);
     setImportProgress(0);
+    setParsedData({ headers: [], rows: [] });
   };
 
-  const handleFileSelect = (name: string) => {
-    setFileName(name);
-    // Auto-map columns by matching names
-    const autoMap: MappingState = {};
-    parsedData.headers.forEach((header) => {
-      const match = config.fields.find((f) =>
-        f.label.toLowerCase() === header.toLowerCase() ||
-        f.key.toLowerCase() === header.toLowerCase().replace(/\s+/g, '_')
-      );
-      if (match) autoMap[header] = match.key;
-    });
-    setMapping(autoMap);
-  };
+  const handleFileSelect = useCallback((file: File) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const data = parseCSV(text);
+      setParsedData(data);
+      // Auto-map columns
+      const autoMap: MappingState = {};
+      data.headers.forEach((header) => {
+        const match = config.fields.find((f) =>
+          f.label.toLowerCase() === header.toLowerCase() ||
+          f.key.toLowerCase() === header.toLowerCase().replace(/\s+/g, '_')
+        );
+        if (match) autoMap[header] = match.key;
+      });
+      setMapping(autoMap);
+    };
+    reader.readAsText(file);
+  }, [config.fields]);
 
   const handleDownloadTemplate = () => {
     const csv = generateCSVTemplate(activeType);
@@ -228,7 +303,6 @@ export default function BulkImportPage() {
   };
 
   const handleValidate = () => {
-    // Simulate validation
     const errors: ValidationError[] = [];
     parsedData.rows.forEach((row, rowIdx) => {
       config.fields.filter((f) => f.required).forEach((field) => {
@@ -253,6 +327,23 @@ export default function BulkImportPage() {
         if (prev >= 100) {
           clearInterval(interval);
           setImporting(false);
+          // Build records from parsed CSV rows using the mapping
+          const records = parsedData.rows.map((row) => {
+            const fieldMap: Record<string, string> = {};
+            Object.entries(mapping).forEach(([csvCol, fieldKey]) => {
+              if (fieldKey) {
+                const colIdx = parsedData.headers.indexOf(csvCol);
+                if (colIdx >= 0) fieldMap[fieldKey] = row[colIdx] || '';
+              }
+            });
+            return buildRecord(activeType, fieldMap);
+          });
+          // Persist to localStorage
+          if (typeof window !== 'undefined') {
+            const storageKey = IMPORT_STORAGE_KEYS[activeType];
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            localStorage.setItem(storageKey, JSON.stringify([...existing, ...records]));
+          }
           setStep('done');
           return 100;
         }
@@ -267,6 +358,7 @@ export default function BulkImportPage() {
     setMapping({});
     setValidationErrors([]);
     setImportProgress(0);
+    setParsedData({ headers: [], rows: [] });
   };
 
   const stepLabels: { id: ImportStep; label: string; num: number }[] = [
@@ -279,6 +371,9 @@ export default function BulkImportPage() {
 
   const stepOrder: ImportStep[] = ['upload', 'mapping', 'validation', 'confirm', 'done'];
   const currentStepIdx = stepOrder.indexOf(step);
+
+  // Preview: show up to 3 rows
+  const previewRows = parsedData.rows.slice(0, 3);
 
   return (
     <div className="p-6">
@@ -330,7 +425,7 @@ export default function BulkImportPage() {
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f.name); }}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed p-12 text-center transition-colors cursor-pointer ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-primary/2'}`}
               >
@@ -341,7 +436,7 @@ export default function BulkImportPage() {
                     </div>
                     <p className="text-base font-semibold text-foreground">{fileName}</p>
                     <p className="text-sm text-muted-foreground mt-1">{parsedData.rows.length} rows detected · Ready to map columns</p>
-                    <button onClick={(e) => { e.stopPropagation(); setFileName(null); setMapping({}); }} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); setFileName(null); setMapping({}); setParsedData({ headers: [], rows: [] }); }} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">
                       Remove file
                     </button>
                   </div>
@@ -357,10 +452,10 @@ export default function BulkImportPage() {
                     </span>
                   </div>
                 )}
-                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f.name); }} />
+                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
               </div>
 
-              {fileName && (
+              {fileName && parsedData.headers.length > 0 && (
                 <div className="bg-card border border-border p-4">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Preview (first 3 rows)</p>
                   <div className="overflow-x-auto">
@@ -373,7 +468,7 @@ export default function BulkImportPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {parsedData.rows.map((row, i) => (
+                        {previewRows.map((row, i) => (
                           <tr key={i} className="border-b border-border last:border-0">
                             {row.map((cell, j) => (
                               <td key={j} className="px-3 py-2 text-foreground whitespace-nowrap">{cell}</td>
@@ -389,7 +484,7 @@ export default function BulkImportPage() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setStep('mapping')}
-                  disabled={!fileName}
+                  disabled={!fileName || parsedData.headers.length === 0}
                   className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next: Map Columns
@@ -619,7 +714,7 @@ export default function BulkImportPage() {
               <p className="text-sm text-muted-foreground mb-2">
                 Successfully imported <span className="text-foreground font-semibold">{parsedData.rows.length} {config.label}</span>
               </p>
-              <p className="text-xs text-muted-foreground mb-8">All records have been added to your system.</p>
+              <p className="text-xs text-muted-foreground mb-8">All records have been added to your system. Navigate to the {config.label} page to view them.</p>
               <div className="flex justify-center gap-3">
                 <button onClick={handleReset} className="flex items-center gap-2 px-5 py-2.5 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <Icon name="ArrowPathIcon" size={14} />Import More

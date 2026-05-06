@@ -39,7 +39,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
   marketing: [
     'view_dashboard', 'view_leads', 'view_all_leads',
-    'view_marketing', 'view_analytics',
+    'view_marketing', 'view_analytics', 'view_calendar',
   ],
   agent: [
     'view_dashboard', 'view_contacts', 'view_leads',
