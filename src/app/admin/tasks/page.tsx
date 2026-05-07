@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface Task {
@@ -57,6 +57,49 @@ const emptyForm: TaskForm = {
   dueDate: '',
 };
 
+function requestNotificationPermission() {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendNotification(title: string, body: string, icon?: string) {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: icon || '/favicon.ico' });
+  }
+}
+
+function checkTaskReminders(tasks: Task[]) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  tasks.forEach((task) => {
+    if (task.status === 'Completed') return;
+    if (task.dueDate) {
+      const due = new Date(task.dueDate);
+      due.setHours(0, 0, 0, 0);
+      if (due.getTime() === today.getTime()) {
+        sendNotification(
+          `Task Due Today: ${task.priority} Priority`,
+          `"${task.title}" is due today. Assigned to ${task.assignee}.`
+        );
+      } else if (due.getTime() === tomorrow.getTime()) {
+        sendNotification(
+          `Task Due Tomorrow`,
+          `"${task.title}" is due tomorrow. Assigned to ${task.assignee}.`
+        );
+      }
+    } else if (task.due === 'Today') {
+      sendNotification(
+        `Task Reminder: ${task.priority} Priority`,
+        `"${task.title}" is due today. Assigned to ${task.assignee}.`
+      );
+    }
+  });
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filter, setFilter] = useState('All');
@@ -64,8 +107,28 @@ export default function TasksPage() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [form, setForm] = useState<TaskForm>(emptyForm);
   const [search, setSearch] = useState('');
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
 
   const statuses = ['All', 'Todo', 'In Progress', 'Completed'];
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((perm) => setNotifPermission(perm));
+      } else if (Notification.permission === 'granted') {
+        // Check reminders on load
+        checkTaskReminders(initialTasks);
+      }
+    }
+  }, []);
+
+  // Re-check reminders whenever tasks change
+  useEffect(() => {
+    if (notifPermission === 'granted') {
+      checkTaskReminders(tasks.filter(t => t.status !== 'Completed'));
+    }
+  }, [tasks, notifPermission]);
 
   const filtered = tasks.filter((t) => {
     const matchFilter = filter === 'All' || t.status === filter;
@@ -98,7 +161,15 @@ export default function TasksPage() {
     if (editTask) {
       setTasks(tasks.map(t => t.id === editTask.id ? { ...t, title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, category: form.category, dueDate: form.dueDate } : t));
     } else {
-      setTasks([...tasks, { id: Date.now(), title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, due: form.dueDate || 'TBD', category: form.category, dueDate: form.dueDate }]);
+      const newTask: Task = { id: Date.now(), title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, due: form.dueDate || 'TBD', category: form.category, dueDate: form.dueDate };
+      setTasks([...tasks, newTask]);
+      // Notify on new high-priority task
+      if (form.priority === 'High' && notifPermission === 'granted') {
+        sendNotification(
+          'New High Priority Task Added',
+          `"${form.title}" assigned to ${form.assignee || 'Unassigned'}.`
+        );
+      }
     }
     setShowModal(false);
   };
@@ -118,13 +189,33 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{tasks.filter(t => t.status !== 'Completed').length} active tasks</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
-          <Icon name="PlusIcon" size={14} />
-          Add Task
-        </button>
+        <div className="flex items-center gap-3">
+          {notifPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window && (
+            <button
+              onClick={() => {
+                requestNotificationPermission();
+                if ('Notification' in window) setNotifPermission(Notification.permission);
+              }}
+              className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+            >
+              <Icon name="BellIcon" size={14} />
+              Enable Reminders
+            </button>
+          )}
+          {notifPermission === 'granted' && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <Icon name="BellIcon" size={13} />
+              Reminders On
+            </span>
+          )}
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          >
+            <Icon name="PlusIcon" size={14} />
+            Add Task
+          </button>
+        </div>
       </div>
 
       {/* Status filter + search */}
@@ -173,7 +264,7 @@ export default function TasksPage() {
                 <p className="text-xs text-muted-foreground mb-2">{task.description}</p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Icon name="UserIcon" size={11} />{task.assignee}</span>
-                  <span className="flex items-center gap-1"><Icon name="ClockIcon" size={11} />{task.due}</span>
+                  <span className="flex items-center gap-1"><Icon name="ClockIcon" size={11} />{task.dueDate || task.due}</span>
                   <span className="flex items-center gap-1"><Icon name="TagIcon" size={11} />{task.category}</span>
                 </div>
               </div>

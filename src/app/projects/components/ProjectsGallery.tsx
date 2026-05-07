@@ -300,11 +300,6 @@ export default function ProjectsGallery() {
               </div>
 
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 line-clamp-2">{project.description}</p>
-
-              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5 w-fit group-hover:gap-4 transition-all duration-300">
-                View Project Details
-                <Icon name="ArrowRightIcon" size={12} />
-              </span>
             </div>
           </Link>
         )}

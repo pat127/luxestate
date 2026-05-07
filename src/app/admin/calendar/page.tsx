@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
 
@@ -114,6 +114,34 @@ function loadMarketingEventsFromStorage(base: MarketingEvent[]): MarketingEvent[
   return base;
 }
 
+function sendNotification(title: string, body: string) {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.ico' });
+  }
+}
+
+function checkCalendarReminders(events: CalEvent[], currentMonth: number, currentYear: number) {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  events.forEach((ev) => {
+    if (ev.month !== currentMonth) return;
+    const evDate = new Date(currentYear, ev.month, ev.date);
+    evDate.setHours(0, 0, 0, 0);
+    const todayMidnight = new Date(today);
+    todayMidnight.setHours(0, 0, 0, 0);
+    const tomorrowMidnight = new Date(tomorrow);
+    tomorrowMidnight.setHours(0, 0, 0, 0);
+
+    if (evDate.getTime() === todayMidnight.getTime()) {
+      sendNotification(`Event Today: ${ev.type}`, `"${ev.title}" at ${ev.time}${ev.location ? ` — ${ev.location}` : ''}`);
+    } else if (evDate.getTime() === tomorrowMidnight.getTime()) {
+      sendNotification(`Event Tomorrow: ${ev.type}`, `"${ev.title}" at ${ev.time}${ev.location ? ` — ${ev.location}` : ''}`);
+    }
+  });
+}
+
 export default function CalendarPage() {
   const { isRole } = useRole();
   const canViewMarketing = isRole('super_admin', 'marketing');
@@ -126,11 +154,36 @@ export default function CalendarPage() {
   const [showModal, setShowModal] = useState(false);
   const [editEvent, setEditEvent] = useState<CalEvent | null>(null);
   const [form, setForm] = useState<EventForm>(emptyForm);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
 
   // Marketing calendar state
   const [showMarketingModal, setShowMarketingModal] = useState(false);
   const [editMarketingEvent, setEditMarketingEvent] = useState<MarketingEvent | null>(null);
   const [marketingForm, setMarketingForm] = useState<MarketingEventForm>(emptyMarketingForm);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((perm) => {
+          setNotifPermission(perm);
+          if (perm === 'granted') {
+            checkCalendarReminders(initialEvents, currentMonth, currentYear);
+          }
+        });
+      } else if (Notification.permission === 'granted') {
+        checkCalendarReminders(initialEvents, currentMonth, currentYear);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-check reminders when events or month changes
+  useEffect(() => {
+    if (notifPermission === 'granted') {
+      checkCalendarReminders(events, currentMonth, currentYear);
+    }
+  }, [events, currentMonth, currentYear, notifPermission]);
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -208,7 +261,6 @@ export default function CalendarPage() {
     const day = d.getDate();
     const month = d.getMonth();
     const attendeeList = form.attendees.split(',').map(a => a.trim()).filter(Boolean);
-    // Owner is determined by which tab is active when creating
     const owner: 'ceo' | 'team' = activeTab === 'ceo' ? 'ceo' : 'team';
     if (editEvent) {
       setEvents(events.map(e => e.id === editEvent.id ? {
@@ -221,11 +273,10 @@ export default function CalendarPage() {
         attendees: attendeeList,
         location: form.location,
         notes: form.notes,
-        // preserve original owner when editing
         owner: e.owner,
       } : e));
     } else {
-      setEvents([...events, {
+      const newEvent: CalEvent = {
         id: Date.now(),
         title: form.title,
         date: day,
@@ -236,7 +287,12 @@ export default function CalendarPage() {
         attendees: attendeeList,
         location: form.location,
         notes: form.notes,
-      }]);
+      };
+      setEvents([...events, newEvent]);
+      // Notify for new event
+      if (notifPermission === 'granted') {
+        sendNotification('New Calendar Event Added', `"${form.title}" on ${form.date} at ${form.time || 'TBD'}`);
+      }
     }
     setShowModal(false);
   };
@@ -287,6 +343,25 @@ export default function CalendarPage() {
           <p className="text-sm text-muted-foreground mt-0.5">{MONTHS[currentMonth]} {currentYear}</p>
         </div>
         <div className="flex items-center gap-3">
+          {notifPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window && (
+            <button
+              onClick={() => {
+                if ('Notification' in window) {
+                  Notification.requestPermission().then((perm) => setNotifPermission(perm));
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+            >
+              <Icon name="BellIcon" size={14} />
+              Enable Reminders
+            </button>
+          )}
+          {notifPermission === 'granted' && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <Icon name="BellIcon" size={13} />
+              Reminders On
+            </span>
+          )}
           <div className="flex items-center border border-border">
             <button
               onClick={() => setActiveTab('team')}

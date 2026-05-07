@@ -58,9 +58,6 @@ export default function Header() {
               size={36}
               className="transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="text-foreground font-bold text-xl tracking-tight hidden sm:block">
-              {branding?.company_name || 'Cove Estates'}
-            </span>
           </Link>
 
           {/* Desktop Nav */}

@@ -68,8 +68,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2 flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <AppLogo size={32} />
-              <span className="text-foreground font-bold text-lg tracking-tight">Cove Estates</span>
+              <AppLogo size={48} />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.

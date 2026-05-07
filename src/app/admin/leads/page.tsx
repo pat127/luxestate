@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface Lead {
@@ -87,6 +87,44 @@ const emptyForm: LeadForm = {
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
 };
 
+function sendNotification(title: string, body: string) {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.ico' });
+  }
+}
+
+function checkLeadReminders(leads: Lead[]) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  leads.forEach((lead) => {
+    if ((lead as any).followUpDate) {
+      const followUp = new Date((lead as any).followUpDate);
+      followUp.setHours(0, 0, 0, 0);
+      if (followUp.getTime() === today.getTime()) {
+        sendNotification(
+          `Lead Follow-Up Due Today`,
+          `Follow up with ${lead.name} (${lead.status}) — ${lead.interest || 'No interest specified'}`
+        );
+      } else if (followUp.getTime() === tomorrow.getTime()) {
+        sendNotification(
+          `Lead Follow-Up Due Tomorrow`,
+          `Reminder: Follow up with ${lead.name} (${lead.status}) tomorrow.`
+        );
+      }
+    }
+    // Notify for new leads (status = 'New' and date = 'Just now' or 'Today')
+    if (lead.status === 'New' && (lead.date === 'Just now' || lead.date === 'Today')) {
+      sendNotification(
+        `New Lead: ${lead.source}`,
+        `${lead.name} is interested in ${lead.interest || 'a property'}. Budget: ${lead.budget}`
+      );
+    }
+  });
+}
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState('');
@@ -94,14 +132,26 @@ export default function LeadsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const notifiedIds = useRef<Set<number>>(new Set());
 
   // Load from localStorage on mount
   useEffect(() => {
     setLeads(loadLeads());
+  }, []);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((perm) => setNotifPermission(perm));
+      }
+    }
   }, []);
 
   // Poll for new imports every 2 seconds when page is visible
@@ -116,12 +166,23 @@ export default function LeadsPage() {
           const updated = [...prev, ...newImports];
           localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
           localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+          // Notify for newly imported leads
+          if (notifPermission === 'granted') {
+            sendNotification('New Leads Imported', `${newImports.length} new lead${newImports.length > 1 ? 's' : ''} imported successfully.`);
+          }
           return updated;
         });
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [notifPermission]);
+
+  // Check follow-up reminders when leads load
+  useEffect(() => {
+    if (leads.length > 0 && notifPermission === 'granted') {
+      checkLeadReminders(leads);
+    }
+  }, [leads.length, notifPermission]);
 
   const updateLeads = (updated: Lead[]) => {
     setLeads(updated);
@@ -185,7 +246,12 @@ export default function LeadsPage() {
     if (editLead) {
       updateLeads(leads.map(l => l.id === editLead.id ? { ...l, name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes } : l));
     } else {
-      updateLeads([...leads, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, date: 'Just now', nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes }]);
+      const newLead: Lead = { id: Date.now(), name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, date: 'Just now', nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes };
+      updateLeads([...leads, newLead]);
+      // Notify on new lead added
+      if (notifPermission === 'granted') {
+        sendNotification('New Lead Added', `${form.name} — ${form.interest || 'No interest specified'}. Budget: ${form.budget}`);
+      }
     }
     setShowModal(false);
   };
