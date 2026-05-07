@@ -43,12 +43,12 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
   return (
     <div className="flex flex-col gap-3">
       <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/80">{title}</h4>
-      <ul className="space-y-2.5">
+      <ul className="space-y-3">
         {links.map((link) => (
           <li key={link.label}>
             <Link
               href={link.href}
-              className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300"
+              className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
             >
               {link.label}
             </Link>
@@ -63,10 +63,10 @@ export default function Footer() {
   return (
     <footer className="border-t border-border bg-background">
       {/* Main Footer Grid */}
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
-          {/* Brand Column */}
-          <div className="lg:col-span-2 flex flex-col gap-5">
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-12 md:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-8">
+          {/* Brand Column - full width on mobile */}
+          <div className="col-span-2 lg:col-span-2 flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <AppLogo size={48} />
             </div>
@@ -74,31 +74,31 @@ export default function Footer() {
               Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.
             </p>
             {/* Social Links */}
-            <div className="flex items-center gap-4 mt-1">
+            <div className="flex items-center gap-3 mt-1">
               {socialLinks.map((s) => (
                 <Link
                   key={s.label}
                   href={s.href}
                   aria-label={s.label}
-                  className="w-9 h-9 border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all duration-300"
+                  className="w-10 h-10 border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all duration-300"
                 >
                   <Icon name={s.icon} size={16} />
                 </Link>
               ))}
             </div>
             {/* Contact Info */}
-            <div className="space-y-2 mt-1">
+            <div className="space-y-2.5 mt-1">
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="PhoneIcon" size={12} className="text-primary flex-shrink-0" />
                 <a href="tel:+971508862683" className="hover:text-primary transition-colors duration-300">+971 50 886 2683</a>
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="EnvelopeIcon" size={12} className="text-primary flex-shrink-0" />
-                admin@coveestates.com
+                <span className="break-all">admin@coveestates.com</span>
               </p>
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <Icon name="MapPinIcon" size={12} className="text-primary flex-shrink-0" />
-                8th Level, Moosa Tower 1, Dubai, UAE
+              <p className="text-xs text-muted-foreground flex items-start gap-2">
+                <Icon name="MapPinIcon" size={12} className="text-primary flex-shrink-0 mt-0.5" />
+                <span>8th Level, Moosa Tower 1, Dubai, UAE</span>
               </p>
             </div>
           </div>
@@ -109,23 +109,25 @@ export default function Footer() {
           {/* Properties Column */}
           <FooterColumn title="Properties" links={propertyLinks} />
 
-          {/* Areas Column */}
-          <FooterColumn title="Areas We Cover" links={areaLinks} />
+          {/* Areas Column - hidden on small mobile, shown from md */}
+          <div className="col-span-2 md:col-span-1">
+            <FooterColumn title="Areas We Cover" links={areaLinks} />
+          </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
       <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <span className="text-muted-foreground text-xs tracking-widest">
+        <div className="max-w-7xl mx-auto px-4 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <span className="text-muted-foreground text-xs tracking-widest text-center sm:text-left">
             © 2026 Cove Estates. All rights reserved.
           </span>
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {legalLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="text-muted-foreground text-xs hover:text-primary transition-colors duration-300"
+                className="text-muted-foreground text-xs hover:text-primary transition-colors duration-300 py-1"
               >
                 {link.label}
               </Link>

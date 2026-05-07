@@ -127,14 +127,14 @@ export default function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full pb-0 pt-40">
-        <div className="max-w-7xl mx-auto px-6 md:px-10">
+      <div className="relative z-10 w-full pb-0 pt-28 md:pt-40">
+        <div className="max-w-7xl mx-auto px-4 md:px-10">
           {/* Eyebrow + Headline */}
-          <div ref={headlineRef} className="mb-8">
-            <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-6">
-              <span className="h-px w-10 bg-primary" />
+          <div ref={headlineRef} className="mb-6 md:mb-8">
+            <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 md:mb-6">
+              <span className="h-px w-8 md:w-10 bg-primary" />
               {heroEyebrow}
-              <span className="h-px w-10 bg-primary" />
+              <span className="h-px w-8 md:w-10 bg-primary" />
             </span>
             <h1 className="text-hero max-w-4xl">
               {restHeadline && <span className="text-foreground">{restHeadline} </span>}
@@ -142,29 +142,29 @@ export default function HeroSection() {
             </h1>
           </div>
 
-          <p ref={subRef} className="text-foreground/70 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
+          <p ref={subRef} className="text-foreground/70 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
             {heroDescription}
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 mb-10">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-7 md:mb-10">
             <Link
               href={ctaPrimaryLink}
-              className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
+              className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group min-h-[52px]">
               {ctaPrimaryText}
               <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
               href={ctaSecondaryLink}
-              className="flex items-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300">
+              className="flex items-center justify-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300 min-h-[52px]">
               {ctaSecondaryText}
             </Link>
           </div>
 
-          {/* Search Bar with community/city predictive text */}
-          <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-4 md:p-5 max-w-3xl mb-16">
+          {/* Search Bar */}
+          <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-3 md:p-5 max-w-3xl mb-12 md:mb-16">
             <div ref={searchContainerRef} className="relative">
-              <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 <div className="flex-1 flex items-center gap-3 border border-border bg-background px-4 py-3">
                   <Icon name="MagnifyingGlassIcon" size={16} className="text-primary flex-shrink-0" />
                   <input
@@ -182,15 +182,15 @@ export default function HeroSection() {
                 </div>
                 <button
                   onClick={handleSearch}
-                  className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group">
+                  className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 md:px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group min-h-[48px]">
                   Search
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
               </div>
 
-              {/* Suggestions dropdown — positioned upward to avoid being covered by stats */}
+              {/* Suggestions dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mb-1 max-h-72 overflow-y-auto">
+                <div className="absolute bottom-full left-0 right-0 z-50 bg-card border border-border shadow-2xl mb-1 max-h-60 overflow-y-auto">
                   <div className="px-4 py-2 border-b border-border bg-secondary/50">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Communities &amp; Areas
@@ -225,10 +225,10 @@ export default function HeroSection() {
         {/* Stats — full width strip */}
         {stats.length > 0 && (
           <div ref={statsRef} className="w-full border-t border-border/40 bg-background/60 backdrop-blur-md">
-            <div className="max-w-7xl mx-auto px-6 md:px-10 py-6 flex items-center justify-between gap-4 flex-wrap md:flex-nowrap">
+            <div className="max-w-7xl mx-auto px-4 md:px-10 py-5 md:py-6 grid grid-cols-2 md:flex md:items-center md:justify-between gap-4">
               {stats.map((stat, i) => (
-                <div key={i} className="flex-1 min-w-[120px] border-l border-primary/30 pl-4 first:border-l-0 first:pl-0">
-                  <p className="text-2xl font-black text-primary tracking-tighter">{stat.value}</p>
+                <div key={i} className="border-l border-primary/30 pl-4 first:border-l-0 first:pl-0 md:flex-1">
+                  <p className="text-xl md:text-2xl font-black text-primary tracking-tighter">{stat.value}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</p>
                 </div>
               ))}

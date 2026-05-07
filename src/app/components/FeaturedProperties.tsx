@@ -124,13 +124,13 @@ export default function FeaturedProperties({ content }: Props) {
   const props = allProperties;
 
   return (
-    <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-8">
+    <section ref={sectionRef} className="py-16 md:py-24 px-4 md:px-10 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between md:items-end mb-10 md:mb-16 gap-6 md:gap-8">
         <div className="animate-on-scroll stagger-children">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
             {c.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tighter leading-none">
             {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
@@ -140,14 +140,14 @@ export default function FeaturedProperties({ content }: Props) {
           </p>
           <Link
             href={c.cta_link}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300">
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300 py-1">
             {c.cta_text}
             <Icon name="ArrowRightIcon" size={14} />
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 animate-on-scroll">
         {props[0] && <div className="md:col-span-2"><PropertyCard property={props[0]} priority /></div>}
         {props[1] && <div className="md:row-span-2 flex flex-col"><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
         {props[2] && <div className="md:col-span-1"><PropertyCard property={props[2]} /></div>}
