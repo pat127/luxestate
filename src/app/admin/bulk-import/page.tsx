@@ -243,6 +243,7 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
       sold: 0,
       completion: fieldMap['completion'] || 'TBD',
       price: fieldMap['starting_price'] ? `AED ${parseInt(fieldMap['starting_price']).toLocaleString()}+` : 'TBD',
+      description: fieldMap['description'] || '',
       image: (fieldMap['image_urls'] || '').split(',')[0].trim() || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
       alt: fieldMap['name'] || 'Imported project',
       featured: false,

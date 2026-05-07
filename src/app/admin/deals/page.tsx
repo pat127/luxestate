@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface Deal {
@@ -19,7 +19,13 @@ interface Deal {
   notes?: string;
 }
 
-const initialDeals: Deal[] = [
+interface StoredLead { id: number; name: string; email?: string; }
+interface StoredAgent { id: number; name: string; }
+interface StoredProperty { id: number; name: string; title?: string; }
+
+const DEALS_STORAGE_KEY = 'admin_deals';
+
+const seedDeals: Deal[] = [
   { id: 1, refNo: 'DL-2026-001', property: 'Obsidian Penthouse', propertyRef: 'LX-RES-001', lead: 'James Harrington', client: 'James Harrington', agent: 'Sarah Mitchell', value: 'AED 28,500,000', commission: 'AED 570,000', stage: 'Negotiation', type: 'Sale', date: '2 days ago', notes: 'Client wants to close by end of month' },
   { id: 2, refNo: 'DL-2026-002', property: 'Atlas Tower Office', propertyRef: 'LX-COM-002', lead: 'Sofia Al-Rashid', client: 'Sofia Al-Rashid', agent: 'Omar Hassan', value: 'AED 12,000,000', commission: 'AED 240,000', stage: 'Proposal', type: 'Sale', date: '5 days ago', notes: '' },
   { id: 3, refNo: 'DL-2026-003', property: 'Marina Bay Unit 12B', propertyRef: 'LX-RES-003', lead: 'Marcus Chen', client: 'Marcus Chen', agent: 'James Carter', value: 'AED 2,400,000', commission: 'AED 48,000', stage: 'Closed Won', type: 'Sale', date: '1 week ago', notes: 'Deal closed successfully' },
@@ -27,7 +33,7 @@ const initialDeals: Deal[] = [
   { id: 5, refNo: 'DL-2026-005', property: 'Creek Horizon Unit 5A', propertyRef: 'LX-OP-005', lead: 'David Okonkwo', client: 'David Okonkwo', agent: 'Priya Sharma', value: 'AED 1,800,000', commission: 'AED 36,000', stage: 'Closed Lost', type: 'Off-Plan', date: '3 weeks ago', notes: 'Client went with competitor' },
 ];
 
-const mockProperties = [
+const fallbackProperties = [
   { ref: 'LX-RES-001', name: 'Obsidian Penthouse' },
   { ref: 'LX-COM-002', name: 'Atlas Tower Office' },
   { ref: 'LX-RES-003', name: 'Marina Bay Unit 12B' },
@@ -37,11 +43,13 @@ const mockProperties = [
   { ref: 'LX-COM-007', name: 'DIFC Office Suite' },
 ];
 
-const mockLeads = [
+const fallbackLeads = [
   'Alexander Webb', 'Natasha Ivanova', 'Omar Al-Farsi', 'Emily Thornton',
   'Raj Patel', 'Chloe Beaumont', 'James Harrington', 'Sofia Al-Rashid',
   'Marcus Chen', 'Priya Sharma', 'David Okonkwo',
 ];
+
+const fallbackAgents = ['Sarah Mitchell', 'Omar Hassan', 'James Carter', 'Priya Sharma'];
 
 const stageColors: Record<string, string> = {
   Qualified: 'text-blue-400 bg-blue-400/10',
@@ -91,13 +99,79 @@ function generateDealRef(deals: Deal[]): string {
   return `DL-${year}-${String(next).padStart(3, '0')}`;
 }
 
+function loadDeals(): Deal[] {
+  if (typeof window === 'undefined') return seedDeals;
+  try {
+    const stored = localStorage.getItem(DEALS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : seedDeals;
+  } catch {
+    return seedDeals;
+  }
+}
+
+function saveDeals(deals: Deal[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(DEALS_STORAGE_KEY, JSON.stringify(deals));
+}
+
 export default function DealsPage() {
-  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [filterStage, setFilterStage] = useState('All');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editDeal, setEditDeal] = useState<Deal | null>(null);
   const [form, setForm] = useState<DealForm>(emptyForm);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  // CRM data from localStorage
+  const [crmLeads, setCrmLeads] = useState<string[]>(fallbackLeads);
+  const [crmAgents, setCrmAgents] = useState<string[]>(fallbackAgents);
+  const [crmProperties, setCrmProperties] = useState<{ ref: string; name: string }[]>(fallbackProperties);
+
+  useEffect(() => {
+    setDeals(loadDeals());
+
+    // Load real CRM leads
+    try {
+      const storedLeads: StoredLead[] = JSON.parse(localStorage.getItem('admin_leads') || '[]');
+      if (storedLeads.length > 0) {
+        setCrmLeads(storedLeads.map(l => l.name).filter(Boolean));
+      }
+    } catch { /* use fallback */ }
+
+    // Load real CRM agents
+    try {
+      const storedAgents: StoredAgent[] = JSON.parse(localStorage.getItem('admin_agents') || '[]');
+      if (storedAgents.length > 0) {
+        setCrmAgents(storedAgents.map(a => a.name).filter(Boolean));
+      }
+    } catch { /* use fallback */ }
+
+    // Load real CRM properties
+    try {
+      const storedProps: StoredProperty[] = JSON.parse(localStorage.getItem('admin_properties') || '[]');
+      const importedProps: StoredProperty[] = JSON.parse(localStorage.getItem('imported_properties') || '[]');
+      const allProps = [...storedProps, ...importedProps];
+      if (allProps.length > 0) {
+        setCrmProperties(allProps.map((p, i) => ({
+          ref: `LX-${String(p.id || i).slice(-4)}`,
+          name: p.title || p.name || 'Unnamed Property',
+        })));
+      }
+    } catch { /* use fallback */ }
+  }, []);
+
+  const updateDeals = (updated: Deal[]) => {
+    setDeals(updated);
+    saveDeals(updated);
+  };
+
+  const showSaved = () => {
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
+  };
 
   const filtered = deals.filter((d) => {
     const matchStage = filterStage === 'All' || d.stage === filterStage;
@@ -109,6 +183,36 @@ export default function DealsPage() {
       d.lead.toLowerCase().includes(search.toLowerCase());
     return matchStage && matchSearch;
   });
+
+  const allSelected = filtered.length > 0 && filtered.every(d => selectedIds.has(d.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      const newSet = new Set(selectedIds);
+      filtered.forEach(d => newSet.delete(d.id));
+      setSelectedIds(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      filtered.forEach(d => newSet.add(d.id));
+      setSelectedIds(newSet);
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = () => {
+    updateDeals(deals.filter(d => !selectedIds.has(d.id)));
+    setDeleteConfirm(false);
+    clearSelection();
+    showSaved();
+  };
 
   const openNew = () => {
     setEditDeal(null);
@@ -137,7 +241,7 @@ export default function DealsPage() {
   };
 
   const handlePropertyRefChange = (ref: string) => {
-    const prop = mockProperties.find((p) => p.ref === ref);
+    const prop = crmProperties.find((p) => p.ref === ref);
     setForm((f) => ({ ...f, propertyRef: ref, property: prop?.name || '' }));
   };
 
@@ -149,12 +253,13 @@ export default function DealsPage() {
     if (!form.propertyRef || !form.lead) return;
     const fmtVal = form.value ? `AED ${parseInt(form.value).toLocaleString()}` : 'AED 0';
     const fmtComm = form.commission ? `AED ${parseInt(form.commission).toLocaleString()}` : 'AED 0';
+    let updated: Deal[];
     if (editDeal) {
-      setDeals(deals.map((d) =>
+      updated = deals.map((d) =>
         d.id === editDeal.id
           ? { ...d, propertyRef: form.propertyRef, property: form.property, lead: form.lead, client: form.client, agent: form.agent, value: fmtVal, commission: fmtComm, stage: form.stage, type: form.type, notes: form.notes }
           : d
-      ));
+      );
     } else {
       const newDeal: Deal = {
         id: Date.now(),
@@ -171,14 +276,17 @@ export default function DealsPage() {
         date: 'Just now',
         notes: form.notes,
       };
-      setDeals([newDeal, ...deals]);
+      updated = [newDeal, ...deals];
     }
+    updateDeals(updated);
     setShowModal(false);
     setForm(emptyForm);
+    showSaved();
   };
 
   const handleDelete = (id: number) => {
-    setDeals(deals.filter((d) => d.id !== id));
+    updateDeals(deals.filter((d) => d.id !== id));
+    showSaved();
   };
 
   const totalValue = deals.filter((d) => d.stage === 'Closed Won').reduce((s, d) => {
@@ -198,13 +306,16 @@ export default function DealsPage() {
           <h1 className="text-2xl font-bold text-foreground">Deals</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{deals.length} deals in pipeline</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
-          <Icon name="PlusIcon" size={14} />
-          New Deal
-        </button>
+        <div className="flex items-center gap-3">
+          {savedMsg && <span className="text-xs text-emerald-400 font-semibold">✓ Saved</span>}
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          >
+            <Icon name="PlusIcon" size={14} />
+            New Deal
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -252,11 +363,30 @@ export default function DealsPage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
+          <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+          >
+            <Icon name="TrashIcon" size={13} />Delete Selected
+          </button>
+          <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="XMarkIcon" size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-card border border-border overflow-x-auto">
         <table className="w-full min-w-[900px]">
           <thead>
             <tr className="border-b border-border">
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+              </th>
               {['Deal Ref', 'Property Ref', 'Property', 'Lead / Client', 'Agent', 'Value', 'Stage', 'Type', 'Date', ''].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{h}</th>
               ))}
@@ -264,7 +394,10 @@ export default function DealsPage() {
           </thead>
           <tbody>
             {filtered.map((deal, i) => (
-              <tr key={deal.id} className={`border-b border-border hover:bg-white/2 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+              <tr key={deal.id} className={`border-b border-border hover:bg-white/2 transition-colors ${selectedIds.has(deal.id) ? 'bg-primary/5' : i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+                <td className="px-4 py-3">
+                  <input type="checkbox" checked={selectedIds.has(deal.id)} onChange={() => toggleSelect(deal.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+                </td>
                 <td className="px-4 py-3">
                   <span className="text-xs font-mono font-bold text-primary">{deal.refNo}</span>
                 </td>
@@ -301,6 +434,28 @@ export default function DealsPage() {
         )}
       </div>
 
+      {/* Bulk Delete Confirm */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+                <Icon name="TrashIcon" size={20} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Delete Deals</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{selectedIds.size} deal(s) will be deleted</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button onClick={handleBulkDelete} className="flex-1 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -332,7 +487,7 @@ export default function DealsPage() {
                   className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="">Select Property...</option>
-                  {mockProperties.map((p) => (
+                  {crmProperties.map((p) => (
                     <option key={p.ref} value={p.ref}>{p.ref} — {p.name}</option>
                   ))}
                 </select>
@@ -357,7 +512,7 @@ export default function DealsPage() {
                   className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="">Select Lead...</option>
-                  {mockLeads.map((l) => (
+                  {crmLeads.map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
                 </select>
@@ -378,7 +533,7 @@ export default function DealsPage() {
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Assigned Agent</label>
                 <select value={form.agent} onChange={(e) => setForm({ ...form, agent: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
                   <option value="">Select Agent...</option>
-                  {['Sarah Mitchell', 'Omar Hassan', 'James Carter', 'Priya Sharma'].map((a) => (
+                  {crmAgents.map((a) => (
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>
