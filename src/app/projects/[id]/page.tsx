@@ -1,12 +1,139 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { useCMS, ProjectDetailContent } from '@/contexts/CMSContext';
+import { useCMS, ProjectDetailContent, DEFAULT_PROJECT_DETAIL } from '@/contexts/CMSContext';
+
+const PROJECTS_STORAGE_KEY = 'admin_projects';
+
+/** Map an admin_projects record to the ProjectDetailContent shape used by the frontend. */
+function mapAdminProjectToDetail(p: any): ProjectDetailContent {
+  // Parse images: stored as array of {url, alt, caption} or comma-separated string
+  let images: ProjectDetailContent['images'] = [];
+  if (Array.isArray(p.images) && p.images.length > 0) {
+    images = p.images.map((img: any) => ({
+      src: img.url || img.src || '',
+      alt: img.alt || p.name || '',
+    }));
+  } else if (typeof p.images === 'string' && p.images.trim()) {
+    images = p.images.split(',').map((url: string) => ({ src: url.trim(), alt: p.name || '' }));
+  } else if (p.image) {
+    images = [{ src: p.image, alt: p.alt || p.name || '' }];
+  }
+  if (images.length === 0) {
+    images = DEFAULT_PROJECT_DETAIL.images;
+  }
+
+  // Parse unit types
+  let unitTypes: ProjectDetailContent['unitTypes'] = [];
+  if (Array.isArray(p.unitTypes) && p.unitTypes.length > 0) {
+    unitTypes = p.unitTypes.map((u: any) => ({
+      type: u.name || u.type || '',
+      area: u.size || u.area || 'N/A',
+      price: u.price || 'N/A',
+      available: typeof u.available === 'number' ? u.available : 0,
+    }));
+  } else {
+    unitTypes = DEFAULT_PROJECT_DETAIL.unitTypes;
+  }
+
+  // Parse amenities
+  let amenities: ProjectDetailContent['amenities'] = [];
+  if (Array.isArray(p.amenities) && p.amenities.length > 0) {
+    amenities = p.amenities.map((a: any) => {
+      if (typeof a === 'string') return { icon: 'SparklesIcon', label: a };
+      return { icon: a.icon || 'SparklesIcon', label: a.label || a.name || a };
+    });
+  } else {
+    amenities = DEFAULT_PROJECT_DETAIL.amenities;
+  }
+
+  // Parse payment plan milestones
+  let paymentPlan: ProjectDetailContent['paymentPlan'] = [];
+  if (Array.isArray(p.milestones) && p.milestones.length > 0) {
+    paymentPlan = p.milestones.map((m: any, i: number) => ({
+      phase: m.label || m.phase || `Phase ${i + 1}`,
+      percent: parseInt(String(m.percentage || m.percent || '0').replace('%', ''), 10) || 0,
+      label: m.dueDate || m.label || '',
+      icon: i === 0 ? 'PencilSquareIcon' : i === 1 ? 'CalendarIcon' : i === 2 ? 'BuildingOfficeIcon' : 'KeyIcon',
+    }));
+  } else {
+    paymentPlan = DEFAULT_PROJECT_DETAIL.paymentPlan;
+  }
+
+  // Parse highlights from description or propertyTypes
+  const highlights: string[] = Array.isArray(p.highlights) && p.highlights.length > 0
+    ? p.highlights
+    : Array.isArray(p.propertyTypes) && p.propertyTypes.length > 0
+      ? p.propertyTypes.map((t: string) => `${t} units available`)
+      : DEFAULT_PROJECT_DETAIL.highlights;
+
+  // Location coords
+  const lat = parseFloat(p.latitude) || DEFAULT_PROJECT_DETAIL.location_coords.lat;
+  const lng = parseFloat(p.longitude) || DEFAULT_PROJECT_DETAIL.location_coords.lng;
+
+  // Build address
+  const address = p.fullAddress || [p.subCommunity, p.community, p.location].filter(Boolean).join(', ') || p.location || DEFAULT_PROJECT_DETAIL.address;
+
+  // Sold count
+  const sold = typeof p.sold === 'number' ? p.sold : 0;
+  const units = typeof p.units === 'number' ? p.units : DEFAULT_PROJECT_DETAIL.units;
+
+  // Price
+  const priceFrom = p.price || DEFAULT_PROJECT_DETAIL.priceFrom;
+
+  return {
+    id: p.id,
+    name: p.name || DEFAULT_PROJECT_DETAIL.name,
+    tagline: p.tagline || `${p.type || 'Off-Plan'} by ${p.developer || 'Developer'}`,
+    developer: p.developer || DEFAULT_PROJECT_DETAIL.developer,
+    architect: p.architect || DEFAULT_PROJECT_DETAIL.architect,
+    location: p.location || DEFAULT_PROJECT_DETAIL.location,
+    address,
+    completion: p.completion || DEFAULT_PROJECT_DETAIL.completion,
+    units,
+    floors: p.floors || DEFAULT_PROJECT_DETAIL.floors,
+    priceFrom,
+    priceTo: p.priceTo || DEFAULT_PROJECT_DETAIL.priceTo,
+    status: p.status || DEFAULT_PROJECT_DETAIL.status,
+    sold,
+    type: p.type || DEFAULT_PROJECT_DETAIL.type,
+    reference: p.reference || `CE-PRJ-${String(p.id).padStart(3, '0')}`,
+    description: p.description || DEFAULT_PROJECT_DETAIL.description,
+    highlights,
+    unitTypes,
+    paymentPlan,
+    amenities,
+    images,
+    constructionProgress: Array.isArray(p.constructionProgress) && p.constructionProgress.length > 0
+      ? p.constructionProgress
+      : DEFAULT_PROJECT_DETAIL.constructionProgress,
+    agent: p.agent || DEFAULT_PROJECT_DETAIL.agent,
+    location_coords: { lat, lng },
+    pois: Array.isArray(p.pois) && p.pois.length > 0 ? p.pois : DEFAULT_PROJECT_DETAIL.pois,
+    similar: Array.isArray(p.similar) && p.similar.length > 0 ? p.similar : DEFAULT_PROJECT_DETAIL.similar,
+  };
+}
+
+function loadProjectFromStorage(id: string): ProjectDetailContent | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(PROJECTS_STORAGE_KEY);
+    if (stored) {
+      const projects: any[] = JSON.parse(stored);
+      const found = projects.find((p) => String(p.id) === id);
+      if (found) return mapAdminProjectToDetail(found);
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
@@ -299,9 +426,26 @@ function EnquiryForm({ projectName, reference, unitTypes }: { projectName: strin
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
-  const { projectDetail: PROJECT } = useCMS();
+  const params = useParams();
+  const id = params?.id as string;
+  const { projectDetail: cmsDefault } = useCMS();
+
+  const [PROJECT, setProject] = useState<ProjectDetailContent>(cmsDefault);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    const fromStorage = loadProjectFromStorage(id);
+    if (fromStorage) {
+      setProject(fromStorage);
+    } else {
+      // Fall back to CMS default (which may have been saved for this project)
+      setProject(cmsDefault);
+    }
+    setLoaded(true);
+  }, [id, cmsDefault]);
+
+  useEffect(() => {
+    if (!loaded) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -317,9 +461,21 @@ export default function ProjectDetailPage() {
     const sections = document.querySelectorAll('[data-observe]');
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
-  }, []);
+  }, [loaded]);
 
-  const soldPercent = Math.round(PROJECT.sold / PROJECT.units * 100);
+  if (!loaded) {
+    return (
+      <main className="bg-background">
+        <Header />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-muted-foreground text-sm">Loading project...</div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  const soldPercent = PROJECT.units > 0 ? Math.round(PROJECT.sold / PROJECT.units * 100) : 0;
 
   return (
     <main className="bg-background overflow-x-hidden">
