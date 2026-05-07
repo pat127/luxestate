@@ -37,7 +37,7 @@ const IMPORT_STORAGE_KEY = 'imported_projects';
 
 const initialProjects: Project[] = [
 { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', status: 'Active', units: 240, sold: 180, completion: 'Q4 2026', price: 'AED 1.2M+', image: "https://images.unsplash.com/photo-1700391488389-7ad0b572b299", alt: 'Modern residential tower', featured: true, published: true },
-{ id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', status: 'Active', units: 320, sold: 210, completion: 'Q2 2027', price: 'AED 900K+', image: "https://images.unsplash.com/photo-1690710513317-dc76760d409a", alt: 'Marina bay towers', featured: false, published: true },
+{ id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', status: 'Active', units: 320, sold: 210, completion: 'Q2 2027', price: 'AED 900K+', image: "https://images.unsplash.com/photo-1624268638085-483818378fbe", alt: 'Marina bay towers', featured: false, published: true },
 { id: 3, name: 'Palm Grove Villas', developer: 'Nakheel', location: 'Palm Jumeirah', type: 'Completed', status: 'Completed', units: 48, sold: 48, completion: 'Q1 2024', price: 'AED 8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d6c5561f-1772578497366.png", alt: 'Palm grove villa', featured: true, published: true },
 { id: 4, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', status: 'Launching', units: 180, sold: 0, completion: 'Q3 2028', price: 'AED 1.8M+', image: "https://img.rocket.new/generatedImages/rocket_gen_img_10fd3b150-1768441578667.png", alt: 'Creek horizon project', featured: false, published: false }];
 
@@ -98,8 +98,8 @@ export default function ProjectsPage() {
   return (
     <Suspense fallback={<div className="p-6 text-muted-foreground text-sm">Loading...</div>}>
       <ProjectsPageInner />
-    </Suspense>
-  );
+    </Suspense>);
+
 }
 
 function ProjectsPageInner() {

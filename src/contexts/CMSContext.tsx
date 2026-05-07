@@ -606,7 +606,7 @@ export const DEFAULT_PROJECT_DETAIL: ProjectDetailContent = {
   similar: [
   { id: 2, name: 'Seraphine Residences', location: 'Beverly Hills, CA', priceFrom: 'From AED 14,000,000', completion: 'Q1 2027', units: 32, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1a5a737aa-1778059435159.png", alt: 'Seraphine Residences luxury tower rendering, flowing organic architecture, dramatic dusk lighting', href: '/projects/2' },
   { id: 3, name: 'The Monarch', location: 'Miami Beach, FL', priceFrom: 'From AED 4,200,000', completion: 'Q4 2026', units: 120, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1064062a9-1778059435164.png", alt: 'The Monarch luxury mixed-use development, geometric white facade, ocean backdrop, golden hour', href: '/projects/3' },
-  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1db286f0f-1778059435816.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
+  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1faf938f1-1778137755172.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
 
 };
 
@@ -809,9 +809,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
       }
     } catch {
 
+
       // use defaults
-    }setLoaded(true);
-  }, []);
+    }setLoaded(true);}, []);
 
   const getPage = useCallback((key: PageKey): PageConfig => {
     return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];
@@ -846,9 +846,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
       localStorage.setItem(CMS_STORAGE_KEY, JSON.stringify({ pages: newPages, branding: newBranding, propertyDetail: pd, projectDetail: prd, lastSaved: ts }));
     } catch {
 
+
       // storage unavailable
     }}, [propertyDetail, projectDetail]);
-
   return (
     <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved }}>
       {children}

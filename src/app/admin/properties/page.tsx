@@ -230,9 +230,9 @@ export default function PropertiesPage() {
           setDraftTime(parsed.savedAt || 'Just now');
         } catch {
 
+
           // ignore
-        }}
-    }
+        }}}
   }, []);
 
   // Auto-save draft when modal is open and form changes
@@ -324,9 +324,9 @@ export default function PropertiesPage() {
           setActiveTab('basic');
         } catch {
 
+
           // ignore
-        }}
-    }
+        }}}
   };
 
   const handleClose = () => {

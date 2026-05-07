@@ -48,7 +48,7 @@ const projectData: Record<string, any> = {
     images: [
     { url: "https://img.rocket.new/generatedImages/rocket_gen_img_1d4a4c643-1772201743362.png", alt: 'Modern residential tower exterior', caption: 'Tower Exterior' },
     { url: "https://images.unsplash.com/photo-1632365627904-2167bf5c9f14", alt: 'Lobby interior', caption: 'Grand Lobby' },
-    { url: "https://images.unsplash.com/photo-1661981390723-d7555367cf2e", alt: 'Swimming pool amenity', caption: 'Infinity Pool' }],
+    { url: "https://img.rocket.new/generatedImages/rocket_gen_img_1b16b7625-1768316070451.png", alt: 'Swimming pool amenity', caption: 'Infinity Pool' }],
 
     floorPlans: [
     { url: "https://img.rocket.new/generatedImages/rocket_gen_img_1c56853fb-1774155639670.png", label: '1BR Floor Plan' },
@@ -103,7 +103,7 @@ const projectData: Record<string, any> = {
     { label: 'Post Handover', percentage: '20%', dueDate: '2027 - 2029' }],
 
     images: [
-    { url: "https://images.unsplash.com/photo-1690710513317-dc76760d409a", alt: 'Marina bay towers', caption: 'Tower Exterior' }],
+    { url: "https://images.unsplash.com/photo-1624268638085-483818378fbe", alt: 'Marina bay towers', caption: 'Tower Exterior' }],
 
     floorPlans: [],
     masterPlanUrl: '',

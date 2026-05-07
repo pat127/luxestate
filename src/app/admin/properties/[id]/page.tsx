@@ -46,7 +46,7 @@ const propertyData: Record<string, any> = {
     images: [
     { url: "https://img.rocket.new/generatedImages/rocket_gen_img_15fed27fb-1772893766018.png", alt: 'Luxury penthouse interior living room', caption: 'Main Living Area' },
     { url: "https://img.rocket.new/generatedImages/rocket_gen_img_19dade3f5-1772296291041.png", alt: 'Penthouse master bedroom', caption: 'Master Bedroom' },
-    { url: "https://img.rocket.new/generatedImages/rocket_gen_img_14c0e775d-1775926655552.png", alt: 'Penthouse kitchen', caption: 'Gourmet Kitchen' },
+    { url: "https://images.unsplash.com/photo-1723470916372-325154109b74", alt: 'Penthouse kitchen', caption: 'Gourmet Kitchen' },
     { url: "https://img.rocket.new/generatedImages/rocket_gen_img_11e0c1171-1773178910220.png", alt: 'Penthouse terrace view', caption: 'Private Terrace' }],
 
     videoUrl: '',
