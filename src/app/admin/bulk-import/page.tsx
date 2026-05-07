@@ -74,7 +74,7 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   properties: {
     label: 'Properties',
     icon: 'HomeIcon',
-    description: 'Import property listings from CSV. Required fields: Name, Price, Type.',
+    description: 'Import property listings from CSV. Required fields: Name, Price, Type, Image URLs.',
     fields: [
       { key: 'title', label: 'Property Title', required: true, type: 'text' },
       { key: 'price', label: 'Price (AED)', required: true, type: 'number' },
@@ -88,7 +88,7 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'status', label: 'Status', required: false, type: 'select' },
       { key: 'reference_number', label: 'Reference Number', required: false, type: 'text' },
       { key: 'agent', label: 'Agent Name', required: false, type: 'text' },
-      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: true, type: 'text' },
       { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
       { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
       { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },
@@ -97,7 +97,7 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   projects: {
     label: 'Projects',
     icon: 'BuildingOffice2Icon',
-    description: 'Import off-plan projects from CSV. Required fields: Name, Developer.',
+    description: 'Import off-plan projects from CSV. Required fields: Name, Developer, Image URLs.',
     fields: [
       { key: 'name', label: 'Project Name', required: true, type: 'text' },
       { key: 'developer', label: 'Developer', required: true, type: 'text' },
@@ -108,7 +108,7 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'starting_price', label: 'Starting Price (AED)', required: false, type: 'number' },
       { key: 'completion', label: 'Completion Date', required: false, type: 'text' },
       { key: 'description', label: 'Description', required: false, type: 'text' },
-      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: true, type: 'text' },
       { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
       { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
       { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },

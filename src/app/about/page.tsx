@@ -235,47 +235,78 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team */}
+      {/* Team — hidden per request */}
+      {/* Meet Our CEO */}
       <section ref={teamRef} id="team" className="py-20 px-6 md:px-10 border-t border-border">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 animate-on-scroll">
             <div>
-              <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">The People</span>
+              <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Leadership</span>
               <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">
-                Meet Our Team
+                Meet Our CEO
               </h2>
             </div>
             <p className="text-muted-foreground text-sm max-w-xs leading-relaxed text-right">
-              Specialists who combine deep local knowledge with global market perspective.
+              Visionary leadership built on two decades of luxury real estate expertise.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children animate-on-scroll">
-            {team.map((member, i) =>
-            <div
-              key={member.name}
-              className="animate-on-scroll group border border-border hover:border-primary/40 transition-all duration-500 overflow-hidden"
-              style={{ transitionDelay: `${i * 80}ms` }}>
-              
-                <div className="relative h-72 overflow-hidden">
-                  <AppImage
-                  src={member.image}
-                  alt={member.alt}
+          <div className="grid lg:grid-cols-2 gap-12 items-center animate-on-scroll">
+            {/* CEO Image */}
+            <div className="relative group overflow-hidden border border-border hover:border-primary/40 transition-all duration-500">
+              <div className="relative h-[520px] overflow-hidden">
+                <AppImage
+                  src={team[0].image}
+                  alt={team[0].alt}
                   fill
                   className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, 25vw" />
-                
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-white font-bold text-base leading-tight">{member.name}</p>
-                    <p className="text-primary text-xs uppercase tracking-widest mt-0.5">{member.role}</p>
-                  </div>
-                </div>
-                <div className="p-5 bg-card">
-                  <p className="text-muted-foreground text-xs leading-relaxed">{member.bio}</p>
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <p className="text-white font-bold text-2xl leading-tight">{team[0].name}</p>
+                  <p className="text-primary text-xs uppercase tracking-widest mt-1">{team[0].role}</p>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* CEO Bio */}
+            <div className="flex flex-col gap-8">
+              <div>
+                <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-4">
+                  {team[0].name}
+                </h3>
+                <p className="text-primary text-xs font-bold uppercase tracking-[0.25em] mb-6">{team[0].role}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                  {team[0].bio}
+                </p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Under his leadership, Cove Estates has grown into Dubai's most trusted luxury real estate advisory, facilitating over AED 8.2 billion in transactions and serving clients across 40+ countries. Alexander's philosophy centres on long-term relationships, absolute discretion, and delivering outcomes that exceed expectations.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { value: '18+', label: 'Years Experience' },
+                  { value: 'AED 8.2B+', label: 'Transactions Led' },
+                  { value: '40+', label: 'Countries Served' },
+                  { value: '1,400+', label: 'Properties Sold' },
+                ].map((stat) => (
+                  <div key={stat.label} className="border border-border p-5 bg-card">
+                    <span className="text-2xl font-black text-primary tracking-tight block">{stat.value}</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-widest mt-1 block">{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <a
+                href={team[0].linkedin}
+                className="inline-flex items-center gap-3 border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-foreground hover:border-primary hover:text-primary transition-all duration-300 w-fit"
+              >
+                <Icon name="UserCircleIcon" size={15} className="text-primary" />
+                Connect on LinkedIn
+              </a>
+            </div>
           </div>
         </div>
       </section>

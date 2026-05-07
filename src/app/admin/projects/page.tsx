@@ -670,75 +670,121 @@ function ProjectsPageInner() {
               {/* LOCATION TAB */}
               {activeTab === 'location' &&
             <div className="space-y-4">
-                  {/* Emirate */}
-                  <div>
-                    <label className={labelCls}>Emirate *</label>
-                    <select
-                  className={inputCls}
-                  value={emirate}
-                  onChange={(e) => {
-                    setEmirate(e.target.value);
-                    const areas = getAreasForEmirate(e.target.value);
-                    setAvailableAreas(areas);
-                    setLocationArea('');
-                    setCommunity('');
-                    setAvailableCommunities([]);
-                  }}>
-                  
-                      {UAE_EMIRATES.map((em) =>
-                  <option key={em} value={em}>{em}</option>
+                  {basicForm.international ? (
+                    /* International project — free-text location fields */
+                    <>
+                      <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/30 mb-2">
+                        <span className="text-blue-400 text-sm">🌐</span>
+                        <p className="text-xs text-blue-300">International project — enter the city and country below. This project will appear on the International page only.</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelCls}>Country *</label>
+                          <input
+                            className={inputCls}
+                            placeholder="e.g., United Kingdom"
+                            value={basicForm.country}
+                            onChange={(e) => setBasicForm({ ...basicForm, country: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>City / Area *</label>
+                          <input
+                            className={inputCls}
+                            placeholder="e.g., London, Mayfair"
+                            value={locationArea}
+                            onChange={(e) => setLocationArea(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Full Address</label>
+                        <input className={inputCls} placeholder="e.g., 10 Downing Street, London SW1A 2AA" value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelCls}>Latitude</label>
+                          <input className={inputCls} placeholder="e.g., 51.5074" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Longitude</label>
+                          <input className={inputCls} placeholder="e.g., -0.1278" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* UAE project — emirate/area/community dropdowns */
+                    <>
+                      {/* Emirate */}
+                      <div>
+                        <label className={labelCls}>Emirate *</label>
+                        <select
+                      className={inputCls}
+                      value={emirate}
+                      onChange={(e) => {
+                        setEmirate(e.target.value);
+                        const areas = getAreasForEmirate(e.target.value);
+                        setAvailableAreas(areas);
+                        setLocationArea('');
+                        setCommunity('');
+                        setAvailableCommunities([]);
+                      }}>
+                      
+                          {UAE_EMIRATES.map((em) =>
+                      <option key={em} value={em}>{em}</option>
+                      )}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelCls}>Area / District *</label>
+                          <select
+                        className={inputCls}
+                        value={locationArea}
+                        onChange={(e) => {
+                          setLocationArea(e.target.value);
+                          const comms = getCommunitiesForArea(e.target.value);
+                          setAvailableCommunities(comms);
+                          setCommunity('');
+                        }}>
+                        
+                            <option value="">Select area...</option>
+                            {availableAreas.map((area) =>
+                        <option key={area} value={area}>{area}</option>
+                        )}
+                          </select>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Community *</label>
+                          <select
+                        className={inputCls}
+                        value={community}
+                        onChange={(e) => setCommunity(e.target.value)}
+                        disabled={availableCommunities.length === 0}>
+                        
+                            <option value="">Select community...</option>
+                            {availableCommunities.map((c) =>
+                        <option key={c} value={c}>{c}</option>
+                        )}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelCls}>Sub Community</label>
+                          <input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Full Address</label>
+                          <input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} />
+                        </div>
+                      </div>
+                      <PinLocationMap
+                    value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
+                    onChange={(val) => {setLatitude(val.lat.toString());setLongitude(val.lng.toString());if (val.address) setFullAddress(val.address);}}
+                    label="Pin Location on Map" />
+                    </>
                   )}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Area / District *</label>
-                      <select
-                    className={inputCls}
-                    value={locationArea}
-                    onChange={(e) => {
-                      setLocationArea(e.target.value);
-                      const comms = getCommunitiesForArea(e.target.value);
-                      setAvailableCommunities(comms);
-                      setCommunity('');
-                    }}>
-                    
-                        <option value="">Select area...</option>
-                        {availableAreas.map((area) =>
-                    <option key={area} value={area}>{area}</option>
-                    )}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Community *</label>
-                      <select
-                    className={inputCls}
-                    value={community}
-                    onChange={(e) => setCommunity(e.target.value)}
-                    disabled={availableCommunities.length === 0}>
-                    
-                        <option value="">Select community...</option>
-                        {availableCommunities.map((c) =>
-                    <option key={c} value={c}>{c}</option>
-                    )}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Sub Community</label>
-                      <input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Full Address</label>
-                      <input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} />
-                    </div>
-                  </div>
-                  <PinLocationMap
-                value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
-                onChange={(val) => {setLatitude(val.lat.toString());setLongitude(val.lng.toString());if (val.address) setFullAddress(val.address);}}
-                label="Pin Location on Map" />
-              
                 </div>
             }
 
