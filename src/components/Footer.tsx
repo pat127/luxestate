@@ -15,7 +15,7 @@ const propertyLinks = [
   { label: 'Residential', href: '/residential' },
   { label: 'Commercial', href: '/commercial' },
   { label: 'Off-Plan Projects', href: '/projects' },
-  { label: 'New Developments', href: '/projects' },
+  { label: 'International', href: '/international' },
   { label: 'Investment Properties', href: '/residential' },
 ];
 

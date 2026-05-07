@@ -5,7 +5,10 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import Link from 'next/link';
 
-const projects = [
+const PROJECTS_STORAGE_KEY = 'admin_projects';
+
+// Fallback static projects (non-international)
+const staticProjects = [
 {
   id: 1,
   name: 'One Obsidian Tower',
@@ -23,7 +26,8 @@ const projects = [
   alt: 'Dramatic architectural rendering of luxury tower, dark glass and steel, Hudson Yards skyline, cinematic dusk lighting, deep shadows',
   description: 'A 62-story residential tower defining the Hudson Yards skyline. Each residence features floor-to-ceiling glass, private sky terraces, and unobstructed river views.',
   featured: true,
-  colSpan: 'md:col-span-2'
+  colSpan: 'md:col-span-2',
+  international: false,
 },
 {
   id: 2,
@@ -42,7 +46,8 @@ const projects = [
   alt: 'Futuristic luxury residence rendering, flowing organic architecture, Beverly Hills hillside, dramatic dusk lighting',
   description: '32 ultra-luxury residences with fluid, organic architecture by Zaha Hadid. Private pools, rooftop lounges, and concierge services included.',
   featured: false,
-  colSpan: 'md:col-span-1'
+  colSpan: 'md:col-span-1',
+  international: false,
 },
 {
   id: 3,
@@ -61,7 +66,8 @@ const projects = [
   alt: 'Luxury Miami Beach mixed-use development rendering, geometric white facade, palm trees, dramatic ocean backdrop, golden hour lighting',
   description: "BIG\'s signature stacked-volume design creates 120 residences above curated retail and a members-only beach club on the most coveted stretch of Miami Beach.",
   featured: false,
-  colSpan: 'md:col-span-1'
+  colSpan: 'md:col-span-1',
+  international: false,
 },
 {
   id: 4,
@@ -80,7 +86,8 @@ const projects = [
   alt: 'Modern tech campus architectural rendering, dark glass buildings, dramatic Silicon Valley dusk lighting, geometric precision',
   description: 'Three interconnected Class A office buildings designed for the next generation of technology companies. Net-zero carbon, LEED Platinum certified.',
   featured: false,
-  colSpan: 'md:col-span-2'
+  colSpan: 'md:col-span-2',
+  international: false,
 },
 {
   id: 5,
@@ -99,7 +106,8 @@ const projects = [
   alt: 'Dark luxury lakefront residences, Kengo Kuma natural material architecture, Chicago lake at night, dramatic atmospheric lighting',
   description: "Kengo Kuma\'s nature-inspired materiality meets Chicago\'s dramatic lakefront. Only 3 residences remain in this nearly sold-out collection.",
   featured: false,
-  colSpan: 'md:col-span-1'
+  colSpan: 'md:col-span-1',
+  international: false,
 },
 {
   id: 6,
@@ -118,16 +126,58 @@ const projects = [
   alt: 'Elegant luxury estate development rendering, classical modern architecture, Connecticut countryside, dramatic overcast sky',
   description: '22 estate residences on 40 acres of private Greenwich land. Rafael Moneo\'s timeless masonry architecture with private equestrian facilities.',
   featured: false,
-  colSpan: 'md:col-span-1'
+  colSpan: 'md:col-span-1',
+  international: false,
 }];
 
 
 export default function ProjectsGallery() {
   const [activeType, setActiveType] = useState('All');
+  const [displayProjects, setDisplayProjects] = useState(staticProjects);
   const sectionRef = useRef<HTMLElement>(null);
   const types = ['All', 'Residential', 'Commercial', 'Mixed-Use'];
 
-  const filtered = projects.filter((p) => activeType === 'All' || p.type === activeType);
+  // Load from admin storage and exclude international projects
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      if (stored) {
+        const adminProjects = JSON.parse(stored);
+        // Filter out international projects — they belong on the International page
+        const localProjects = adminProjects.filter((p: any) => !p.international && p.published !== false);
+        if (localProjects.length > 0) {
+          // Merge with static data shape for display
+          const merged = localProjects.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            developer: p.developer,
+            architect: p.developer,
+            location: p.location,
+            completion: p.completion,
+            units: p.units,
+            priceFrom: p.price,
+            status: p.status === 'Active' ? 'Selling Now' : p.status,
+            statusColor: 'text-primary border-primary/30 bg-primary/10',
+            sold: p.sold,
+            type: p.type === 'Off-Plan' ? 'Residential' : p.type,
+            image: p.image,
+            alt: p.alt,
+            description: '',
+            featured: p.featured || false,
+            colSpan: p.featured ? 'md:col-span-2' : 'md:col-span-1',
+            international: false,
+          }));
+          setDisplayProjects(merged);
+          return;
+        }
+      }
+    } catch {
+      // fall through to static
+    }
+    setDisplayProjects(staticProjects);
+  }, []);
+
+  const filtered = displayProjects.filter((p) => activeType === 'All' || p.type === activeType);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

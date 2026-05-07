@@ -22,6 +22,8 @@ interface Project {
   alt: string;
   featured?: boolean;
   published?: boolean;
+  international?: boolean;
+  country?: string;
 }
 
 interface UnitType {id: number;name: string;size: string;price: string;}
@@ -87,11 +89,13 @@ const TABS: {id: TabId;label: string;}[] = [
 interface ProjectFormState {
   name: string;developer: string;description: string;type: string;status: string;
   startingPrice: string;handoverDate: string;completionYear: string;featured: boolean;published: boolean;
+  international: boolean;country: string;
 }
 
 const emptyBasicForm: ProjectFormState = {
   name: '', developer: '', description: '', type: 'Off-Plan', status: 'Active',
-  startingPrice: '', handoverDate: '', completionYear: '', featured: false, published: false
+  startingPrice: '', handoverDate: '', completionYear: '', featured: false, published: false,
+  international: false, country: ''
 };
 
 export default function ProjectsPage() {
@@ -303,7 +307,9 @@ function ProjectsPageInner() {
       handoverDate: project.completion,
       completionYear: '',
       featured: project.featured || false,
-      published: project.published || false
+      published: project.published || false,
+      international: project.international || false,
+      country: project.country || ''
     });
     setLocationArea(project.location);
     setEmirate('Dubai');
@@ -325,7 +331,9 @@ function ProjectsPageInner() {
         completion: basicForm.handoverDate || p.completion,
         location: locationArea || p.location,
         featured: basicForm.featured,
-        published: basicForm.published
+        published: basicForm.published,
+        international: basicForm.international,
+        country: basicForm.country
       } : p));
     } else {
       updateProjectList([...projectList, {
@@ -342,7 +350,9 @@ function ProjectsPageInner() {
         image: projectImages[0]?.url || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
         alt: basicForm.name,
         featured: basicForm.featured,
-        published: basicForm.published
+        published: basicForm.published,
+        international: basicForm.international,
+        country: basicForm.country
       }]);
     }
     setShowModal(false);
@@ -425,6 +435,7 @@ function ProjectsPageInner() {
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-primary text-primary-foreground">{project.type}</span>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[project.status] || ''}`}>{project.status}</span>
                   {project.featured && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-yellow-500/20 text-yellow-400">Featured</span>}
+                  {project.international && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-blue-500/20 text-blue-400 flex items-center gap-1">🌐 Intl</span>}
                   {project.published === false && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
                 </div>
                 <div className="absolute bottom-3 left-4 right-4">
@@ -573,7 +584,23 @@ function ProjectsPageInner() {
                       <input type="checkbox" checked={basicForm.published} onChange={(e) => setBasicForm({ ...basicForm, published: e.target.checked })} className="accent-[#c9a84c]" />
                       <span className="text-sm text-[#aaa]">Published</span>
                     </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={basicForm.international} onChange={(e) => setBasicForm({ ...basicForm, international: e.target.checked })} className="accent-[#c9a84c]" />
+                      <span className="text-sm text-[#aaa]">International</span>
+                    </label>
                   </div>
+                  {basicForm.international && (
+                    <div>
+                      <label className={labelCls}>Country *</label>
+                      <input
+                        className={inputCls}
+                        placeholder="e.g., United Kingdom, United States, France"
+                        value={basicForm.country}
+                        onChange={(e) => setBasicForm({ ...basicForm, country: e.target.value })}
+                      />
+                      <p className="text-xs text-[#555] mt-1">This project will appear on the International page only, not the main Projects page.</p>
+                    </div>
+                  )}
                 </div>
             }
 
