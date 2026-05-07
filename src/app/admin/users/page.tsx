@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 type UserRole = 'super_admin' | 'admin' | 'marketing' | 'agent';
@@ -61,7 +61,9 @@ const roleColors: Record<UserRole, string> = {
   agent: 'text-emerald-400 bg-emerald-400/10',
 };
 
-const initialUsers: User[] = [
+const STORAGE_KEY = 'admin_users';
+
+const seedUsers: User[] = [
   { id: 1, name: 'CEO Admin', email: 'ceo@luxestate.com', role: 'super_admin', status: 'Active', lastLogin: 'Today', permissions: { ...DEFAULT_PERMISSIONS.super_admin } },
   { id: 2, name: 'Admin Manager', email: 'admin@luxestate.com', role: 'admin', status: 'Active', lastLogin: '2 hours ago', permissions: { ...DEFAULT_PERMISSIONS.admin } },
   { id: 3, name: 'Marketing Team', email: 'marketing@luxestate.com', role: 'marketing', status: 'Active', lastLogin: 'Yesterday', permissions: { ...DEFAULT_PERMISSIONS.marketing } },
@@ -69,6 +71,21 @@ const initialUsers: User[] = [
   { id: 5, name: 'James Carter', email: 'james@luxestate.com', role: 'agent', status: 'Active', lastLogin: 'Yesterday', permissions: { ...DEFAULT_PERMISSIONS.agent } },
   { id: 6, name: 'Omar Hassan', email: 'omar@luxestate.com', role: 'agent', status: 'Active', lastLogin: '3 days ago', permissions: { ...DEFAULT_PERMISSIONS.agent } },
 ];
+
+function loadUsers(): User[] {
+  if (typeof window === 'undefined') return seedUsers;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as User[];
+  } catch {}
+  return seedUsers;
+}
+
+function saveUsers(users: User[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  } catch {}
+}
 
 interface UserForm {
   name: string;
@@ -90,7 +107,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>(seedUsers);
+  const [hydrated, setHydrated] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showPermModal, setShowPermModal] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -98,6 +116,25 @@ export default function UsersPage() {
   const [form, setForm] = useState<UserForm>({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent } });
   const [filterRole, setFilterRole] = useState<'all' | UserRole>('all');
   const [activeRoleTab, setActiveRoleTab] = useState<UserRole>('super_admin');
+  const [saveNotice, setSaveNotice] = useState(false);
+
+  // Load from localStorage after hydration
+  useEffect(() => {
+    setUsers(loadUsers());
+    setHydrated(true);
+  }, []);
+
+  // Persist users to localStorage whenever they change (after hydration)
+  useEffect(() => {
+    if (hydrated) {
+      saveUsers(users);
+    }
+  }, [users, hydrated]);
+
+  const showSaved = () => {
+    setSaveNotice(true);
+    setTimeout(() => setSaveNotice(false), 2000);
+  };
 
   const filtered = filterRole === 'all' ? users : users.filter((u) => u.role === filterRole);
 
@@ -126,14 +163,19 @@ export default function UsersPage() {
       setUsers([...users, { id: Date.now(), ...form, lastLogin: 'Never' }]);
     }
     setShowModal(false);
+    showSaved();
   };
 
-  const handleDelete = (id: number) => setUsers(users.filter((u) => u.id !== id));
+  const handleDelete = (id: number) => {
+    setUsers(users.filter((u) => u.id !== id));
+    showSaved();
+  };
 
   const handleSavePermissions = () => {
     if (!permUser) return;
     setUsers(users.map((u) => u.id === permUser.id ? { ...u, permissions: { ...permUser.permissions } } : u));
     setShowPermModal(false);
+    showSaved();
   };
 
   const togglePermUser = (key: string) => {
@@ -158,10 +200,17 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{users.length} team members</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-          <Icon name="PlusIcon" size={14} />
-          Invite User
-        </button>
+        <div className="flex items-center gap-3">
+          {saveNotice && (
+            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+              <Icon name="CheckIcon" size={13} /> Saved
+            </span>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+            <Icon name="PlusIcon" size={14} />
+            Invite User
+          </button>
+        </div>
       </div>
 
       {/* Role Summary Cards */}
