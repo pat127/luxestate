@@ -98,15 +98,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2">
               <div className="w-6 h-6 bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground text-xs font-black">L</span>
+                <span className="text-primary-foreground text-xs font-black">C</span>
               </div>
-              <span className="text-foreground font-bold text-sm tracking-tight">LuxEstate</span>
+              <span className="text-foreground font-bold text-sm tracking-tight">Cove Estates</span>
               <span className="text-muted-foreground text-xs">Admin</span>
             </Link>
           )}
           {collapsed && (
             <div className="w-6 h-6 bg-primary flex items-center justify-center mx-auto">
-              <span className="text-primary-foreground text-xs font-black">L</span>
+              <span className="text-primary-foreground text-xs font-black">C</span>
             </div>
           )}
           <button

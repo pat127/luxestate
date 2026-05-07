@@ -735,6 +735,7 @@ interface CMSContextValue {
   updateProjectDetail: (p: ProjectDetailContent) => void;
   saveAll: (pages: PageConfig[], branding: BrandingConfig, propertyDetail?: PropertyDetailContent, projectDetail?: ProjectDetailContent) => void;
   lastSaved?: string;
+  loaded: boolean;
 }
 
 const CMSContext = createContext<CMSContextValue>({
@@ -747,7 +748,8 @@ const CMSContext = createContext<CMSContextValue>({
   updateBranding: () => {},
   updatePropertyDetail: () => {},
   updateProjectDetail: () => {},
-  saveAll: () => {}
+  saveAll: () => {},
+  loaded: false,
 });
 
 function mergeWithDefaults(stored: PageConfig): PageConfig {
@@ -850,7 +852,7 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
       // storage unavailable
     }}, [propertyDetail, projectDetail]);
   return (
-    <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved }}>
+    <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
       {children}
     </CMSContext.Provider>);
 

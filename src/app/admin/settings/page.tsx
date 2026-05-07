@@ -1209,7 +1209,7 @@ function CommunitiesManager() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { pages: cmsPages, branding: cmsBranding, propertyDetail: cmsPropertyDetail, projectDetail: cmsProjectDetail, saveAll, lastSaved } = useCMS();
+  const { pages: cmsPages, branding: cmsBranding, propertyDetail: cmsPropertyDetail, projectDetail: cmsProjectDetail, saveAll, lastSaved, loaded } = useCMS();
   const [activeTab, setActiveTab] = useState<SettingsTab>('Company');
   const [saved, setSaved] = useState(false);
   const [pages, setPages] = useState<PageConfig[]>(cmsPages);
@@ -1221,16 +1221,16 @@ export default function SettingsPage() {
   const logoInputRef = React.useRef<HTMLInputElement>(null);
   const initializedRef = React.useRef(false);
 
-  // Sync from CMS context only on first load (not on every render)
+  // Sync from CMS context only after localStorage has loaded (not on every render)
   React.useEffect(() => {
-    if (!initializedRef.current && (cmsPages.length > 0 || cmsBranding.company_name)) {
+    if (!initializedRef.current && loaded) {
       setPages(cmsPages);
       setBranding(cmsBranding);
       setPropertyDetail(cmsPropertyDetail);
       setProjectDetail(cmsProjectDetail);
       initializedRef.current = true;
     }
-  }, [cmsPages, cmsBranding, cmsPropertyDetail, cmsProjectDetail]);
+  }, [loaded, cmsPages, cmsBranding, cmsPropertyDetail, cmsProjectDetail]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1436,6 +1436,21 @@ export default function SettingsPage() {
                   Remove logo
                 </button>
               )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Logo URL (ImageKit / CDN)</label>
+              <input
+                type="text"
+                value={branding.logo_url && !branding.logo_url.startsWith('data:') ? branding.logo_url : ''}
+                onChange={(e) => {
+                  const url = e.target.value.trim();
+                  setLogoPreview(null);
+                  setBranding((prev) => ({ ...prev, logo_url: url || undefined }));
+                }}
+                placeholder="https://ik.imagekit.io/your-id/logo.png"
+                className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Paste an ImageKit or any CDN URL directly. This takes priority over the uploaded file above.</p>
             </div>
           </div>
         )}

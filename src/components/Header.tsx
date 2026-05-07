@@ -71,7 +71,7 @@ export default function Header() {
                 href={link?.href}
                 className={`px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all duration-300 relative group ${
                   pathname === link?.href
-                    ? 'text-primary' :'text-muted-foreground hover:text-foreground'
+                    ? 'text-primary' :'text-white hover:text-primary'
                 }`}
               >
                 {link?.label}
