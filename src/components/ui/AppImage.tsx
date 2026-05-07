@@ -48,6 +48,10 @@ const AppImage = memo(function AppImage({
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
 
+    // Auto-detect external URLs — skip Next.js optimization for external CDNs
+    const isExternal = typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'));
+    const shouldUnoptimize = unoptimized || isExternal;
+
     const handleError = useCallback(() => {
         if (!hasError && imageSrc !== fallbackSrc) {
             setImageSrc(fallbackSrc);
@@ -74,7 +78,7 @@ const AppImage = memo(function AppImage({
             alt,
             className: imageClassName,
             quality,
-            unoptimized,
+            unoptimized: shouldUnoptimize,
             onError: handleError,
             onLoad: handleLoad,
             onClick,
