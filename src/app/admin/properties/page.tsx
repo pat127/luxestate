@@ -23,6 +23,9 @@ interface Property {
   image: string;
   alt: string;
   agent: string;
+  propertyType?: string;
+  featuredProperty?: boolean;
+  published?: boolean;
 }
 
 interface PropertyFormData {
@@ -122,12 +125,7 @@ const DRAFT_KEY = 'property_draft';
 const PROPERTIES_STORAGE_KEY = 'admin_properties';
 const IMPORT_STORAGE_KEY = 'imported_properties';
 
-const properties: Property[] = [
-{ id: 1, name: 'Obsidian Penthouse', location: 'Downtown Dubai', price: 'AED 28,500,000', type: 'Residential', status: 'Available', beds: 5, baths: 6, sqft: '8,200', image: "https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png", alt: 'Luxury penthouse interior', agent: 'Sarah Mitchell' },
-{ id: 2, name: 'Meridian Villa', location: 'Palm Jumeirah', price: 'AED 42,000,000', type: 'Residential', status: 'Under Offer', beds: 7, baths: 9, sqft: '14,500', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b9553347-1774335786277.png", alt: 'Modern villa exterior', agent: 'James Carter' },
-{ id: 3, name: 'Atlas Tower Office', location: 'DIFC', price: 'AED 12,000,000', type: 'Commercial', status: 'Available', sqft: '5,400', image: "https://img.rocket.new/generatedImages/rocket_gen_img_14a2a68a0-1772770575920.png", alt: 'Modern office tower', agent: 'Omar Hassan' },
-{ id: 4, name: 'The Crescent Retail', location: 'JBR', price: 'AED 8,500,000', type: 'Commercial', status: 'Sold', sqft: '3,200', image: "https://images.unsplash.com/photo-1613724962881-c5171beaeea2", alt: 'Retail space interior', agent: 'Priya Sharma' },
-{ id: 5, name: 'Vantage Estate', location: 'Emirates Hills', price: 'AED 65,000,000', type: 'Residential', status: 'Available', beds: 9, baths: 11, sqft: '22,000', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16f9fcd79-1766746361345.png", alt: 'Luxury estate exterior', agent: 'Sarah Mitchell' }];
+const properties: Property[] = [];
 
 
 function loadProperties(): Property[] {
@@ -192,6 +190,20 @@ export default function PropertiesPage() {
 
   // Load from localStorage on mount
   useEffect(() => {
+    // One-time migration: remove old hardcoded seed data (ids 1-5)
+    const SEED_MIGRATION_KEY = 'admin_properties_seed_cleared_v2';
+    if (!localStorage.getItem(SEED_MIGRATION_KEY)) {
+      const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed: Property[] = JSON.parse(stored);
+          const SEED_IDS = new Set([1, 2, 3, 4, 5]);
+          const cleaned = parsed.filter((p) => !SEED_IDS.has(p.id));
+          localStorage.setItem(PROPERTIES_STORAGE_KEY, JSON.stringify(cleaned));
+        } catch { /* ignore */ }
+      }
+      localStorage.setItem(SEED_MIGRATION_KEY, '1');
+    }
     setPropertyList(loadProperties());
   }, []);
 
@@ -356,6 +368,9 @@ export default function PropertiesPage() {
   };
 
   const handleCreateProperty = () => {
+    const commercialTypes = ['Office', 'Retail', 'Warehouse', 'Mixed-Use', 'Hospitality'];
+    const derivedType: 'Residential' | 'Commercial' = commercialTypes.includes(formData.propertyType) ? 'Commercial' : 'Residential';
+
     if (editingProperty) {
       const updated = propertyList.map((p) =>
       p.id === editingProperty.id ?
@@ -364,10 +379,16 @@ export default function PropertiesPage() {
         name: formData.title || p.name,
         location: formData.locationArea || p.location,
         price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : p.price,
+        type: derivedType,
         status: formData.availability || p.status,
         beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
         baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
-        sqft: formData.areaSqFt || p.sqft
+        sqft: formData.areaSqFt || p.sqft,
+        propertyType: formData.propertyType || p.propertyType,
+        featuredProperty: formData.featuredProperty,
+        published: formData.published,
+        image: formData.imageUrls ? formData.imageUrls.split(',')[0].trim() || p.image : p.image,
+        alt: formData.title || p.alt,
       } :
       p
       );
@@ -378,14 +399,17 @@ export default function PropertiesPage() {
         name: formData.title || 'New Property',
         location: formData.locationArea || '',
         price: formData.priceAED ? `AED ${parseInt(formData.priceAED).toLocaleString()}` : 'TBD',
-        type: ['Office', 'Retail', 'Warehouse'].includes(formData.propertyType) ? 'Commercial' : 'Residential',
+        type: derivedType,
         status: formData.availability || 'Available',
         beds: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
         baths: formData.bathrooms ? parseInt(formData.bathrooms) : undefined,
         sqft: formData.areaSqFt || '',
         image: formData.imageUrls.split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
         alt: formData.title || 'Property',
-        agent: ''
+        agent: '',
+        propertyType: formData.propertyType || 'Apartment',
+        featuredProperty: formData.featuredProperty,
+        published: formData.published,
       };
       updatePropertyList([...propertyList, newProp]);
     }

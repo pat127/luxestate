@@ -10,7 +10,7 @@ interface Property {
   name: string;
   location: string;
   price: string;
-  type: 'Residential' | 'Commercial';
+  type: string;
   status: string;
   beds?: number;
   baths?: number;
@@ -23,27 +23,23 @@ interface Property {
   published?: boolean;
 }
 
-const PROPERTIES_STORAGE_KEY = 'admin_properties';
-const IMPORT_STORAGE_KEY = 'imported_properties';
+const STORAGE_KEY = 'admin_properties';
+const IMPORT_KEY = 'imported_properties';
 
-function loadResidentialProperties(): Property[] {
-  if (typeof window === 'undefined') return [];
+function readAllProperties(): Property[] {
   try {
-    const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
-    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
-    let base: Property[] = stored ? JSON.parse(stored) : [];
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const base: Property[] = raw ? JSON.parse(raw) : [];
+    const importedRaw = localStorage.getItem(IMPORT_KEY);
+    const imported: Property[] = importedRaw ? JSON.parse(importedRaw) : [];
     const existingIds = new Set(base.map((p) => p.id));
-    const newImports = imported.filter((p) => !existingIds.has(p.id));
-    if (newImports.length > 0) {
-      base = [...base, ...newImports];
-    }
-    return base.filter((p) => p.type === 'Residential');
+    const merged = [...base, ...imported.filter((p) => !existingIds.has(p.id))];
+    return merged;
   } catch {
     return [];
   }
 }
 
-// Map property type to tag label
 function getTag(p: Property): string {
   return p.propertyType || 'Residential';
 }
@@ -57,11 +53,33 @@ export default function ResidentialListings() {
   const [listings, setListings] = useState<Property[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
 
+  function refresh() {
+    const all = readAllProperties();
+    const residential = all.filter(
+      (p) => (p.type || '').toLowerCase() === 'residential'
+    );
+    setListings(residential);
+  }
+
   useEffect(() => {
-    setListings(loadResidentialProperties());
+    refresh();
+
+    // Listen for storage changes from other tabs/windows
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY || e.key === IMPORT_KEY) refresh();
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Poll every 2 seconds to catch same-tab admin changes
+    const interval = setInterval(refresh, 2000);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      clearInterval(interval);
+    };
   }, []);
 
-  const filters = ['All', 'Apartment', 'Villa', 'Penthouse', 'Townhouse', 'Duplex', 'Land'];
+  const filters = ['All', 'Apartment', 'Villa', 'Penthouse', 'Townhouse', 'Duplex', 'Studio', 'Land'];
 
   const filtered = listings.filter((l) => activeFilter === 'All' || getTag(l) === activeFilter);
 
@@ -130,7 +148,6 @@ export default function ResidentialListings() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Sort */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortKey)}
@@ -141,7 +158,6 @@ export default function ResidentialListings() {
             <option value="newest">Newest First</option>
           </select>
 
-          {/* View Toggle */}
           <div className="flex border border-border">
             <button
               onClick={() => setViewMode('grid')}
