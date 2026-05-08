@@ -21,21 +21,19 @@ interface Lead {
 const LEADS_STORAGE_KEY = 'admin_leads';
 const IMPORT_STORAGE_KEY = 'imported_leads';
 
-const seedLeads: Lead[] = [
-  { id: 1, name: 'Alexander Webb', email: 'alex@example.com', phone: '+971 50 111 2222', source: 'Website', status: 'New', budget: 'AED 5M+', interest: 'Penthouse', date: 'Today', assignedAgent: 'Sarah Mitchell', nationality: 'British' },
-  { id: 2, name: 'Natasha Ivanova', email: 'natasha@example.com', phone: '+971 55 333 4444', source: 'Referral', status: 'Contacted', budget: 'AED 2-5M', interest: 'Villa', date: 'Yesterday', assignedAgent: 'Omar Hassan', nationality: 'Russian' },
-  { id: 3, name: 'Omar Al-Farsi', email: 'omar@example.com', phone: '+971 52 555 6666', source: 'Instagram', status: 'Qualified', budget: 'AED 10M+', interest: 'Commercial', date: '3 days ago', assignedAgent: 'James Carter', nationality: 'Emirati' },
-  { id: 4, name: 'Emily Thornton', email: 'emily@example.com', phone: '+971 56 777 8888', source: 'LinkedIn', status: 'Proposal', budget: 'AED 1-2M', interest: 'Apartment', date: '1 week ago', assignedAgent: 'Priya Sharma', nationality: 'Australian' },
-  { id: 5, name: 'Raj Patel', email: 'raj@example.com', phone: '+971 58 999 0000', source: 'Walk-in', status: 'Negotiation', budget: 'AED 3-5M', interest: 'Townhouse', date: '2 weeks ago', assignedAgent: 'Sarah Mitchell', nationality: 'Indian' },
-  { id: 6, name: 'Chloe Beaumont', email: 'chloe@example.com', phone: '+971 50 222 3333', source: 'Website', status: 'Lost', budget: 'AED 500K-1M', interest: 'Studio', date: '1 month ago', assignedAgent: 'James Carter', nationality: 'French' },
-];
+const seedLeads: Lead[] = [];
 
 function loadLeads(): Lead[] {
-  if (typeof window === 'undefined') return seedLeads;
+  if (typeof window === 'undefined') return [];
   try {
     const stored = localStorage.getItem(LEADS_STORAGE_KEY);
     const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Lead[];
-    let base: Lead[] = stored ? JSON.parse(stored) : seedLeads;
+    // Only use seed if localStorage key has never been set (first visit)
+    const hasBeenInitialized = localStorage.getItem('admin_leads_initialized');
+    let base: Lead[] = stored ? JSON.parse(stored) : (hasBeenInitialized ? [] : []);
+    if (!hasBeenInitialized && !stored) {
+      localStorage.setItem('admin_leads_initialized', '1');
+    }
     // Merge imported leads that aren't already in base (by id)
     const existingIds = new Set(base.map(l => l.id));
     const newImports = imported.filter(l => !existingIds.has(l.id));
@@ -47,7 +45,7 @@ function loadLeads(): Lead[] {
     }
     return base;
   } catch {
-    return seedLeads;
+    return [];
   }
 }
 
