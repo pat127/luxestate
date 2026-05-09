@@ -65,6 +65,36 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
   );
 }
 
+function loadFeaturedProperties(): PropertyItem[] {
+  try {
+    const stored = localStorage.getItem('admin_properties');
+    if (!stored) return [];
+    const adminProps = JSON.parse(stored) as Array<{
+      id: number; name: string; location: string; price: string;
+      beds?: number; baths?: number; sqft: string; image: string; alt: string;
+      status?: string; type?: string; featured?: boolean; published?: boolean;
+    }>;
+    // First try featured=true, fallback to published=true
+    const featured = adminProps.filter((p) => p.featured === true);
+    const source = featured.length > 0 ? featured : adminProps.filter((p) => p.published === true || p.published === undefined);
+    return source.map((p) => ({
+      id: p.id,
+      name: p.name,
+      location: p.location,
+      price: p.price,
+      beds: p.beds ?? 0,
+      baths: p.baths ?? 0,
+      sqft: p.sqft,
+      tag: p.status || 'For Sale',
+      href: `/properties/${p.id}`,
+      image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+      alt: p.alt || p.name,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default function FeaturedProperties({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROPERTIES;
@@ -73,36 +103,17 @@ export default function FeaturedProperties({ content }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Load ONLY admin-managed properties from localStorage
-    try {
-      const stored = localStorage.getItem('admin_properties');
-      if (stored) {
-        const adminProps = JSON.parse(stored) as Array<{
-          id: number; name: string; location: string; price: string;
-          beds?: number; baths?: number; sqft: string; image: string; alt: string;
-          status?: string; type?: string; featured?: boolean; published?: boolean;
-        }>;
-        const adminConverted: PropertyItem[] = adminProps
-          .filter((p) => p.featured === true)
-          .map((p) => ({
-            id: p.id,
-            name: p.name,
-            location: p.location,
-            price: p.price,
-            beds: p.beds ?? 0,
-            baths: p.baths ?? 0,
-            sqft: p.sqft,
-            tag: p.status || 'For Sale',
-            href: `/properties/${p.id}`,
-            image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-            alt: p.alt || p.name,
-          }));
-        setAllProperties(adminConverted);
-      }
-    } catch {
-      // no-op
-    }
+    setAllProperties(loadFeaturedProperties());
     setLoaded(true);
+
+    // Re-load when admin saves data in another tab
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'admin_properties') {
+        setAllProperties(loadFeaturedProperties());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   useEffect(() => {

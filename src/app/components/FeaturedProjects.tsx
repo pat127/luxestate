@@ -71,6 +71,38 @@ function ProjectCard({ project, priority = false, wide = false }: {
   );
 }
 
+function loadFeaturedProjects(): ProjectItem[] {
+  try {
+    const stored = localStorage.getItem('admin_projects');
+    if (!stored) return [];
+    const adminProjects = JSON.parse(stored) as Array<{
+      id: number; name: string; developer: string; location: string;
+      type: string; completion: string; price: string; units: number;
+      sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
+      international?: boolean;
+    }>;
+    // First try featured=true, fallback to published=true
+    const featured = adminProjects.filter((p) => p.featured === true);
+    const source = featured.length > 0 ? featured : adminProjects.filter((p) => p.published === true || p.published === undefined);
+    return source.map((p) => ({
+      id: p.id,
+      name: p.name,
+      developer: p.developer,
+      location: p.location,
+      type: p.type,
+      completion: p.completion,
+      price: p.price,
+      units: p.units,
+      sold: p.sold,
+      image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+      alt: p.alt || p.name,
+      tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default function FeaturedProjects({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
@@ -79,38 +111,17 @@ export default function FeaturedProjects({ content }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Load ONLY admin-managed projects from localStorage
-    try {
-      const stored = localStorage.getItem('admin_projects');
-      if (stored) {
-        const adminProjects = JSON.parse(stored) as Array<{
-          id: number; name: string; developer: string; location: string;
-          type: string; completion: string; price: string; units: number;
-          sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
-          international?: boolean;
-        }>;
-        const adminConverted: ProjectItem[] = adminProjects
-          .filter((p) => p.featured === true)
-          .map((p) => ({
-            id: p.id,
-            name: p.name,
-            developer: p.developer,
-            location: p.location,
-            type: p.type,
-            completion: p.completion,
-            price: p.price,
-            units: p.units,
-            sold: p.sold,
-            image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-            alt: p.alt || p.name,
-            tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
-          }));
-        setAllProjects(adminConverted);
-      }
-    } catch {
-      // no-op
-    }
+    setAllProjects(loadFeaturedProjects());
     setLoaded(true);
+
+    // Re-load when admin saves data in another tab
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'admin_projects') {
+        setAllProjects(loadFeaturedProjects());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   useEffect(() => {

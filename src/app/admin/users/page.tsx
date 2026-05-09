@@ -87,12 +87,22 @@ function saveUsers(users: User[]) {
   } catch {}
 }
 
+function generatePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let pwd = '';
+  for (let i = 0; i < 12; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pwd;
+}
+
 interface UserForm {
   name: string;
   email: string;
   role: UserRole;
   status: 'Active' | 'Inactive';
   permissions: Permissions;
+  password: string;
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -106,6 +116,23 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+
+async function sendWelcomeEmail(name: string, email: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data.error || 'Failed to send email' };
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>(seedUsers);
   const [hydrated, setHydrated] = useState(false);
@@ -113,10 +140,13 @@ export default function UsersPage() {
   const [showPermModal, setShowPermModal] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [permUser, setPermUser] = useState<User | null>(null);
-  const [form, setForm] = useState<UserForm>({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent } });
+  const [form, setForm] = useState<UserForm>({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent }, password: '' });
   const [filterRole, setFilterRole] = useState<'all' | UserRole>('all');
   const [activeRoleTab, setActiveRoleTab] = useState<UserRole>('super_admin');
   const [saveNotice, setSaveNotice] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailError, setEmailError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load from localStorage after hydration
   useEffect(() => {
@@ -140,13 +170,18 @@ export default function UsersPage() {
 
   const openNew = () => {
     setEditUser(null);
-    setForm({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent } });
+    let pwd = generatePassword();
+    setForm({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent }, password: pwd });
+    setEmailStatus('idle');
+    setEmailError('');
     setShowModal(true);
   };
 
   const openEdit = (u: User) => {
     setEditUser(u);
-    setForm({ name: u.name, email: u.email, role: u.role, status: u.status, permissions: { ...u.permissions } });
+    setForm({ name: u.name, email: u.email, role: u.role, status: u.status, permissions: { ...u.permissions }, password: '' });
+    setEmailStatus('idle');
+    setEmailError('');
     setShowModal(true);
   };
 
@@ -155,15 +190,36 @@ export default function UsersPage() {
     setShowPermModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.email) return;
+    setIsSaving(true);
+
     if (editUser) {
       setUsers(users.map((u) => u.id === editUser.id ? { ...u, ...form } : u));
+      setShowModal(false);
+      showSaved();
+      setIsSaving(false);
     } else {
-      setUsers([...users, { id: Date.now(), ...form, lastLogin: 'Never' }]);
+      // New user: save first, then send welcome email
+      const newUser: User = { id: Date.now(), name: form.name, email: form.email, role: form.role, status: form.status, permissions: { ...form.permissions }, lastLogin: 'Never' };
+      setUsers((prev) => [...prev, newUser]);
+      showSaved();
+
+      // Send welcome email
+      setEmailStatus('sending');
+      const result = await sendWelcomeEmail(form.name, form.email, form.password, form.role);
+      if (result.success) {
+        setEmailStatus('sent');
+        setTimeout(() => {
+          setShowModal(false);
+          setEmailStatus('idle');
+        }, 1500);
+      } else {
+        setEmailStatus('error');
+        setEmailError(result.error || 'Failed to send welcome email');
+      }
+      setIsSaving(false);
     }
-    setShowModal(false);
-    showSaved();
   };
 
   const handleDelete = (id: number) => {
@@ -208,7 +264,7 @@ export default function UsersPage() {
           )}
           <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
             <Icon name="PlusIcon" size={14} />
-            Invite User
+            Create User
           </button>
         </div>
       </div>
@@ -315,12 +371,12 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Edit User Modal */}
+      {/* Create / Edit User Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-border w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-bold text-foreground">{editUser ? 'Edit User' : 'Invite User'}</h2>
+              <h2 className="text-base font-bold text-foreground">{editUser ? 'Edit User' : 'Create User Account'}</h2>
               <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -332,6 +388,29 @@ export default function UsersPage() {
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Email *</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="email@luxestate.com" />
               </div>
+              {!editUser && (
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Temporary Password</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary"
+                      placeholder="Auto-generated password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, password: generatePassword() })}
+                      className="px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                      title="Regenerate password"
+                    >
+                      <Icon name="ArrowPathIcon" size={14} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">This password will be emailed to the user.</p>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Role</label>
                 <select value={form.role} onChange={(e) => handleRoleChange(e.target.value as UserRole)} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
@@ -359,11 +438,43 @@ export default function UsersPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Email status feedback */}
+              {!editUser && emailStatus === 'sending' && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 text-xs text-primary">
+                  <Icon name="EnvelopeIcon" size={13} />
+                  Sending welcome email to {form.email}...
+                </div>
+              )}
+              {!editUser && emailStatus === 'sent' && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+                  <Icon name="CheckIcon" size={13} />
+                  Welcome email sent successfully!
+                </div>
+              )}
+              {!editUser && emailStatus === 'error' && (
+                <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+                  <p className="font-semibold">Email failed to send</p>
+                  <p className="mt-0.5 text-red-400/70">{emailError}</p>
+                  <p className="mt-1 text-muted-foreground">User account was created. Share credentials manually.</p>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-border">
               <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={!form.name || !form.email} className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors disabled:opacity-50">
-                {editUser ? 'Save Changes' : 'Send Invite'}
+              <button
+                onClick={handleSave}
+                disabled={!form.name || !form.email || isSaving || emailStatus === 'sending'}
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSaving || emailStatus === 'sending' ? (
+                  <>
+                    <Icon name="ArrowPathIcon" size={14} className="animate-spin" />
+                    {editUser ? 'Saving...' : 'Creating...'}
+                  </>
+                ) : (
+                  editUser ? 'Save Changes' : 'Create & Send Email'
+                )}
               </button>
             </div>
           </div>
