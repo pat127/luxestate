@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useCMSPage } from '@/contexts/CMSContext';
@@ -9,6 +9,30 @@ import Link from 'next/link';
 export default function ProjectsHero() {
   const page = useCMSPage('projects');
   const contentRef = useRef<HTMLDivElement>(null);
+  const [stats, setStats] = useState({ active: 0, completions: '', priority: false });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('admin_projects');
+      if (stored) {
+        const projects = JSON.parse(stored) as Array<{ status: string; completion: string; published?: boolean }>;
+        const published = projects.filter((p) => p.published !== false);
+        const active = published.filter((p) => p.status === 'Active' || p.status === 'Launching').length;
+        const years = published
+          .map((p) => {
+            const match = p.completion?.match(/\d{4}/);
+            return match ? parseInt(match[0]) : null;
+          })
+          .filter((y): y is number => y !== null);
+        const minYear = years.length > 0 ? Math.min(...years) : null;
+        const maxYear = years.length > 0 ? Math.max(...years) : null;
+        const completionRange = minYear && maxYear
+          ? minYear === maxYear ? String(minYear) : `${minYear}–${maxYear}`
+          : '';
+        setStats({ active, completions: completionRange, priority: active > 0 });
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -23,6 +47,12 @@ export default function ProjectsHero() {
       }, 400 + i * 150);
     });
   }, []);
+
+  const dynamicStats = [
+    ...(stats.active > 0 ? [{ icon: 'BuildingOffice2Icon', label: `${stats.active} Active Project${stats.active !== 1 ? 's' : ''}` }] : []),
+    ...(stats.completions ? [{ icon: 'ClockIcon', label: `${stats.completions} Completions` }] : []),
+    ...(stats.priority ? [{ icon: 'LockClosedIcon', label: 'Priority Access Available' }] : []),
+  ];
 
   return (
     <section className="relative min-h-[75vh] flex flex-col justify-end overflow-hidden">
@@ -73,18 +103,16 @@ export default function ProjectsHero() {
               </Link>
             )}
           </div>
-          <div className="flex flex-wrap gap-6 pt-2">
-            {[
-              { icon: 'BuildingOffice2Icon', label: '18 Active Projects' },
-              { icon: 'ClockIcon', label: '2026–2028 Completions' },
-              { icon: 'LockClosedIcon', label: 'Priority Access Available' },
-            ].map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
-                <Icon name={stat.icon as Parameters<typeof Icon>[0]['name']} size={14} className="text-primary" />
-                {stat.label}
-              </div>
-            ))}
-          </div>
+          {dynamicStats.length > 0 && (
+            <div className="flex flex-wrap gap-6 pt-2">
+              {dynamicStats.map((stat) => (
+                <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
+                  <Icon name={stat.icon as Parameters<typeof Icon>[0]['name']} size={14} className="text-primary" />
+                  {stat.label}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

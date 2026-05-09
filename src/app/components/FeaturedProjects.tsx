@@ -20,13 +20,19 @@ function ProjectCard({ project, priority = false, wide = false }: {
   return (
     <Link href={`/projects/${project.id}`} className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
       <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
-        <AppImage
-          src={project.image}
-          alt={project.alt}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority={priority} />
+        {project.image ? (
+          <AppImage
+            src={project.image}
+            alt={project.alt}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-700"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority={priority} />
+        ) : (
+          <div className="w-full h-full bg-secondary flex items-center justify-center">
+            <Icon name="BuildingOffice2Icon" size={48} className="text-muted-foreground/40" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{project.type}</span>
@@ -79,25 +85,36 @@ function loadFeaturedProjects(): ProjectItem[] {
       id: number; name: string; developer: string; location: string;
       type: string; completion: string; price: string; units: number;
       sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
-      international?: boolean;
+      international?: boolean; images?: Array<{ url?: string; src?: string; caption?: string; alt?: string }>;
     }>;
     // First try featured=true, fallback to published=true
     const featured = adminProjects.filter((p) => p.featured === true);
     const source = featured.length > 0 ? featured : adminProjects.filter((p) => p.published === true || p.published === undefined);
-    return source.map((p) => ({
-      id: p.id,
-      name: p.name,
-      developer: p.developer,
-      location: p.location,
-      type: p.type,
-      completion: p.completion,
-      price: p.price,
-      units: p.units,
-      sold: p.sold,
-      image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-      alt: p.alt || p.name,
-      tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
-    }));
+    return source.map((p) => {
+      // Resolve image: prefer first item in images array, then cover image
+      let img = '';
+      let imgAlt = p.alt || p.name || '';
+      if (Array.isArray(p.images) && p.images.length > 0) {
+        const first = p.images[0];
+        img = first?.url || first?.src || '';
+        imgAlt = first?.caption || first?.alt || imgAlt;
+      }
+      if (!img && p.image) img = p.image;
+      return {
+        id: p.id,
+        name: p.name,
+        developer: p.developer,
+        location: p.location,
+        type: p.type,
+        completion: p.completion,
+        price: p.price,
+        units: p.units,
+        sold: p.sold,
+        image: img,
+        alt: imgAlt,
+        tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
+      };
+    });
   } catch {
     return [];
   }
