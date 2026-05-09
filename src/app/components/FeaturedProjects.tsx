@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS, ProjectItem } from '@/contexts/CMSContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface Props {
   content?: FeaturedProjectsContent;
@@ -15,6 +16,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
   priority?: boolean;
   wide?: boolean;
 }) {
+  const { convertPrice } = useCurrency();
   return (
     <Link href={`/projects/${project.id}`} className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
       <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
@@ -40,7 +42,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
               </p>
             </div>
             <div className="text-right">
-              <span className="text-primary font-bold text-base">{project.price}</span>
+              <span className="text-primary font-bold text-base">{convertPrice(project.price)}</span>
               <p className="text-white/60 text-[10px] uppercase tracking-wider mt-0.5">Starting From</p>
             </div>
           </div>
@@ -72,12 +74,12 @@ function ProjectCard({ project, priority = false, wide = false }: {
 export default function FeaturedProjects({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
-  const cmsProjects = c.projects ?? DEFAULT_FEATURED_PROJECTS.projects;
 
-  const [allProjects, setAllProjects] = useState<ProjectItem[]>(cmsProjects);
+  const [allProjects, setAllProjects] = useState<ProjectItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Merge admin-managed projects from localStorage with CMS projects
+    // Load ONLY admin-managed projects from localStorage
     try {
       const stored = localStorage.getItem('admin_projects');
       if (stored) {
@@ -85,30 +87,30 @@ export default function FeaturedProjects({ content }: Props) {
           id: number; name: string; developer: string; location: string;
           type: string; completion: string; price: string; units: number;
           sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
+          international?: boolean;
         }>;
-        // Convert admin projects to ProjectItem format
-        const adminConverted: ProjectItem[] = adminProjects.map((p) => ({
-          id: p.id,
-          name: p.name,
-          developer: p.developer,
-          location: p.location,
-          type: p.type,
-          completion: p.completion,
-          price: p.price,
-          units: p.units,
-          sold: p.sold,
-          image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-          alt: p.alt || p.name,
-          tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
-        }));
-        // Merge: keep CMS projects, append new admin ones not already in CMS
-        const cmsIds = new Set(cmsProjects.map((p) => p.id));
-        const newAdminProjects = adminConverted.filter((p) => !cmsIds.has(p.id));
-        setAllProjects([...cmsProjects, ...newAdminProjects]);
+        const adminConverted: ProjectItem[] = adminProjects
+          .filter((p) => p.published !== false && !p.international)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            developer: p.developer,
+            location: p.location,
+            type: p.type,
+            completion: p.completion,
+            price: p.price,
+            units: p.units,
+            sold: p.sold,
+            image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
+            alt: p.alt || p.name,
+            tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
+          }));
+        setAllProjects(adminConverted);
       }
     } catch {
-      // fallback to CMS projects
+      // no-op
     }
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -154,17 +156,25 @@ export default function FeaturedProjects({ content }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-        {projects[0] && (
-          <div className="md:col-span-2">
-            <ProjectCard project={projects[0]} priority wide />
-          </div>
-        )}
-        <div className="md:col-span-1 flex flex-col gap-4">
-          {projects[1] && <ProjectCard project={projects[1]} />}
-          {projects[2] && <ProjectCard project={projects[2]} />}
+      {loaded && projects.length === 0 ? (
+        <div className="text-center py-20 border border-border">
+          <Icon name="BuildingOffice2Icon" size={40} className="text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">No featured projects available yet.</p>
+          <p className="text-muted-foreground text-xs mt-1">Add projects in the admin panel to display them here.</p>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
+          {projects[0] && (
+            <div className="md:col-span-2">
+              <ProjectCard project={projects[0]} priority wide />
+            </div>
+          )}
+          <div className="md:col-span-1 flex flex-col gap-4">
+            {projects[1] && <ProjectCard project={projects[1]} />}
+            {projects[2] && <ProjectCard project={projects[2]} />}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

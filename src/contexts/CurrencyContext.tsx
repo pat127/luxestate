@@ -1,113 +1,88 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export type Currency = 'AED' | 'USD' | 'GBP' | 'EUR';
-
-export interface CurrencyOption {
-  code: Currency;
-  symbol: string;
-  label: string;
-  rate: number; // rate relative to AED (1 AED = X currency)
-}
-
-export const CURRENCIES: CurrencyOption[] = [
-  { code: 'AED', symbol: 'AED', label: 'UAE Dirham', rate: 1 },
-  { code: 'USD', symbol: '$', label: 'US Dollar', rate: 0.2723 },
-  { code: 'GBP', symbol: '£', label: 'British Pound', rate: 0.2148 },
-  { code: 'EUR', symbol: '€', label: 'Euro', rate: 0.2499 },
-];
-
-const CURRENCY_STORAGE_KEY = 'preferred_currency';
 
 interface CurrencyContextValue {
   currency: Currency;
   setCurrency: (c: Currency) => void;
-  currencyOption: CurrencyOption;
-  formatPrice: (aedPrice: string) => string;
-  convertAmount: (aedAmount: number) => number;
+  format: (aedAmount: number) => string;
+  convertPrice: (priceStr: string) => string;
 }
+
+// Approximate exchange rates from AED
+const RATES: Record<Currency, number> = {
+  AED: 1,
+  USD: 0.2723,
+  GBP: 0.2147,
+  EUR: 0.2501,
+};
+
+const SYMBOLS: Record<Currency, string> = {
+  AED: 'AED ',
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+};
 
 const CurrencyContext = createContext<CurrencyContextValue>({
   currency: 'AED',
   setCurrency: () => {},
-  currencyOption: CURRENCIES[0],
-  formatPrice: (p) => p,
-  convertAmount: (a) => a,
+  format: (n) => `AED ${n.toLocaleString()}`,
+  convertPrice: (s) => s,
 });
 
-export function CurrencyProvider({ children, defaultCurrency = 'AED' }: { children: React.ReactNode; defaultCurrency?: Currency }) {
+export function CurrencyProvider({
+  children,
+  defaultCurrency = 'AED',
+}: {
+  children: React.ReactNode;
+  defaultCurrency?: Currency;
+}) {
   const [currency, setCurrencyState] = useState<Currency>(defaultCurrency);
-
-  useEffect(() => {
-    if (defaultCurrency !== 'AED') return; // don't override page-level defaults
-    try {
-      const stored = localStorage.getItem(CURRENCY_STORAGE_KEY) as Currency | null;
-      if (stored && CURRENCIES.find((c) => c.code === stored)) {
-        setCurrencyState(stored);
-      }
-    } catch {
-      // no-op
-    }
-  }, [defaultCurrency]);
 
   const setCurrency = useCallback((c: Currency) => {
     setCurrencyState(c);
-    try {
-      localStorage.setItem(CURRENCY_STORAGE_KEY, c);
-    } catch {
-      // no-op
-    }
   }, []);
 
-  const currencyOption = CURRENCIES.find((c) => c.code === currency) ?? CURRENCIES[0];
+  const format = useCallback(
+    (aedAmount: number): string => {
+      const converted = aedAmount * RATES[currency];
+      return `${SYMBOLS[currency]}${Math.round(converted).toLocaleString()}`;
+    },
+    [currency]
+  );
 
-  const convertAmount = useCallback((aedAmount: number): number => {
-    return aedAmount * currencyOption.rate;
-  }, [currencyOption]);
+  // Convert a price string like "AED 1,200,000" or "AED 1.2M+" to the selected currency
+  const convertPrice = useCallback(
+    (priceStr: string): string => {
+      if (!priceStr) return priceStr;
 
-  const formatPrice = useCallback((aedPrice: string): string => {
-    if (currency === 'AED') return aedPrice;
+      // Try to parse AED amount from string
+      const cleanStr = priceStr.replace(/,/g, '');
 
-    // Extract numeric value from price string like "AED 1,200,000" or "AED 1.2M+" or "$28,500,000"
-    const cleaned = aedPrice.replace(/[^0-9.KMBkm+]/g, '');
-    let numericValue = 0;
+      // Match patterns like "AED 1200000", "AED 1.2M+", "From AED 1.2M"
+      const aedMatch = cleanStr.match(/AED\s*([\d.]+)([MmKk]?)\+?/i);
+      if (aedMatch) {
+        let amount = parseFloat(aedMatch[1]);
+        const suffix = aedMatch[2].toUpperCase();
+        if (suffix === 'M') amount *= 1_000_000;
+        else if (suffix === 'K') amount *= 1_000;
 
-    if (cleaned.includes('M') || cleaned.includes('m')) {
-      numericValue = parseFloat(cleaned) * 1_000_000;
-    } else if (cleaned.includes('B') || cleaned.includes('b')) {
-      numericValue = parseFloat(cleaned) * 1_000_000_000;
-    } else if (cleaned.includes('K') || cleaned.includes('k')) {
-      numericValue = parseFloat(cleaned) * 1_000;
-    } else {
-      numericValue = parseFloat(cleaned.replace(/,/g, ''));
-    }
+        const prefix = priceStr.toLowerCase().includes('from') ? 'From ' : '';
+        const hasSuffix = priceStr.includes('+');
+        return `${prefix}${format(amount)}${hasSuffix ? '+' : ''}`;
+      }
 
-    if (isNaN(numericValue) || numericValue === 0) return aedPrice;
-
-    // If original was in USD (starts with $), convert to AED first
-    if (aedPrice.trim().startsWith('$')) {
-      numericValue = numericValue / 0.2723; // USD to AED
-    }
-
-    const converted = numericValue * currencyOption.rate;
-    const hasPlus = aedPrice.includes('+');
-
-    // Format the converted value
-    let formatted: string;
-    if (converted >= 1_000_000) {
-      formatted = `${currencyOption.symbol}${(converted / 1_000_000).toFixed(1)}M`;
-    } else if (converted >= 1_000) {
-      formatted = `${currencyOption.symbol}${Math.round(converted / 1_000)}K`;
-    } else {
-      formatted = `${currencyOption.symbol}${Math.round(converted).toLocaleString()}`;
-    }
-
-    return hasPlus ? `${formatted}+` : formatted;
-  }, [currency, currencyOption]);
+      // If already in another currency or unrecognised, return as-is
+      return priceStr;
+    },
+    [currency, format]
+  );
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, currencyOption, formatPrice, convertAmount }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, format, convertPrice }}>
       {children}
     </CurrencyContext.Provider>
   );
@@ -116,3 +91,5 @@ export function CurrencyProvider({ children, defaultCurrency = 'AED' }: { childr
 export function useCurrency() {
   return useContext(CurrencyContext);
 }
+
+export { RATES, SYMBOLS };
