@@ -16,14 +16,21 @@ function mapAdminProjectToDetail(p: any): ProjectDetailContent {
   // Parse images: stored as array of {url, alt, caption} or comma-separated string
   let images: ProjectDetailContent['images'] = [];
   if (Array.isArray(p.images) && p.images.length > 0) {
-    images = p.images.map((img: any) => ({
-      src: img.url || img.src || '',
-      alt: img.alt || p.name || '',
-    }));
+    images = p.images
+      .filter((img: any) => img && (img.url || img.src))
+      .map((img: any) => ({
+        src: img.url || img.src || '',
+        alt: img.alt || img.caption || p.name || '',
+      }));
   } else if (typeof p.images === 'string' && p.images.trim()) {
     images = p.images.split(',').map((url: string) => ({ src: url.trim(), alt: p.name || '' }));
-  } else if (p.image) {
-    images = [{ src: p.image, alt: p.alt || p.name || '' }];
+  }
+  // Always include cover image if present and not already in images
+  if (p.image && p.image.trim()) {
+    const coverAlreadyIncluded = images.some((img) => img.src === p.image);
+    if (!coverAlreadyIncluded) {
+      images = [{ src: p.image, alt: p.alt || p.name || '' }, ...images];
+    }
   }
   if (images.length === 0) {
     images = DEFAULT_PROJECT_DETAIL.images;
@@ -104,7 +111,7 @@ function mapAdminProjectToDetail(p: any): ProjectDetailContent {
     sold,
     type: p.type || DEFAULT_PROJECT_DETAIL.type,
     reference: p.reference || `CE-PRJ-${String(p.id).padStart(3, '0')}`,
-    description: p.description || DEFAULT_PROJECT_DETAIL.description,
+    description: (p.description && p.description.trim()) ? p.description : DEFAULT_PROJECT_DETAIL.description,
     highlights,
     unitTypes,
     paymentPlan,

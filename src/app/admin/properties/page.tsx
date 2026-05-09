@@ -304,6 +304,10 @@ export default function PropertiesPage() {
   const handleOpenModal = () => {
     setEditingProperty(null);
     setFormData(defaultFormData);
+    // Refresh areas from storage on modal open
+    const freshAreas = getAreasFromStorage(defaultFormData.emirate);
+    setAvailableAreas(freshAreas);
+    setAvailableCommunities([]);
     setActiveTab('basic');
     setShowModal(true);
   };
@@ -311,6 +315,8 @@ export default function PropertiesPage() {
   const handleEditProperty = (property: Property) => {
     setEditingProperty(property);
     const p = property as any;
+    const projEmirate = p.emirate || 'Dubai';
+    const projArea = p.locationArea || p.location || '';
     setFormData({
       ...defaultFormData,
       title: p.name || '',
@@ -344,8 +350,8 @@ export default function PropertiesPage() {
       amenities: p.amenities || '',
       featuredProperty: p.featured || false,
       published: p.published || false,
-      emirate: p.emirate || 'Dubai',
-      locationArea: p.locationArea || p.location || '',
+      emirate: projEmirate,
+      locationArea: projArea,
       community: p.community || '',
       fullAddress: p.fullAddress || '',
       latitude: p.latitude || '',
@@ -354,6 +360,15 @@ export default function PropertiesPage() {
       videoUrl: p.videoUrl || '',
       virtualTourUrl: p.virtualTourUrl || '',
     });
+    // Eagerly populate areas and communities from storage so dropdowns show correct options
+    const freshAreas = getAreasFromStorage(projEmirate);
+    setAvailableAreas(freshAreas);
+    if (projArea) {
+      const freshComms = getCommunitiesFromStorage(projArea, projEmirate);
+      setAvailableCommunities(freshComms);
+    } else {
+      setAvailableCommunities([]);
+    }
     setActiveTab('basic');
     setShowModal(true);
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -158,6 +158,32 @@ function ProjectsPageInner() {
   const [factsheetUrl, setFactsheetUrl] = useState('');
   const [priceListUrl, setPriceListUrl] = useState('');
 
+  // ── Storage-aware location helpers ──────────────────────────────────────────
+  const loadStoredLocations = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('coveestates_communities');
+      if (stored) return JSON.parse(stored) as { emirate: string; area: string; communities: string[] }[];
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
+  const getAreasFromStorage = useCallback((em: string): string[] => {
+    const locs = loadStoredLocations();
+    if (locs) return locs.filter((l) => l.emirate === em).map((l) => l.area);
+    return getAreasForEmirate(em);
+  }, [loadStoredLocations]);
+
+  const getCommunitiesFromStorage = useCallback((area: string, em: string): string[] => {
+    const locs = loadStoredLocations();
+    if (locs) {
+      const match = locs.find((l) => l.emirate === em && l.area === area);
+      return match ? match.communities : [];
+    }
+    return getCommunitiesForArea(area);
+  }, [loadStoredLocations]);
+  // ────────────────────────────────────────────────────────────────────────────
+
   // Load from localStorage on mount
   useEffect(() => {
     setProjectList(loadProjects());
@@ -279,7 +305,7 @@ function ProjectsPageInner() {
     setSizeRange('');setSelectedPropertyTypes([]);setSelectedAmenities([]);setUnitTypes([]);
     setLocationSearch('');setEmirate('Dubai');setLocationArea('');setCommunity('');setSubCommunity('');
     setFullAddress('');setLatitude('25.0657');setLongitude('55.1713');
-    setAvailableAreas(getAreasForEmirate('Dubai'));setAvailableCommunities([]);
+    setAvailableAreas(getAreasFromStorage('Dubai'));setAvailableCommunities([]);
     setPaymentPlanSummary('');setPostHandoverPlan('');setMilestones([]);
     setProjectImages([]);setFloorPlans([]);setMasterPlanUrl('');setVideoUrl('');setVirtualTourUrl('');
     setBrochureUrl('');setFactsheetUrl('');setPriceListUrl('');
@@ -323,15 +349,23 @@ function ProjectsPageInner() {
         price: u.price || '',
       }))
     );
-    // Location tab
-    setEmirate((project as any).emirate || 'Dubai');
-    setLocationArea(project.location || '');
-    setCommunity((project as any).community || '');
+    // Location tab — use storage-aware helpers to populate dropdowns
+    const projEmirate = (project as any).emirate || 'Dubai';
+    const projArea = project.location || '';
+    const projCommunity = (project as any).community || '';
+    setEmirate(projEmirate);
+    setLocationArea(projArea);
+    setCommunity(projCommunity);
     setSubCommunity((project as any).subCommunity || '');
     setFullAddress((project as any).fullAddress || '');
     setLatitude(String((project as any).latitude || '25.0657'));
     setLongitude(String((project as any).longitude || '55.1713'));
-    setAvailableAreas(getAreasForEmirate((project as any).emirate || 'Dubai'));
+    setAvailableAreas(getAreasFromStorage(projEmirate));
+    if (projArea) {
+      setAvailableCommunities(getCommunitiesFromStorage(projArea, projEmirate));
+    } else {
+      setAvailableCommunities([]);
+    }
     // Payment tab
     setPaymentPlanSummary((project as any).paymentPlanSummary || '');
     setPostHandoverPlan((project as any).postHandoverPlan || '');
@@ -802,8 +836,9 @@ function ProjectsPageInner() {
                       className={inputCls}
                       value={emirate}
                       onChange={(e) => {
-                        setEmirate(e.target.value);
-                        const areas = getAreasForEmirate(e.target.value);
+                        const em = e.target.value;
+                        setEmirate(em);
+                        const areas = getAreasFromStorage(em);
                         setAvailableAreas(areas);
                         setLocationArea('');
                         setCommunity('');
@@ -822,8 +857,9 @@ function ProjectsPageInner() {
                         className={inputCls}
                         value={locationArea}
                         onChange={(e) => {
-                          setLocationArea(e.target.value);
-                          const comms = getCommunitiesForArea(e.target.value);
+                          const area = e.target.value;
+                          setLocationArea(area);
+                          const comms = getCommunitiesFromStorage(area, emirate);
                           setAvailableCommunities(comms);
                           setCommunity('');
                         }}>
