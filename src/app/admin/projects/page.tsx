@@ -295,11 +295,11 @@ function ProjectsPageInner() {
     setEditProject(project);
     setBasicForm({
       name: project.name,
-      developer: project.developer,
-      description: project.description || '',
+      developer: (project as any).developer || '',
+      description: (project as any).description || '',
       type: project.type,
       status: project.status,
-      startingPrice: project.price.replace('AED ', '').replace('+', ''),
+      startingPrice: project.price.replace('AED ', '').replace('+', '').replace(/,/g, ''),
       handoverDate: project.completion,
       completionYear: '',
       featured: project.featured || false,
@@ -307,50 +307,132 @@ function ProjectsPageInner() {
       international: project.international || false,
       country: project.country || ''
     });
-    setLocationArea(project.location);
-    setEmirate('Dubai');
-    setAvailableAreas(getAreasForEmirate('Dubai'));
+    // Units tab
+    setTotalUnits(String((project as any).units || ''));
+    setAvailableUnits(String((project as any).available || ''));
+    setMinBedrooms(String((project as any).minBedrooms ?? '0'));
+    setMaxBedrooms(String((project as any).maxBedrooms ?? '6'));
+    setSizeRange((project as any).sizeRange || '');
+    setSelectedPropertyTypes((project as any).propertyTypes || []);
+    setSelectedAmenities((project as any).amenities || []);
+    setUnitTypes(
+      ((project as any).unitTypes || []).map((u: any, i: number) => ({
+        id: u.id || Date.now() + i,
+        name: u.name || u.type || '',
+        size: u.size || u.area || '',
+        price: u.price || '',
+      }))
+    );
+    // Location tab
+    setEmirate((project as any).emirate || 'Dubai');
+    setLocationArea(project.location || '');
+    setCommunity((project as any).community || '');
+    setSubCommunity((project as any).subCommunity || '');
+    setFullAddress((project as any).fullAddress || '');
+    setLatitude(String((project as any).latitude || '25.0657'));
+    setLongitude(String((project as any).longitude || '55.1713'));
+    setAvailableAreas(getAreasForEmirate((project as any).emirate || 'Dubai'));
+    // Payment tab
+    setPaymentPlanSummary((project as any).paymentPlanSummary || '');
+    setPostHandoverPlan((project as any).postHandoverPlan || '');
+    setMilestones(
+      ((project as any).milestones || []).map((m: any, i: number) => ({
+        id: m.id || Date.now() + i,
+        label: m.label || '',
+        percentage: m.percentage || '',
+        dueDate: m.dueDate || '',
+      }))
+    );
+    // Media tab
+    setProjectImages(
+      ((project as any).images || []).map((img: any, i: number) => ({
+        id: img.id || Date.now() + i,
+        url: img.url || img.src || '',
+        caption: img.caption || img.alt || '',
+      }))
+    );
+    setFloorPlans(
+      ((project as any).floorPlans || []).map((fp: any, i: number) => ({
+        id: fp.id || Date.now() + i,
+        url: fp.url || '',
+        label: fp.label || '',
+      }))
+    );
+    setMasterPlanUrl((project as any).masterPlanUrl || '');
+    setVideoUrl((project as any).videoUrl || '');
+    setVirtualTourUrl((project as any).virtualTourUrl || '');
+    // Docs tab
+    setBrochureUrl((project as any).brochureUrl || '');
+    setFactsheetUrl((project as any).factsheetUrl || '');
+    setPriceListUrl((project as any).priceListUrl || '');
     setActiveTab('basic');
     setShowModal(true);
   };
 
   const handleSave = () => {
     if (!basicForm.name) return;
+    const fullProjectData = {
+      name: basicForm.name,
+      developer: basicForm.developer,
+      description: basicForm.description,
+      type: basicForm.type,
+      status: basicForm.status,
+      price: basicForm.startingPrice ? `AED ${basicForm.startingPrice}+` : 'TBD',
+      completion: basicForm.handoverDate || 'TBD',
+      location: locationArea || 'Dubai',
+      featured: basicForm.featured,
+      published: basicForm.published,
+      international: basicForm.international,
+      country: basicForm.country,
+      // Units
+      units: parseInt(totalUnits) || 0,
+      available: parseInt(availableUnits) || 0,
+      sold: 0,
+      minBedrooms: parseInt(minBedrooms) || 0,
+      maxBedrooms: parseInt(maxBedrooms) || 0,
+      sizeRange,
+      propertyTypes: selectedPropertyTypes,
+      amenities: selectedAmenities,
+      unitTypes: unitTypes.map((u) => ({ name: u.name, size: u.size, price: u.price })),
+      // Location
+      emirate,
+      community,
+      subCommunity,
+      fullAddress,
+      latitude,
+      longitude,
+      // Payment
+      paymentPlanSummary,
+      postHandoverPlan,
+      milestones: milestones.map((m) => ({ label: m.label, percentage: m.percentage, dueDate: m.dueDate })),
+      // Media
+      images: projectImages.map((img) => ({ url: img.url, alt: img.caption || basicForm.name, caption: img.caption })),
+      image: projectImages[0]?.url || '',
+      alt: basicForm.name,
+      floorPlans: floorPlans.map((fp) => ({ url: fp.url, label: fp.label })),
+      masterPlanUrl,
+      videoUrl,
+      virtualTourUrl,
+      // Docs
+      brochureUrl,
+      factsheetUrl,
+      priceListUrl,
+    };
+
     if (editProject) {
       updateProjectList(projectList.map((p) => p.id === editProject.id ? {
         ...p,
-        name: basicForm.name,
-        developer: basicForm.developer,
-        description: basicForm.description,
-        type: basicForm.type,
-        status: basicForm.status,
-        price: basicForm.startingPrice ? `AED ${basicForm.startingPrice}+` : p.price,
-        completion: basicForm.handoverDate || p.completion,
-        location: locationArea || p.location,
-        featured: basicForm.featured,
-        published: basicForm.published,
-        international: basicForm.international,
-        country: basicForm.country
+        ...fullProjectData,
+        // preserve sold count when editing
+        sold: (p as any).sold ?? 0,
       } : p));
     } else {
       updateProjectList([...projectList, {
         id: Date.now(),
-        name: basicForm.name,
-        developer: basicForm.developer,
-        description: basicForm.description,
-        location: locationArea || 'Dubai',
-        type: basicForm.type,
-        status: basicForm.status,
-        units: parseInt(totalUnits) || 0,
+        ...fullProjectData,
         sold: 0,
-        completion: basicForm.handoverDate || 'TBD',
-        price: basicForm.startingPrice ? `AED ${basicForm.startingPrice}+` : 'TBD',
         image: projectImages[0]?.url || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
         alt: basicForm.name,
-        featured: basicForm.featured,
-        published: basicForm.published,
-        international: basicForm.international,
-        country: basicForm.country
       }]);
     }
     setShowModal(false);
