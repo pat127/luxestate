@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 import { WhyLuxEstateContent, DEFAULT_WHY_LUXESTATE } from '@/contexts/CMSContext';
 
@@ -10,70 +9,54 @@ interface Props {
   content?: WhyLuxEstateContent;
 }
 
-const BADGE_COLORS = [
-  'text-primary border-primary/30 bg-primary/10',
-  'text-yellow-400 border-yellow-400/30 bg-yellow-400/10',
-  'text-purple-400 border-purple-400/30 bg-purple-400/10',
-];
-
-const STEP_ICONS = ['MagnifyingGlassIcon', 'KeyIcon', 'StarIcon'] as const;
+const STEP_ICONS = ['MagnifyingGlassIcon', 'KeyIcon', 'StarIcon', 'CheckCircleIcon', 'HomeIcon', 'SparklesIcon'] as const;
 
 export default function WhyLuxEstate({ content }: Props) {
   const c = content ?? DEFAULT_WHY_LUXESTATE;
   const steps = c.steps ?? DEFAULT_WHY_LUXESTATE.steps;
-
-  const workflowStepsRef = useRef<NodeListOf<Element> | null>(null);
-  const stepTriggersRef = useRef<NodeListOf<Element> | null>(null);
-  const workflowImagesRef = useRef<NodeListOf<Element> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeStep, setActiveStep] = useState<string>(steps[0]?.id ?? '1');
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    workflowStepsRef.current = containerRef.current.querySelectorAll('.workflow-step-content');
-    stepTriggersRef.current = containerRef.current.querySelectorAll('.step-trigger');
-    workflowImagesRef.current = containerRef.current.querySelectorAll('.workflow-img');
-
-    const stepObserver = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = (entry.target as HTMLElement).getAttribute('data-step');
-            stepTriggersRef.current?.forEach((trigger) => {
-              const line = trigger.querySelector('.step-indicator') as HTMLElement;
-              const text = trigger.querySelector('.step-text') as HTMLElement;
-              const title = trigger.querySelector('h3') as HTMLElement;
-              if (trigger.getAttribute('data-step') === index) {
-                if (line) line.style.height = '100%';
-                if (text) text.classList.add('active');
-                if (title) { title.classList.add('text-primary'); title.classList.remove('text-muted-foreground'); }
-              } else {
-                if (line) line.style.height = '0%';
-                if (text) text.classList.remove('active');
-                if (title) { title.classList.remove('text-primary'); title.classList.add('text-muted-foreground'); }
-              }
-            });
-            workflowImagesRef.current?.forEach((img) => {
-              if (img.getAttribute('data-step') === index) {
-                img.classList.add('active-img');
-              } else {
-                img.classList.remove('active-img');
-              }
+            const stepId = (entry.target as HTMLElement).getAttribute('data-step-id');
+            if (stepId) setActiveStep(stepId);
+          }
+        });
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: 0 }
+    );
+
+    const stepEls = sectionRef.current?.querySelectorAll('[data-step-id]');
+    stepEls?.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [steps]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.querySelectorAll('.animate-on-scroll').forEach((el) => {
+              (el as HTMLElement).classList.add('visible');
             });
           }
         });
       },
-      { rootMargin: '-40% 0px -40% 0px' }
+      { threshold: 0.1 }
     );
-
-    workflowStepsRef.current?.forEach((step) => stepObserver.observe(step));
-    return () => stepObserver.disconnect();
-  }, [steps]);
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section className="border-t border-border bg-background py-0" ref={containerRef}>
-      {/* Section Header — merged "Our Process" */}
-      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-24 pb-16">
-        <div className="flex flex-col md:flex-row justify-between md:items-end gap-8">
+    <section ref={sectionRef} className="border-t border-border bg-background py-16 md:py-24">
+      {/* Section Header */}
+      <div className="max-w-7xl mx-auto px-6 md:px-10 mb-16 md:mb-20">
+        <div className="flex flex-col md:flex-row justify-between md:items-end gap-8 animate-on-scroll">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
               {c.eyebrow}
@@ -89,113 +72,78 @@ export default function WhyLuxEstate({ content }: Props) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10">
-        <div className="flex flex-col lg:flex-row">
-          {/* Sticky Left */}
-          <div className="lg:w-1/2 lg:h-screen lg:sticky top-0 flex flex-col justify-center py-12 lg:py-0 lg:pr-16 border-r border-border/0 lg:border-border">
-            <div className="text-2xl md:text-4xl font-bold tracking-tighter mb-10">
-              <span className="text-gold-shimmer">How The</span>
-              <br />
-              <span className="text-muted-foreground">Process Works</span>
-            </div>
+      {/* Vertical Stepper */}
+      <div className="max-w-4xl mx-auto px-6 md:px-10">
+        <div className="relative">
+          {/* Vertical line */}
+          <div className="absolute left-[19px] md:left-[23px] top-0 bottom-0 w-px bg-border" />
 
-            <div className="hidden lg:block border-l border-border mb-10 pl-6 relative space-y-6">
-              <div className="vertical-beam" />
-              {steps.map((step) => (
-                <div key={step.id} className="step-trigger flex items-center gap-4 cursor-pointer" data-step={step.id}>
-                  <div
-                    className="step-indicator absolute top-0 left-[-1px] w-[2px] bg-primary h-0 transition-all duration-500"
-                    style={{ boxShadow: '0 0 12px rgba(201,168,76,0.8)' }} />
-                  <div>
-                    <h3 className="text-lg uppercase tracking-widest font-bold transition-colors duration-500 text-muted-foreground font-sans">
-                      {step.number} / {step.title}
-                    </h3>
-                    <p className="step-text text-sm text-muted-foreground" />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="space-y-0">
+            {steps.map((step, i) => {
+              const isActive = activeStep === step.id;
+              const isLast = i === steps.length - 1;
+              const iconName = STEP_ICONS[i % STEP_ICONS.length];
 
-            <div className="w-full aspect-video bg-card border border-border relative overflow-hidden hidden lg:block">
-              {steps.map((step, i) => (
+              return (
                 <div
                   key={step.id}
-                  className="workflow-img absolute inset-0 flex items-center justify-center bg-card z-20"
-                  data-step={step.id}>
-                  <AppImage
-                    src={step.image}
-                    alt={step.imageAlt}
-                    fill
-                    className="object-cover opacity-50"
-                    sizes="50vw" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                  <div className="relative z-10 text-center">
-                    <Icon name={STEP_ICONS[i % STEP_ICONS.length]} size={48} className="text-foreground mb-4 mx-auto drop-shadow-lg" />
-                    <span className={`text-xs font-bold uppercase tracking-widest border px-3 py-1 backdrop-blur-md ${BADGE_COLORS[i % BADGE_COLORS.length]}`}>
-                      {step.badge}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Scrolling Right */}
-          <div className="lg:w-1/2">
-            <div className="h-[10vh] hidden lg:block" />
-            {steps.map((step, i) => (
-              <div
-                key={step.id}
-                className={`workflow-step-content min-h-[40vh] lg:min-h-[60vh] flex flex-col justify-center px-0 lg:px-16 py-12 lg:py-16 relative ${i < steps.length - 1 ? 'border-b border-border' : ''}`}
-                data-step={step.id}>
-                <div className="absolute left-0 lg:left-6 top-12 bottom-0 w-8 hidden lg:block">
-                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                    <path d="M 1 0 V 45 C 1 80 30 80 40 80" className="noodle-line" vectorEffect="non-scaling-stroke" />
-                    <path
-                      d="M 1 0 V 45 C 1 80 30 80 40 80"
-                      className="noodle-beam-path"
-                      vectorEffect="non-scaling-stroke"
-                      style={{ animationDelay: `${i}s` }} />
-                  </svg>
-                </div>
-
-                <div className="relative lg:pl-10">
-                  {/* Step number — positioned clearly above the title, no overlap */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-4xl font-black text-primary/20 leading-none select-none w-14 flex-shrink-0">
+                  data-step-id={step.id}
+                  className={`relative flex gap-6 md:gap-10 ${!isLast ? 'pb-12 md:pb-16' : ''}`}
+                >
+                  {/* Node */}
+                  <div className="relative flex-shrink-0 z-10">
+                    <div
+                      className={`w-10 h-10 md:w-12 md:h-12 border-2 flex items-center justify-center transition-all duration-500 ${
+                        isActive
+                          ? 'bg-primary border-primary shadow-[0_0_20px_rgba(201,168,76,0.4)]'
+                          : 'bg-background border-border'
+                      }`}
+                    >
+                      <Icon
+                        name={iconName}
+                        size={18}
+                        className={`transition-colors duration-500 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`}
+                      />
+                    </div>
+                    {/* Step number badge */}
+                    <div className={`absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-[9px] font-black transition-all duration-500 ${isActive ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}>
                       {step.number}
-                    </span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-
-                  <div className="w-full aspect-video bg-card border border-border relative overflow-hidden mb-8 block lg:hidden">
-                    <AppImage src={step.image} alt={step.imageAlt} fill className="object-cover opacity-60" sizes="100vw" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                    <div className="relative z-10 flex items-end h-full p-4">
-                      <span className={`text-xs font-bold uppercase tracking-widest border px-3 py-1 ${BADGE_COLORS[i % BADGE_COLORS.length]}`}>
-                        {step.badge}
-                      </span>
                     </div>
                   </div>
 
-                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tighter">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed mb-8 text-sm md:text-base">
-                    {step.description}
-                  </p>
+                  {/* Content */}
+                  <div className={`flex-1 pt-1.5 pb-2 transition-all duration-500 ${isActive ? 'opacity-100' : 'opacity-50'}`}>
+                    {/* Badge */}
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.2em] px-2.5 py-1 mb-3 border transition-all duration-500 ${
+                      isActive
+                        ? 'bg-primary/10 border-primary/30 text-primary' :'bg-muted/30 border-border text-muted-foreground'
+                    }`}>
+                      {step.badge}
+                    </span>
 
-                  {i === steps.length - 1 && (
-                    <Link
-                      href={c.cta_link}
-                      className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-10 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-all duration-300 group">
-                      {c.cta_text}
-                      <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  )}
+                    <h3 className={`text-xl md:text-2xl font-bold tracking-tighter mb-3 transition-colors duration-500 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {step.title}
+                    </h3>
+
+                    <p className={`text-sm leading-relaxed transition-all duration-500 ${isActive ? 'text-muted-foreground max-h-96' : 'text-muted-foreground/60 max-h-96'}`}>
+                      {step.description}
+                    </p>
+
+                    {/* CTA on last step */}
+                    {isLast && (
+                      <div className="mt-8">
+                        <Link
+                          href={c.cta_link}
+                          className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-8 py-3.5 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-all duration-300 group">
+                          {c.cta_text}
+                          <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

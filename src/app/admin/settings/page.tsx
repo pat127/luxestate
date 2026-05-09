@@ -5,9 +5,9 @@ import Icon from '@/components/ui/AppIcon';
 import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, DEFAULT_ABOUT_CONTENT, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 
-type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities' | 'Property Detail' | 'Project Detail';
+type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
 
-const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields', 'Communities', 'Property Detail', 'Project Detail'];
+const tabs: SettingsTab[] = ['Company', 'Branding', 'Appearance', 'Pages', 'Social', 'SEO', 'Workflow', 'Property Fields', 'Communities'];
 
 interface FieldOption { id: number; value: string; }
 interface PropertyFieldGroup {
@@ -1693,8 +1693,8 @@ export default function SettingsPage() {
         {activeTab === 'Property Fields' && <PropertyFieldsManager />}
         {activeTab === 'Communities' && <CommunitiesManager />}
 
-        {/* ─── Property Detail Tab ─────────────────────────────────────────── */}
-        {activeTab === 'Property Detail' && (
+        {/* Property Detail and Project Detail tabs removed — using actual admin data */}
+        {activeTab === ('Property Detail' as string) && (
           <div className="space-y-8">
             <SectionHeader title="Property Detail Page" description="Edit all content shown on the property detail landing page (/properties/[id]). Changes are live after saving." />
 
@@ -1869,8 +1869,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* ─── Project Detail Tab ──────────────────────────────────────────── */}
-        {activeTab === 'Project Detail' && (
+        {activeTab === ('Project Detail' as string) && (
           <div className="space-y-8">
             <SectionHeader title="Project Detail Page" description="Edit all content shown on the project detail landing page (/projects/[id]). Changes are live after saving." />
 
