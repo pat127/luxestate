@@ -51,6 +51,7 @@ export default function ResidentialListings() {
   const [sortBy, setSortBy] = useState<SortKey>('default');
   const [activeFilter, setActiveFilter] = useState('All');
   const [listings, setListings] = useState<Property[]>([]);
+  const [mounted, setMounted] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   function refresh() {
@@ -62,20 +63,22 @@ export default function ResidentialListings() {
   }
 
   useEffect(() => {
+    setMounted(true);
     refresh();
 
-    // Listen for storage changes from other tabs/windows
+    // Cross-tab storage changes
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY || e.key === IMPORT_KEY) refresh();
     };
-    window.addEventListener('storage', onStorage);
+    // Same-tab admin saves dispatch this custom event
+    const onAdminUpdate = () => refresh();
 
-    // Poll every 2 seconds to catch same-tab admin changes
-    const interval = setInterval(refresh, 2000);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('admin_properties_updated', onAdminUpdate);
 
     return () => {
       window.removeEventListener('storage', onStorage);
-      clearInterval(interval);
+      window.removeEventListener('admin_properties_updated', onAdminUpdate);
     };
   }, []);
 
@@ -114,6 +117,21 @@ export default function ResidentialListings() {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Don't render until client-side hydration is complete
+  if (!mounted) {
+    return (
+      <section className="py-16 px-6 md:px-10 max-w-7xl mx-auto text-center">
+        <div className="border border-border bg-card p-16">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-10 w-10 bg-muted rounded" />
+            <div className="h-4 w-48 bg-muted rounded" />
+            <div className="h-3 w-64 bg-muted rounded" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (listings.length === 0) {
     return (
@@ -253,17 +271,12 @@ export default function ResidentialListings() {
                       {property.location}
                     </p>
                   </div>
-                  <span className="text-primary font-bold text-xl">{property.price}</span>
+                  <span className="text-primary font-bold text-lg">{property.price}</span>
                 </div>
-                <div className="flex items-center gap-8 mt-4 pt-4 border-t border-border">
-                  {property.beds !== undefined && <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="HomeIcon" size={14} className="text-primary" />{property.beds} Bedrooms</span>}
-                  {property.baths !== undefined && <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="SparklesIcon" size={14} className="text-primary" />{property.baths} Bathrooms</span>}
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="ArrowsPointingOutIcon" size={14} className="text-primary" />{property.sqft} sqft</span>
-                  <div className="ml-auto">
-                    <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5">
-                      View Details <Icon name="ArrowRightIcon" size={12} />
-                    </span>
-                  </div>
+                <div className="flex items-center gap-5 text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
+                  {property.beds !== undefined && <span className="flex items-center gap-1.5"><Icon name="HomeIcon" size={12} className="text-primary" />{property.beds} Beds</span>}
+                  {property.baths !== undefined && <span className="flex items-center gap-1.5"><Icon name="SparklesIcon" size={12} className="text-primary" />{property.baths} Baths</span>}
+                  <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>
                 </div>
               </div>
             </Link>

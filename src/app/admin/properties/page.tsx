@@ -150,6 +150,8 @@ function loadProperties(): Property[] {
 function saveProperties(list: Property[]) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(PROPERTIES_STORAGE_KEY, JSON.stringify(list));
+  // Notify same-tab listeners (residential/commercial listing pages)
+  window.dispatchEvent(new Event('admin_properties_updated'));
 }
 
 const statusColors: Record<string, string> = {

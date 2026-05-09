@@ -47,6 +47,7 @@ function getCommercialType(p: Property): string {
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
   const [listings, setListings] = useState<Property[]>([]);
+  const [mounted, setMounted] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   function refresh() {
@@ -58,18 +59,22 @@ export default function CommercialListings() {
   }
 
   useEffect(() => {
+    setMounted(true);
     refresh();
 
+    // Cross-tab storage changes
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY || e.key === IMPORT_KEY) refresh();
     };
-    window.addEventListener('storage', onStorage);
+    // Same-tab admin saves dispatch this custom event
+    const onAdminUpdate = () => refresh();
 
-    const interval = setInterval(refresh, 2000);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('admin_properties_updated', onAdminUpdate);
 
     return () => {
       window.removeEventListener('storage', onStorage);
-      clearInterval(interval);
+      window.removeEventListener('admin_properties_updated', onAdminUpdate);
     };
   }, []);
 
@@ -93,6 +98,21 @@ export default function CommercialListings() {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Don't render until client-side hydration is complete
+  if (!mounted) {
+    return (
+      <section className="py-16 px-6 md:px-10 max-w-7xl mx-auto text-center">
+        <div className="border border-border bg-card p-16">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-10 w-10 bg-muted rounded" />
+            <div className="h-4 w-48 bg-muted rounded" />
+            <div className="h-3 w-64 bg-muted rounded" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (listings.length === 0) {
     return (
