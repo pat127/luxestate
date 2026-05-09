@@ -1,10 +1,7 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
-import { useCurrency, CURRENCIES, Currency } from '@/contexts/CurrencyContext';
 
 const companyLinks = [
   { label: 'About Us', href: '/about' },
@@ -31,9 +28,9 @@ const areaLinks = [
 ];
 
 const legalLinks = [
-  { label: 'Privacy Policy', href: '/privacy-policy' },
-  { label: 'Terms of Service', href: '/terms-of-service' },
-  { label: 'Cookie Policy', href: '/cookie-policy' },
+  { label: 'Privacy Policy', href: '#' },
+  { label: 'Terms of Service', href: '#' },
+  { label: 'Cookie Policy', href: '#' },
 ];
 
 const socialLinks = [
@@ -62,39 +59,6 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
   );
 }
 
-function CurrencySelector() {
-  const { currency, setCurrency, currencyOption } = useCurrency();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 border border-border text-xs font-bold text-muted-foreground hover:text-primary hover:border-primary transition-all duration-300"
-        aria-label="Select currency"
-      >
-        <Icon name="CurrencyDollarIcon" size={12} className="text-primary" />
-        <span>{currencyOption.code}</span>
-        <Icon name="ChevronDownIcon" size={10} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute bottom-full mb-2 right-0 bg-card border border-border shadow-xl z-50 min-w-[160px]">
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { setCurrency(c.code as Currency); setOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-2.5 text-xs hover:bg-primary/10 transition-colors ${currency === c.code ? 'text-primary font-bold' : 'text-muted-foreground'}`}
-            >
-              <span className="font-bold">{c.code}</span>
-              <span className="text-muted-foreground/70">{c.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Footer() {
   return (
     <footer className="border-t border-border bg-background">
@@ -107,7 +71,7 @@ export default function Footer() {
               <AppLogo size={48} />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-              Curating the world&apos;s finest properties for those who demand the exceptional. Dubai&apos;s premier luxury real estate agency.
+              Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.
             </p>
             {/* Social Links */}
             <div className="flex items-center gap-3 mt-1">
@@ -158,20 +122,17 @@ export default function Footer() {
           <span className="text-muted-foreground text-xs tracking-widest text-center sm:text-left">
             © 2026 Cove Estates. All rights reserved.
           </span>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              {legalLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="text-muted-foreground text-xs hover:text-primary transition-colors duration-300 py-1"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-            <CurrencySelector />
-          </div>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            {legalLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-muted-foreground text-xs hover:text-primary transition-colors duration-300 py-1"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>

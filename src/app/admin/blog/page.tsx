@@ -20,9 +20,13 @@ interface BlogPost {
   publishDate?: string;
 }
 
-const BLOG_STORAGE_KEY = 'admin_blog_posts';
-
-const initialPosts: BlogPost[] = [];
+const initialPosts: BlogPost[] = [
+  { id: 1, title: 'Dubai Real Estate Market Outlook 2026', slug: 'dubai-real-estate-market-outlook-2026', category: 'Market Insights', author: 'Admin', status: 'Published', views: 1240, date: 'May 1, 2026', excerpt: 'An in-depth analysis of Dubai\'s luxury property market trends and investment opportunities for 2026.', tags: ['Dubai', 'Market', 'Investment'], metaTitle: 'Dubai Real Estate Market Outlook 2026', metaDesc: 'Comprehensive analysis of Dubai luxury property market trends for 2026.' },
+  { id: 2, title: 'Top 5 Off-Plan Projects in Dubai Marina', slug: 'top-5-off-plan-projects-dubai-marina', category: 'Off-Plan', author: 'Sarah M.', status: 'Published', views: 890, date: 'Apr 22, 2026', excerpt: 'Discover the most sought-after off-plan developments in Dubai Marina with exceptional ROI potential.', tags: ['Off-Plan', 'Dubai Marina', 'ROI'] },
+  { id: 3, title: 'How to Invest in Dubai Commercial Real Estate', slug: 'invest-dubai-commercial-real-estate', category: 'Investment', author: 'Omar H.', status: 'Published', views: 650, date: 'Apr 15, 2026', excerpt: 'A comprehensive guide to commercial property investment in Dubai\'s thriving business districts.', tags: ['Commercial', 'Investment', 'DIFC'] },
+  { id: 4, title: 'Palm Jumeirah Villa Guide 2026', slug: 'palm-jumeirah-villa-guide-2026', category: 'Residential', author: 'James C.', status: 'Draft', views: 0, date: 'May 5, 2026', excerpt: 'Everything you need to know about buying a villa on Palm Jumeirah.' },
+  { id: 5, title: 'Understanding Dubai Property Laws for Expats', slug: 'dubai-property-laws-expats', category: 'Legal', author: 'Admin', status: 'Draft', views: 0, date: 'May 8, 2026', excerpt: 'A clear guide to property ownership laws and regulations for foreign investors in Dubai.' },
+];
 
 const statusColors: Record<string, string> = {
   Published: 'text-emerald-400 bg-emerald-400/10',
@@ -70,15 +74,7 @@ const emptyForm: PostForm = {
 };
 
 export default function BlogPostsPage() {
-  const [posts, setPosts] = useState<BlogPost[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const stored = localStorage.getItem(BLOG_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [showModal, setShowModal] = useState(false);
   const [editPost, setEditPost] = useState<BlogPost | null>(null);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -127,21 +123,16 @@ export default function BlogPostsPage() {
     if (!form.title) return;
     const slug = form.slug || form.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const tagList = form.tags.split(',').map(t => t.trim()).filter(Boolean);
-    let updated: BlogPost[];
     if (editPost) {
-      updated = posts.map(p => p.id === editPost.id ? { ...p, title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc } : p);
+      setPosts(posts.map(p => p.id === editPost.id ? { ...p, title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc } : p));
     } else {
-      updated = [...posts, { id: Date.now(), title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, views: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc }];
+      setPosts([...posts, { id: Date.now(), title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, views: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc }]);
     }
-    setPosts(updated);
-    if (typeof window !== 'undefined') localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(updated));
     setShowModal(false);
   };
 
   const handleDelete = (id: number) => {
-    const updated = posts.filter(p => p.id !== id);
-    setPosts(updated);
-    if (typeof window !== 'undefined') localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(updated));
+    setPosts(posts.filter(p => p.id !== id));
   };
 
   return (

@@ -4,49 +4,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES } from '@/contexts/CMSContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES, PropertyItem } from '@/contexts/CMSContext';
 
 interface Props {
   content?: FeaturedPropertiesContent;
 }
 
-interface AdminProperty {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  beds?: number;
-  baths?: number;
-  sqft: string;
-  image: string;
-  alt: string;
-  status?: string;
-  type?: string;
-  featured?: boolean;
-  published?: boolean;
-}
-
-interface DisplayProperty {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  beds: number;
-  baths: number;
-  sqft: string;
-  tag: string;
-  href: string;
-  image: string;
-  alt: string;
-}
-
 function PropertyCard({ property, priority = false, rowSpan = '' }: {
-  property: DisplayProperty;
+  property: FeaturedPropertiesContent['properties'][0];
   priority?: boolean;
   rowSpan?: string;
 }) {
-  const { formatPrice } = useCurrency();
   return (
     <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${rowSpan}`}>
       <div className={`relative overflow-hidden ${rowSpan === 'md:row-span-2' ? 'h-full min-h-[500px]' : 'h-64 md:h-72'}`}>
@@ -74,7 +42,7 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
               {property.location}
             </p>
           </div>
-          <span className="text-primary font-bold text-sm md:text-base text-right">{formatPrice(property.price)}</span>
+          <span className="text-primary font-bold text-sm md:text-base text-right">{property.price}</span>
         </div>
         <div className="flex items-center gap-5 text-xs text-muted-foreground border-t border-border pt-3">
           <span className="flex items-center gap-1.5">
@@ -98,21 +66,22 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
 export default function FeaturedProperties({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROPERTIES;
+  const cmsProps = c.properties ?? DEFAULT_FEATURED_PROPERTIES.properties;
 
-  const [displayProperties, setDisplayProperties] = useState<DisplayProperty[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [allProperties, setAllProperties] = useState<PropertyItem[]>(cmsProps);
 
   useEffect(() => {
+    // Merge admin-managed properties from localStorage with CMS properties
     try {
       const stored = localStorage.getItem('admin_properties');
       if (stored) {
-        const adminProps = JSON.parse(stored) as AdminProperty[];
-        // Only show published properties, prefer featured ones first
-        const published = adminProps.filter((p) => p.published !== false);
-        const featured = published.filter((p) => p.featured === true);
-        const rest = published.filter((p) => p.featured !== true);
-        const ordered = [...featured, ...rest].slice(0, 6);
-        const converted: DisplayProperty[] = ordered.map((p) => ({
+        const adminProps = JSON.parse(stored) as Array<{
+          id: number; name: string; location: string; price: string;
+          beds?: number; baths?: number; sqft: string; image: string; alt: string;
+          status?: string; type?: string;
+        }>;
+        // Convert admin properties to PropertyItem format
+        const adminConverted: PropertyItem[] = adminProps.map((p) => ({
           id: p.id,
           name: p.name,
           location: p.location,
@@ -125,12 +94,14 @@ export default function FeaturedProperties({ content }: Props) {
           image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
           alt: p.alt || p.name,
         }));
-        setDisplayProperties(converted);
+        // Merge: admin properties override CMS ones by id, then append new ones
+        const cmsIds = new Set(cmsProps.map((p) => p.id));
+        const newAdminProps = adminConverted.filter((p) => !cmsIds.has(p.id));
+        setAllProperties([...cmsProps, ...newAdminProps]);
       }
     } catch {
-      // no-op
+      // fallback to CMS props
     }
-    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -149,6 +120,8 @@ export default function FeaturedProperties({ content }: Props) {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const props = allProperties;
 
   return (
     <section ref={sectionRef} className="py-16 md:py-24 px-4 md:px-10 max-w-7xl mx-auto">
@@ -174,24 +147,14 @@ export default function FeaturedProperties({ content }: Props) {
         </div>
       </div>
 
-      {loaded && displayProperties.length === 0 ? (
-        <div className="border border-dashed border-border p-16 text-center animate-on-scroll">
-          <Icon name="HomeIcon" size={32} className="text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">No properties listed yet. Add properties in the admin panel to display them here.</p>
-          <Link href="/admin/properties" className="inline-flex items-center gap-2 mt-4 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1">
-            Add Properties <Icon name="ArrowRightIcon" size={12} />
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 animate-on-scroll">
-          {displayProperties[0] && <div className="md:col-span-2"><PropertyCard property={displayProperties[0]} priority /></div>}
-          {displayProperties[1] && <div className="md:row-span-2 flex flex-col"><PropertyCard property={displayProperties[1]} rowSpan="md:row-span-2" /></div>}
-          {displayProperties[2] && <div className="md:col-span-1"><PropertyCard property={displayProperties[2]} /></div>}
-          {displayProperties[3] && <div className="md:col-span-1"><PropertyCard property={displayProperties[3]} /></div>}
-          {displayProperties[4] && <div className="md:col-span-2"><PropertyCard property={displayProperties[4]} /></div>}
-          {displayProperties[5] && <div className="md:col-span-1"><PropertyCard property={displayProperties[5]} /></div>}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 animate-on-scroll">
+        {props[0] && <div className="md:col-span-2"><PropertyCard property={props[0]} priority /></div>}
+        {props[1] && <div className="md:row-span-2 flex flex-col"><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
+        {props[2] && <div className="md:col-span-1"><PropertyCard property={props[2]} /></div>}
+        {props[3] && <div className="md:col-span-1"><PropertyCard property={props[3]} /></div>}
+        {props[4] && <div className="md:col-span-2"><PropertyCard property={props[4]} /></div>}
+        {props[5] && <div className="md:col-span-1"><PropertyCard property={props[5]} /></div>}
+      </div>
     </section>
   );
 }

@@ -4,53 +4,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS } from '@/contexts/CMSContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS, ProjectItem } from '@/contexts/CMSContext';
 
 interface Props {
   content?: FeaturedProjectsContent;
 }
 
-interface AdminProject {
-  id: number;
-  name: string;
-  developer: string;
-  location: string;
-  type: string;
-  completion: string;
-  price: string;
-  units: number;
-  sold: number;
-  image: string;
-  alt: string;
-  featured?: boolean;
-  published?: boolean;
-  international?: boolean;
-}
-
-interface DisplayProject {
-  id: number;
-  name: string;
-  developer: string;
-  location: string;
-  type: string;
-  completion: string;
-  price: string;
-  units: number;
-  sold: number;
-  image: string;
-  alt: string;
-  tag: string;
-}
-
 function ProjectCard({ project, priority = false, wide = false }: {
-  project: DisplayProject;
+  project: FeaturedProjectsContent['projects'][0];
   priority?: boolean;
   wide?: boolean;
 }) {
-  const { formatPrice } = useCurrency();
   return (
-    <Link href={`/projects/${project.id}`} className="project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500">
+    <Link href={`/projects/${project.id}`} className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
       <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
         <AppImage
           src={project.image}
@@ -74,7 +40,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
               </p>
             </div>
             <div className="text-right">
-              <span className="text-primary font-bold text-base">{formatPrice(project.price)}</span>
+              <span className="text-primary font-bold text-base">{project.price}</span>
               <p className="text-white/60 text-[10px] uppercase tracking-wider mt-0.5">Starting From</p>
             </div>
           </div>
@@ -106,21 +72,22 @@ function ProjectCard({ project, priority = false, wide = false }: {
 export default function FeaturedProjects({ content }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
+  const cmsProjects = c.projects ?? DEFAULT_FEATURED_PROJECTS.projects;
 
-  const [displayProjects, setDisplayProjects] = useState<DisplayProject[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [allProjects, setAllProjects] = useState<ProjectItem[]>(cmsProjects);
 
   useEffect(() => {
+    // Merge admin-managed projects from localStorage with CMS projects
     try {
       const stored = localStorage.getItem('admin_projects');
       if (stored) {
-        const adminProjects = JSON.parse(stored) as AdminProject[];
-        // Only show published, non-international projects; featured first
-        const published = adminProjects.filter((p) => p.published !== false && !p.international);
-        const featured = published.filter((p) => p.featured === true);
-        const rest = published.filter((p) => p.featured !== true);
-        const ordered = [...featured, ...rest].slice(0, 3);
-        const converted: DisplayProject[] = ordered.map((p) => ({
+        const adminProjects = JSON.parse(stored) as Array<{
+          id: number; name: string; developer: string; location: string;
+          type: string; completion: string; price: string; units: number;
+          sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
+        }>;
+        // Convert admin projects to ProjectItem format
+        const adminConverted: ProjectItem[] = adminProjects.map((p) => ({
           id: p.id,
           name: p.name,
           developer: p.developer,
@@ -134,12 +101,14 @@ export default function FeaturedProjects({ content }: Props) {
           alt: p.alt || p.name,
           tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
         }));
-        setDisplayProjects(converted);
+        // Merge: keep CMS projects, append new admin ones not already in CMS
+        const cmsIds = new Set(cmsProjects.map((p) => p.id));
+        const newAdminProjects = adminConverted.filter((p) => !cmsIds.has(p.id));
+        setAllProjects([...cmsProjects, ...newAdminProjects]);
       }
     } catch {
-      // no-op
+      // fallback to CMS projects
     }
-    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -158,6 +127,8 @@ export default function FeaturedProjects({ content }: Props) {
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const projects = allProjects;
 
   return (
     <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
@@ -183,27 +154,17 @@ export default function FeaturedProjects({ content }: Props) {
         </div>
       </div>
 
-      {loaded && displayProjects.length === 0 ? (
-        <div className="border border-dashed border-border p-16 text-center animate-on-scroll">
-          <Icon name="BuildingOffice2Icon" size={32} className="text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">No projects listed yet. Add projects in the admin panel to display them here.</p>
-          <Link href="/admin/projects" className="inline-flex items-center gap-2 mt-4 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1">
-            Add Projects <Icon name="ArrowRightIcon" size={12} />
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-          {displayProjects[0] && (
-            <div className="md:col-span-2">
-              <ProjectCard project={displayProjects[0]} priority wide />
-            </div>
-          )}
-          <div className="md:col-span-1 flex flex-col gap-4">
-            {displayProjects[1] && <ProjectCard project={displayProjects[1]} />}
-            {displayProjects[2] && <ProjectCard project={displayProjects[2]} />}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
+        {projects[0] && (
+          <div className="md:col-span-2">
+            <ProjectCard project={projects[0]} priority wide />
           </div>
+        )}
+        <div className="md:col-span-1 flex flex-col gap-4">
+          {projects[1] && <ProjectCard project={projects[1]} />}
+          {projects[2] && <ProjectCard project={projects[2]} />}
         </div>
-      )}
+      </div>
     </section>
   );
 }

@@ -5,82 +5,99 @@ import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 
-interface Property {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  type: string;
-  status: string;
-  sqft: string;
-  image: string;
-  alt: string;
-  agent?: string;
-  propertyType?: string;
-  featuredProperty?: boolean;
-  published?: boolean;
-  capRate?: string;
-  occupancy?: string;
-}
+const commercialListings = [
+{
+  id: 1,
+  name: 'The Meridian Tower',
+  location: 'Midtown Manhattan, NY',
+  price: '$185,000,000',
+  type: 'Office',
+  sqft: '320,000',
+  capRate: '6.8%',
+  occupancy: '97%',
+  status: 'Available',
+  image: "https://images.unsplash.com/photo-1647018122189-3a39fede3b82",
+  alt: 'Dramatic glass office tower in Manhattan, dark steel facade, city skyline at dusk, financial district atmosphere',
+  featured: true
+},
+{
+  id: 2,
+  name: 'Obsidian Plaza',
+  location: 'Chicago Loop, IL',
+  price: '$92,000,000',
+  type: 'Mixed-Use',
+  sqft: '180,000',
+  capRate: '7.4%',
+  occupancy: '94%',
+  status: 'Available',
+  image: "https://images.unsplash.com/photo-1618387151139-d2743df0431f",
+  alt: 'Modern mixed-use development interior, dark architectural finishes, dramatic lighting, urban luxury atmosphere',
+  featured: false
+},
+{
+  id: 3,
+  name: 'Vantage Commerce Center',
+  location: 'Beverly Hills, CA',
+  price: '$68,000,000',
+  type: 'Retail',
+  sqft: '95,000',
+  capRate: '5.9%',
+  occupancy: '100%',
+  status: 'Under Offer',
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1e50c1021-1772213701753.png",
+  alt: 'Luxury retail flagship space, dark marble and glass interior, dramatic architectural lighting, high-end boutique atmosphere',
+  featured: false
+},
+{
+  id: 4,
+  name: 'The Blackstone Hotel',
+  location: 'South Beach, Miami FL',
+  price: '$145,000,000',
+  type: 'Hospitality',
+  sqft: '210,000',
+  capRate: '8.1%',
+  occupancy: '88%',
+  status: 'Available',
+  image: "https://images.unsplash.com/photo-1491191968982-473e8560b7c5",
+  alt: 'Dramatic luxury hotel exterior at night, dark sky, illuminated facade, South Beach architectural photography',
+  featured: true
+},
+{
+  id: 5,
+  name: 'Sovereign Office Park',
+  location: 'Silicon Valley, CA',
+  price: '$220,000,000',
+  type: 'Office',
+  sqft: '450,000',
+  capRate: '6.2%',
+  occupancy: '95%',
+  status: 'Available',
+  image: "https://images.unsplash.com/photo-1640431333099-225c5ebc9c4e",
+  alt: 'Modern tech campus office buildings, dark glass facades, dramatic dusk lighting, Silicon Valley architecture',
+  featured: false
+},
+{
+  id: 6,
+  name: 'Zenith Mixed-Use Tower',
+  location: 'Downtown Dallas, TX',
+  price: '$78,000,000',
+  type: 'Mixed-Use',
+  sqft: '155,000',
+  capRate: '7.8%',
+  occupancy: '91%',
+  status: 'Available',
+  image: "https://images.unsplash.com/photo-1707277305448-914736fc743c",
+  alt: 'Modern mixed-use tower in Dallas, dark glass and steel, dramatic city skyline backdrop, architectural photography',
+  featured: false
+}];
 
-const STORAGE_KEY = 'admin_properties';
-const IMPORT_KEY = 'imported_properties';
-
-function readAllProperties(): Property[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const base: Property[] = raw ? JSON.parse(raw) : [];
-    const importedRaw = localStorage.getItem(IMPORT_KEY);
-    const imported: Property[] = importedRaw ? JSON.parse(importedRaw) : [];
-    const existingIds = new Set(base.map((p) => p.id));
-    const merged = [...base, ...imported.filter((p) => !existingIds.has(p.id))];
-    return merged;
-  } catch {
-    return [];
-  }
-}
-
-function getCommercialType(p: Property): string {
-  return p.propertyType || 'Commercial';
-}
 
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
-  const [listings, setListings] = useState<Property[]>([]);
-  const [mounted, setMounted] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const types = ['All', 'Office', 'Retail', 'Mixed-Use', 'Hospitality'];
 
-  function refresh() {
-    const all = readAllProperties();
-    const commercial = all.filter(
-      (p) => (p.type || '').toLowerCase() === 'commercial'
-    );
-    setListings(commercial);
-  }
-
-  useEffect(() => {
-    setMounted(true);
-    refresh();
-
-    // Cross-tab storage changes
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY || e.key === IMPORT_KEY) refresh();
-    };
-    // Same-tab admin saves dispatch this custom event
-    const onAdminUpdate = () => refresh();
-
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('admin_properties_updated', onAdminUpdate);
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('admin_properties_updated', onAdminUpdate);
-    };
-  }, []);
-
-  const types = ['All', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse', 'Land'];
-
-  const filtered = listings.filter((l) => activeType === 'All' || getCommercialType(l) === activeType);
+  const filtered = commercialListings.filter((l) => activeType === 'All' || l.type === activeType);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -99,33 +116,6 @@ export default function CommercialListings() {
     return () => observer.disconnect();
   }, []);
 
-  // Don't render until client-side hydration is complete
-  if (!mounted) {
-    return (
-      <section className="py-16 px-6 md:px-10 max-w-7xl mx-auto text-center">
-        <div className="border border-border bg-card p-16">
-          <div className="animate-pulse flex flex-col items-center gap-4">
-            <div className="h-10 w-10 bg-muted rounded" />
-            <div className="h-4 w-48 bg-muted rounded" />
-            <div className="h-3 w-64 bg-muted rounded" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (listings.length === 0) {
-    return (
-      <section className="py-16 px-6 md:px-10 max-w-7xl mx-auto text-center">
-        <div className="border border-border bg-card p-16">
-          <Icon name="BuildingOfficeIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-foreground font-bold text-xl mb-2">No Commercial Listings Yet</h3>
-          <p className="text-muted-foreground text-sm">Commercial properties added in the admin panel will appear here.</p>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
       {/* Header */}
@@ -138,14 +128,15 @@ export default function CommercialListings() {
         </div>
         <div className="flex flex-wrap gap-2">
           {types.map((t) =>
-            <button
-              key={t}
-              onClick={() => setActiveType(t)}
-              className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
-                activeType === t ?
-                'bg-primary text-primary-foreground border-primary' :
-                'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
-              }>
+          <button
+            key={t}
+            onClick={() => setActiveType(t)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
+            activeType === t ?
+            'bg-primary text-primary-foreground border-primary' :
+            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
+            }>
+
               {t}
             </button>
           )}
@@ -155,38 +146,38 @@ export default function CommercialListings() {
       {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
         {filtered.map((listing, i) =>
-          <Link
-            key={listing.id}
-            href={`/properties/${listing.id}`}
-            className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block"
-            style={{ transitionDelay: `${i * 70}ms` }}>
+        <Link
+          key={listing.id}
+          href={`/properties/${listing.id}`}
+          className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block"
+          style={{ transitionDelay: `${i * 70}ms` }}>
 
             <div className="relative h-56 overflow-hidden">
               <AppImage
-                src={listing.image}
-                alt={listing.alt || listing.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 33vw" />
+              src={listing.image}
+              alt={listing.alt}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 33vw" />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute top-4 left-4 flex gap-2">
                 <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">
-                  {getCommercialType(listing)}
+                  {listing.type}
                 </span>
-                {listing.featuredProperty &&
-                  <span className="bg-background/80 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-primary/30">
+                {listing.featured &&
+              <span className="bg-background/80 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-primary/30">
                     Featured
                   </span>
-                }
+              }
               </div>
               {listing.status !== 'Available' &&
-                <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4">
                   <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
                     {listing.status}
                   </span>
                 </div>
-              }
+            }
               <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </div>
 
@@ -205,11 +196,11 @@ export default function CommercialListings() {
               {/* Investment Metrics */}
               <div className="grid grid-cols-3 gap-3 border border-border p-3 mb-4 bg-background">
                 <div className="text-center">
-                  <p className="text-primary font-bold text-sm">{listing.capRate || 'N/A'}</p>
+                  <p className="text-primary font-bold text-sm">{listing.capRate}</p>
                   <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Cap Rate</p>
                 </div>
                 <div className="text-center border-x border-border">
-                  <p className="text-primary font-bold text-sm">{listing.occupancy || 'N/A'}</p>
+                  <p className="text-primary font-bold text-sm">{listing.occupancy}</p>
                   <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Occupied</p>
                 </div>
                 <div className="text-center">
@@ -240,10 +231,11 @@ export default function CommercialListings() {
         <Link
           href="#contact"
           className="flex items-center gap-3 bg-primary text-primary-foreground px-12 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group flex-shrink-0">
+
           Talk to Investment Team
           <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
         </Link>
       </div>
-    </section>
-  );
+    </section>);
+
 }

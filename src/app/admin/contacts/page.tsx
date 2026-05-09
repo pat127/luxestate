@@ -21,18 +21,20 @@ interface Contact {
 const CONTACTS_STORAGE_KEY = 'admin_contacts';
 const IMPORT_STORAGE_KEY = 'imported_contacts';
 
-const seedContacts: Contact[] = [];
+const seedContacts: Contact[] = [
+  { id: 1, name: 'James Harrington', email: 'james@example.com', phone: '+971 50 123 4567', type: 'Buyer', status: 'Active', lastContact: '2 days ago', deals: 2, nationality: 'British', assignedAgent: 'Sarah Mitchell', source: 'Website' },
+  { id: 2, name: 'Sofia Al-Rashid', email: 'sofia@example.com', phone: '+971 55 987 6543', type: 'Investor', status: 'Active', lastContact: '1 week ago', deals: 5, nationality: 'Emirati', assignedAgent: 'Omar Hassan', source: 'Referral' },
+  { id: 3, name: 'Marcus Chen', email: 'marcus@example.com', phone: '+971 52 456 7890', type: 'Seller', status: 'Inactive', lastContact: '3 weeks ago', deals: 1, nationality: 'Chinese', assignedAgent: 'James Carter', source: 'Walk-in' },
+  { id: 4, name: 'Priya Sharma', email: 'priya@example.com', phone: '+971 56 321 0987', type: 'Buyer', status: 'Active', lastContact: 'Today', deals: 0, nationality: 'Indian', assignedAgent: 'Priya Sharma', source: 'Instagram' },
+  { id: 5, name: 'David Okonkwo', email: 'david@example.com', phone: '+971 58 654 3210', type: 'Investor', status: 'Active', lastContact: '5 days ago', deals: 3, nationality: 'Nigerian', assignedAgent: 'Sarah Mitchell', source: 'LinkedIn' },
+];
 
 function loadContacts(): Contact[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return seedContacts;
   try {
     const stored = localStorage.getItem(CONTACTS_STORAGE_KEY);
     const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Contact[];
-    const hasBeenInitialized = localStorage.getItem('admin_contacts_initialized');
-    let base: Contact[] = stored ? JSON.parse(stored) : (hasBeenInitialized ? [] : []);
-    if (!hasBeenInitialized && !stored) {
-      localStorage.setItem('admin_contacts_initialized', '1');
-    }
+    let base: Contact[] = stored ? JSON.parse(stored) : seedContacts;
     const existingIds = new Set(base.map(c => c.id));
     const newImports = imported.filter(c => !existingIds.has(c.id));
     if (newImports.length > 0) {
@@ -42,7 +44,7 @@ function loadContacts(): Contact[] {
     }
     return base;
   } catch {
-    return [];
+    return seedContacts;
   }
 }
 
