@@ -57,7 +57,7 @@ export function CurrencyProvider({
   // Convert a price string like "AED 1,200,000" or "AED 1.2M+" to the selected currency
   const convertPrice = useCallback(
     (priceStr: string): string => {
-      if (!priceStr) return priceStr;
+      if (!priceStr || priceStr === 'TBD') return priceStr;
 
       // Try to parse AED amount from string
       const cleanStr = priceStr.replace(/,/g, '');
@@ -73,6 +73,16 @@ export function CurrencyProvider({
         const prefix = priceStr.toLowerCase().includes('from') ? 'From ' : '';
         const hasSuffix = priceStr.includes('+');
         return `${prefix}${format(amount)}${hasSuffix ? '+' : ''}`;
+      }
+
+      // Try plain number (no currency prefix)
+      const plainMatch = cleanStr.match(/^([\d.]+)([MmKk]?)$/);
+      if (plainMatch) {
+        let amount = parseFloat(plainMatch[1]);
+        const suffix = plainMatch[2].toUpperCase();
+        if (suffix === 'M') amount *= 1_000_000;
+        else if (suffix === 'K') amount *= 1_000;
+        return format(amount);
       }
 
       // If already in another currency or unrecognised, return as-is

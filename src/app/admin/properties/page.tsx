@@ -23,6 +23,8 @@ interface Property {
   image: string;
   alt: string;
   agent: string;
+  published?: boolean;
+  featured?: boolean;
 }
 
 interface PropertyFormData {
@@ -122,20 +124,15 @@ const DRAFT_KEY = 'property_draft';
 const PROPERTIES_STORAGE_KEY = 'admin_properties';
 const IMPORT_STORAGE_KEY = 'imported_properties';
 
-const properties: Property[] = [
-{ id: 1, name: 'Obsidian Penthouse', location: 'Downtown Dubai', price: 'AED 28,500,000', type: 'Residential', status: 'Available', beds: 5, baths: 6, sqft: '8,200', image: "https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png", alt: 'Luxury penthouse interior', agent: 'Sarah Mitchell' },
-{ id: 2, name: 'Meridian Villa', location: 'Palm Jumeirah', price: 'AED 42,000,000', type: 'Residential', status: 'Under Offer', beds: 7, baths: 9, sqft: '14,500', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1b9553347-1774335786277.png", alt: 'Modern villa exterior', agent: 'James Carter' },
-{ id: 3, name: 'Atlas Tower Office', location: 'DIFC', price: 'AED 12,000,000', type: 'Commercial', status: 'Available', sqft: '5,400', image: "https://img.rocket.new/generatedImages/rocket_gen_img_14a2a68a0-1772770575920.png", alt: 'Modern office tower', agent: 'Omar Hassan' },
-{ id: 4, name: 'The Crescent Retail', location: 'JBR', price: 'AED 8,500,000', type: 'Commercial', status: 'Sold', sqft: '3,200', image: "https://images.unsplash.com/photo-1613724962881-c5171beaeea2", alt: 'Retail space interior', agent: 'Priya Sharma' },
-{ id: 5, name: 'Vantage Estate', location: 'Emirates Hills', price: 'AED 65,000,000', type: 'Residential', status: 'Available', beds: 9, baths: 11, sqft: '22,000', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16f9fcd79-1766746361345.png", alt: 'Luxury estate exterior', agent: 'Sarah Mitchell' }];
+const properties: Property[] = [];
 
 
 function loadProperties(): Property[] {
-  if (typeof window === 'undefined') return properties;
+  if (typeof window === 'undefined') return [];
   try {
     const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
     const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Property[];
-    let base: Property[] = stored ? JSON.parse(stored) : properties;
+    let base: Property[] = stored ? JSON.parse(stored) : [];
     const existingIds = new Set(base.map((p) => p.id));
     const newImports = imported.filter((p) => !existingIds.has(p.id));
     if (newImports.length > 0) {
@@ -145,7 +142,7 @@ function loadProperties(): Property[] {
     }
     return base;
   } catch {
-    return properties;
+    return [];
   }
 }
 
@@ -367,7 +364,11 @@ export default function PropertiesPage() {
         status: formData.availability || p.status,
         beds: formData.bedrooms ? parseInt(formData.bedrooms) : p.beds,
         baths: formData.bathrooms ? parseInt(formData.bathrooms) : p.baths,
-        sqft: formData.areaSqFt || p.sqft
+        sqft: formData.areaSqFt || p.sqft,
+        image: formData.imageUrls.split(',')[0].trim() || p.image,
+        alt: formData.title || p.alt,
+        published: formData.published,
+        featured: formData.featuredProperty,
       } :
       p
       );
@@ -385,7 +386,9 @@ export default function PropertiesPage() {
         sqft: formData.areaSqFt || '',
         image: formData.imageUrls.split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
         alt: formData.title || 'Property',
-        agent: ''
+        agent: '',
+        published: formData.published,
+        featured: formData.featuredProperty,
       };
       updatePropertyList([...propertyList, newProp]);
     }

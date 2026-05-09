@@ -83,7 +83,7 @@ export default function FeaturedProperties({ content }: Props) {
           status?: string; type?: string; featured?: boolean; published?: boolean;
         }>;
         const adminConverted: PropertyItem[] = adminProps
-          .filter((p) => p.published !== false)
+          .filter((p) => p.published === true || p.published === undefined)
           .map((p) => ({
             id: p.id,
             name: p.name,
