@@ -15,15 +15,24 @@ interface Task {
   dueDate?: string;
 }
 
-const initialTasks: Task[] = [
-  { id: 1, title: 'Follow up with James Harrington', description: 'Send property brochure and schedule viewing', assignee: 'Sarah M.', priority: 'High', status: 'In Progress', due: 'Today', category: 'Lead' },
-  { id: 2, title: 'Prepare Meridian Villa listing', description: 'Upload photos and update property details', assignee: 'James C.', priority: 'High', status: 'Todo', due: 'Tomorrow', category: 'Listing' },
-  { id: 3, title: 'Send weekly market report', description: 'Compile and send to all active leads', assignee: 'Omar H.', priority: 'Medium', status: 'Todo', due: 'This week', category: 'Marketing' },
-  { id: 4, title: 'Update CRM with new leads', description: 'Import leads from last weekend open house', assignee: 'Priya S.', priority: 'Low', status: 'Completed', due: 'Yesterday', category: 'Admin' },
-  { id: 5, title: 'Negotiate deal terms — Atlas Tower', description: 'Review counter-offer and prepare response', assignee: 'Sarah M.', priority: 'High', status: 'In Progress', due: 'Today', category: 'Deal' },
-  { id: 6, title: 'Schedule team training session', description: 'Book venue and send invites', assignee: 'Admin', priority: 'Low', status: 'Todo', due: 'Next week', category: 'Admin' },
-  { id: 7, title: 'Review Q2 commission statements', description: 'Verify all deal commissions are accurate', assignee: 'Admin', priority: 'Medium', status: 'Todo', due: 'This week', category: 'Finance' },
-];
+const TASKS_STORAGE_KEY = 'admin_tasks';
+
+const initialTasks: Task[] = [];
+
+function loadTasks(): Task[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(TASKS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTasks(tasks: Task[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+}
 
 const priorityColors: Record<string, string> = {
   High: 'text-red-400 bg-red-400/10',
@@ -101,7 +110,7 @@ function checkTaskReminders(tasks: Task[]) {
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(loadTasks());
   const [filter, setFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -118,7 +127,7 @@ export default function TasksPage() {
         Notification.requestPermission().then((perm) => setNotifPermission(perm));
       } else if (Notification.permission === 'granted') {
         // Check reminders on load
-        checkTaskReminders(initialTasks);
+        checkTaskReminders(tasks);
       }
     }
   }, []);
@@ -129,6 +138,11 @@ export default function TasksPage() {
       checkTaskReminders(tasks.filter(t => t.status !== 'Completed'));
     }
   }, [tasks, notifPermission]);
+
+  // Persist tasks to localStorage whenever they change
+  useEffect(() => {
+    saveTasks(tasks);
+  }, [tasks]);
 
   const filtered = tasks.filter((t) => {
     const matchFilter = filter === 'All' || t.status === filter;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
+import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, DEFAULT_ABOUT_CONTENT, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities' | 'Property Detail' | 'Project Detail';
@@ -555,13 +555,14 @@ function ContactDetailsEditor({ details, onChange }: { details: ContactDetail[];
 // ─── Page CMS Editor ──────────────────────────────────────────────────────────
 function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageConfig) => void }) {
   const isHome = page.key === 'home';
-  type SubTab = 'content' | 'sections' | 'seo' | 'blocks' | 'hero' | 'properties' | 'projects' | 'why' | 'testimonials' | 'contact' | 'mortgage';
+  const isAbout = page.key === 'about';
+  type SubTab = 'content' | 'sections' | 'seo' | 'blocks' | 'hero' | 'properties' | 'projects' | 'why' | 'testimonials' | 'contact' | 'mortgage' | 'about_story' | 'about_values' | 'about_ceo';
   const [activeSection, setActiveSection] = useState<SubTab>('content');
 
   const sectionLabels: Record<string, string> = {
     featured_properties: 'Featured Properties', featured_projects: 'Featured Projects', why_luxestate: 'Why Cove Estates',
     testimonials: 'Testimonials', mortgage_calculator: 'Mortgage Calculator', contact_section: 'Contact Section',
-    search_bar: 'Search Bar', listings_grid: 'Listings Grid', team_section: 'Team Section', market_stats: 'Market Stats',
+    search_bar: 'Search Bar', listings_grid: 'Listings Grid', team_section: 'Meet Our CEO', market_stats: 'Market Stats',
     market_insights: 'Market Insights', commercial_stats: 'Commercial Stats', projects_gallery: 'Projects Gallery',
     project_timeline: 'Project Timeline', project_inquiry: 'Project Inquiry', stats_section: 'Stats Section',
     awards_section: 'Awards Section', timeline_section: 'Timeline Section', featured_post: 'Featured Post',
@@ -581,6 +582,15 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
         { key: 'mortgage', label: 'Calculator' },
         { key: 'seo', label: 'SEO' },
       ]
+    : isAbout
+    ? [
+        { key: 'content', label: 'Hero' },
+        { key: 'about_story', label: 'Our Story' },
+        { key: 'about_values', label: 'Values' },
+        { key: 'about_ceo', label: 'Meet Our CEO' },
+        { key: 'sections', label: 'Page Sections' },
+        { key: 'seo', label: 'SEO' },
+      ]
     : [
         { key: 'content', label: 'Content & Hero' },
         { key: 'sections', label: 'Page Sections' },
@@ -595,6 +605,7 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
   const ct = page.contact_content ?? DEFAULT_CONTACT;
   const mg = page.mortgage_content ?? DEFAULT_MORTGAGE;
   const hs = page.hero_stats ?? DEFAULT_HERO_STATS;
+  const ab = page.about_content ?? DEFAULT_ABOUT_CONTENT;
 
   return (
     <div>
@@ -636,10 +647,138 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
               <HeroStatsEditor stats={hs} onChange={(s) => onChange({ ...page, hero_stats: s })} />
             </div>
           )}
+          {isAbout && (
+            <div className="pt-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Hero Stats</p>
+              <div className="space-y-2">
+                {ab.hero_stats.map((stat, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input value={stat.value} onChange={(e) => { const updated = ab.hero_stats.map((s, idx) => idx === i ? { ...s, value: e.target.value } : s); onChange({ ...page, about_content: { ...ab, hero_stats: updated } }); }} placeholder="Value" className="w-24 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <input value={stat.label} onChange={(e) => { const updated = ab.hero_stats.map((s, idx) => idx === i ? { ...s, label: e.target.value } : s); onChange({ ...page, about_content: { ...ab, hero_stats: updated } }); }} placeholder="Label" className="flex-1 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="bg-primary/5 border border-primary/20 p-3">
             <p className="text-xs text-primary/80">
               <span className="font-semibold">Live Preview:</span> Changes reflect on the <strong>/{page.key === 'home' ? '' : page.key}</strong> page after clicking Save Changes.
             </p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'about_story' && isAbout && (
+        <div className="space-y-4">
+          <SectionHeader title="Our Story" description="Edit the company story section text and timeline milestones." />
+          <div className="grid grid-cols-2 gap-3">
+            <InputField label="Section Eyebrow" value={ab.story_eyebrow} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_eyebrow: v } })} />
+            <InputField label="Headline" value={ab.story_headline} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_headline: v } })} />
+            <InputField label="Headline Shimmer Word" value={ab.story_headline_shimmer} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_headline_shimmer: v } })} />
+          </div>
+          <TextareaField label="Paragraph 1" value={ab.story_paragraph1} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_paragraph1: v } })} rows={3} />
+          <TextareaField label="Paragraph 2" value={ab.story_paragraph2} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_paragraph2: v } })} rows={3} />
+          <TextareaField label="Paragraph 3" value={ab.story_paragraph3} onChange={(v) => onChange({ ...page, about_content: { ...ab, story_paragraph3: v } })} rows={3} />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timeline Milestones</p>
+              <button onClick={() => onChange({ ...page, about_content: { ...ab, milestones: [...ab.milestones, { year: 'Year', event: 'Event description' }] } })} className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors">
+                <Icon name="PlusIcon" size={11} /> Add
+              </button>
+            </div>
+            <div className="space-y-2">
+              {ab.milestones.map((m, i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <input value={m.year} onChange={(e) => { const updated = ab.milestones.map((x, idx) => idx === i ? { ...x, year: e.target.value } : x); onChange({ ...page, about_content: { ...ab, milestones: updated } }); }} placeholder="Year" className="w-16 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  <input value={m.event} onChange={(e) => { const updated = ab.milestones.map((x, idx) => idx === i ? { ...x, event: e.target.value } : x); onChange({ ...page, about_content: { ...ab, milestones: updated } }); }} placeholder="Event description" className="flex-1 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  <button onClick={() => onChange({ ...page, about_content: { ...ab, milestones: ab.milestones.filter((_, idx) => idx !== i) } })} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'about_values' && isAbout && (
+        <div className="space-y-4">
+          <SectionHeader title="Core Values" description="Edit the values section heading and individual value cards." />
+          <div className="grid grid-cols-2 gap-3">
+            <InputField label="Section Eyebrow" value={ab.values_eyebrow} onChange={(v) => onChange({ ...page, about_content: { ...ab, values_eyebrow: v } })} />
+            <InputField label="Section Headline" value={ab.values_headline} onChange={(v) => onChange({ ...page, about_content: { ...ab, values_headline: v } })} />
+            <div className="col-span-2">
+              <TextareaField label="Section Subtext" value={ab.values_subtext} onChange={(v) => onChange({ ...page, about_content: { ...ab, values_subtext: v } })} rows={2} />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Values ({ab.values.length})</p>
+              <button onClick={() => onChange({ ...page, about_content: { ...ab, values: [...ab.values, { icon: 'StarIcon', title: 'New Value', description: 'Description' }] } })} className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors">
+                <Icon name="PlusIcon" size={11} /> Add
+              </button>
+            </div>
+            <div className="space-y-3">
+              {ab.values.map((v, i) => (
+                <div key={i} className="border border-border bg-card p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <input value={v.title} onChange={(e) => { const updated = ab.values.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x); onChange({ ...page, about_content: { ...ab, values: updated } }); }} placeholder="Title" className="flex-1 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                    <button onClick={() => onChange({ ...page, about_content: { ...ab, values: ab.values.filter((_, idx) => idx !== i) } })} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                  </div>
+                  <textarea value={v.description} onChange={(e) => { const updated = ab.values.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x); onChange({ ...page, about_content: { ...ab, values: updated } }); }} placeholder="Description" rows={2} className="w-full px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50 resize-none" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'about_ceo' && isAbout && (
+        <div className="space-y-4">
+          <SectionHeader title="Meet Our CEO" description="Edit the CEO section heading, bio, image, and stats." />
+          <div className="grid grid-cols-2 gap-3">
+            <InputField label="Section Eyebrow" value={ab.ceo_eyebrow} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo_eyebrow: v } })} />
+            <InputField label="Section Headline" value={ab.ceo_section_headline} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo_section_headline: v } })} />
+            <div className="col-span-2">
+              <TextareaField label="Section Subtext" value={ab.ceo_section_subtext} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo_section_subtext: v } })} rows={2} />
+            </div>
+          </div>
+          <div className="border border-border bg-card p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">CEO Details</p>
+            <div className="grid grid-cols-2 gap-3">
+              <InputField label="Name" value={ab.ceo.name} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, name: v } } })} />
+              <InputField label="Role / Title" value={ab.ceo.role} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, role: v } } })} />
+              <div className="col-span-2">
+                <InputField label="Photo URL" value={ab.ceo.image} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, image: v } } })} placeholder="https://..." />
+              </div>
+              <div className="col-span-2">
+                <InputField label="Photo Alt Text" value={ab.ceo.alt} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, alt: v } } })} />
+              </div>
+              <div className="col-span-2">
+                <TextareaField label="Bio (Paragraph 1)" value={ab.ceo.bio} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, bio: v } } })} rows={3} />
+              </div>
+              <div className="col-span-2">
+                <TextareaField label="Bio (Paragraph 2)" value={ab.ceo.bio2} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, bio2: v } } })} rows={3} />
+              </div>
+              <div className="col-span-2">
+                <InputField label="LinkedIn URL" value={ab.ceo.linkedin} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, linkedin: v } } })} placeholder="https://linkedin.com/in/..." />
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CEO Stats</p>
+              <button onClick={() => onChange({ ...page, about_content: { ...ab, ceo_stats: [...ab.ceo_stats, { value: '—', label: 'Stat Label' }] } })} className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 transition-colors">
+                <Icon name="PlusIcon" size={11} /> Add
+              </button>
+            </div>
+            <div className="space-y-2">
+              {ab.ceo_stats.map((stat, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input value={stat.value} onChange={(e) => { const updated = ab.ceo_stats.map((s, idx) => idx === i ? { ...s, value: e.target.value } : s); onChange({ ...page, about_content: { ...ab, ceo_stats: updated } }); }} placeholder="Value" className="w-24 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  <input value={stat.label} onChange={(e) => { const updated = ab.ceo_stats.map((s, idx) => idx === i ? { ...s, label: e.target.value } : s); onChange({ ...page, about_content: { ...ab, ceo_stats: updated } }); }} placeholder="Label" className="flex-1 px-2 py-1.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                  <button onClick={() => onChange({ ...page, about_content: { ...ab, ceo_stats: ab.ceo_stats.filter((_, idx) => idx !== i) } })} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

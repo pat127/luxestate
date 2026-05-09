@@ -11,7 +11,6 @@ const milestones = [
     status: 'Open Now',
     statusColor: 'text-primary',
     icon: 'ClipboardDocumentListIcon',
-    projects: ['One Obsidian Tower', 'Celestia Office Park', 'The Halcyon'],
   },
   {
     phase: 'Phase 2',
@@ -20,7 +19,6 @@ const milestones = [
     status: 'Q2 2026',
     statusColor: 'text-yellow-400',
     icon: 'KeyIcon',
-    projects: ['The Monarch', 'Seraphine Residences'],
   },
   {
     phase: 'Phase 3',
@@ -29,16 +27,14 @@ const milestones = [
     status: 'Ongoing',
     statusColor: 'text-foreground/60',
     icon: 'BuildingOffice2Icon',
-    projects: ['All Active Projects'],
   },
   {
     phase: 'Phase 4',
     title: 'Completion & Handover',
     description: 'White-glove completion inspections, snagging management, and settlement coordination. We remain with you through to key handover and post-completion support.',
-    status: 'Q4 2026 – Q1 2028',
+    status: 'Varies by Project',
     statusColor: 'text-foreground/60',
     icon: 'HomeModernIcon',
-    projects: ['Noir Residences', 'The Monarch', 'Seraphine Residences'],
   },
 ];
 
@@ -107,20 +103,7 @@ export default function ProjectTimeline() {
               </span>
 
               {/* Description */}
-              <p className="text-muted-foreground text-xs leading-relaxed mb-5">{milestone.description}</p>
-
-              {/* Projects */}
-              <div className="border-t border-border pt-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Applies To</p>
-                <div className="flex flex-col gap-1">
-                  {milestone.projects.map((proj) => (
-                    <span key={proj} className="text-xs text-foreground/70 flex items-center gap-1.5">
-                      <span className="w-1 h-1 bg-primary flex-shrink-0" />
-                      {proj}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">{milestone.description}</p>
             </div>
           ))}
         </div>

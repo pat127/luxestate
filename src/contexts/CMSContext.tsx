@@ -36,6 +36,7 @@ export interface PageConfig {
   testimonials_content?: TestimonialsContent;
   contact_content?: ContactContent;
   mortgage_content?: MortgageContent;
+  about_content?: AboutContent;
 }
 
 export interface HeroStat {
@@ -165,6 +166,107 @@ export interface MortgageContent {
   cta_text: string;
   cta_link: string;
 }
+
+// ─── About Page CMS Types ─────────────────────────────────────────────────────
+
+export interface AboutStat {
+  value: string;
+  label: string;
+}
+
+export interface AboutMilestone {
+  year: string;
+  event: string;
+}
+
+export interface AboutValue {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface AboutCEO {
+  name: string;
+  role: string;
+  bio: string;
+  bio2: string;
+  image: string;
+  alt: string;
+  linkedin: string;
+}
+
+export interface AboutContent {
+  // Story section
+  story_eyebrow: string;
+  story_headline: string;
+  story_headline_shimmer: string;
+  story_paragraph1: string;
+  story_paragraph2: string;
+  story_paragraph3: string;
+  milestones: AboutMilestone[];
+  // Values section
+  values_eyebrow: string;
+  values_headline: string;
+  values_subtext: string;
+  values: AboutValue[];
+  // CEO section
+  ceo_eyebrow: string;
+  ceo_section_headline: string;
+  ceo_section_subtext: string;
+  ceo: AboutCEO;
+  ceo_stats: AboutStat[];
+  // Hero stats
+  hero_stats: AboutStat[];
+}
+
+export const DEFAULT_ABOUT_CONTENT: AboutContent = {
+  story_eyebrow: 'Who We Are',
+  story_headline: "Dubai's Premier",
+  story_headline_shimmer: 'Luxury Advisory',
+  story_paragraph1: 'Cove Estates was founded on a singular conviction: that luxury real estate deserves a fundamentally different approach. Not a transactional one, but an advisory one — where client outcomes are the only measure of success.',
+  story_paragraph2: 'From our offices in Dubai Marina and DIFC, we serve a global clientele of private investors, family offices, and ultra-high-net-worth individuals seeking the finest residential and commercial properties in the UAE and internationally.',
+  story_paragraph3: 'Our team of 24 specialists brings together expertise across residential sales, commercial investment, off-plan acquisitions, and international markets — offering clients a single, trusted point of contact for their entire real estate portfolio.',
+  milestones: [
+    { year: '2006', event: 'Founded in Dubai Marina with a team of three specialists focused on ultra-prime residential.' },
+    { year: '2011', event: 'Expanded into commercial real estate and off-plan developments, partnering with Emaar and DAMAC.' },
+    { year: '2016', event: 'Launched international division, connecting UAE investors with prime opportunities in London, New York, and Paris.' },
+    { year: '2020', event: "Opened second office in DIFC, establishing presence in Dubai's financial district." },
+    { year: '2024', event: 'Rebranded as Cove Estates, reflecting our evolution into a full-service luxury real estate advisory.' },
+  ],
+  values_eyebrow: 'What Guides Us',
+  values_headline: 'Our Core Values',
+  values_subtext: 'The principles that shape every client interaction, every listing, and every transaction we undertake.',
+  values: [
+    { icon: 'ShieldCheckIcon', title: 'Uncompromising Integrity', description: 'Every transaction is conducted with full transparency. We represent your interests exclusively — no dual agency, no hidden incentives.' },
+    { icon: 'StarIcon', title: 'Curated Excellence', description: 'We list only properties that meet our exacting standards. Quality over volume — always. Our portfolio reflects the finest the market offers.' },
+    { icon: 'GlobeAltIcon', title: 'Global Perspective', description: 'With clients across 40+ countries, we bring international market intelligence to every local transaction and global reach to every listing.' },
+    { icon: 'UserGroupIcon', title: 'Relationship First', description: 'We build lifelong client relationships, not one-time transactions. Your portfolio growth and satisfaction are our long-term measure of success.' },
+  ],
+  ceo_eyebrow: 'Leadership',
+  ceo_section_headline: 'Meet Our CEO',
+  ceo_section_subtext: 'Visionary leadership built on two decades of luxury real estate expertise.',
+  ceo: {
+    name: 'Alexander Cove',
+    role: 'Founder & Managing Director',
+    bio: 'With 18 years in luxury real estate across Dubai, London, and New York, Alexander founded Cove Estates to redefine the premium property experience in the UAE.',
+    bio2: "Under his leadership, Cove Estates has grown into Dubai's most trusted luxury real estate advisory, facilitating over AED 8.2 billion in transactions and serving clients across 40+ countries. Alexander's philosophy centres on long-term relationships, absolute discretion, and delivering outcomes that exceed expectations.",
+    image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1a79b8e72-1763295320816.png',
+    alt: 'Professional portrait of Alexander Cove, founder of Cove Estates, in a tailored dark suit against a modern office backdrop',
+    linkedin: '#',
+  },
+  ceo_stats: [
+    { value: '18+', label: 'Years Experience' },
+    { value: 'AED 8.2B+', label: 'Transactions Led' },
+    { value: '40+', label: 'Countries Served' },
+    { value: '1,400+', label: 'Properties Sold' },
+  ],
+  hero_stats: [
+    { value: 'AED 8.2B+', label: 'Total Transaction Volume' },
+    { value: '1,400+', label: 'Properties Sold' },
+    { value: '40+', label: 'Countries Represented' },
+    { value: '18', label: 'Years of Excellence' },
+  ],
+};
 
 // ─── Property Detail CMS Types ────────────────────────────────────────────────
 
