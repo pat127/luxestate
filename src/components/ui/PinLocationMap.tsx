@@ -177,7 +177,7 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
               return (
                 <img
                   key={`${dx}-${dy}`}
-                  src={`https://tile.openstreetmap.org/${tileZoom}/${tx}/${ty}.png`}
+                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager/${tileZoom}/${tx}/${ty}.png`}
                   alt=""
                   style={{
                     position: 'absolute',

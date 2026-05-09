@@ -1507,11 +1507,11 @@ export default function SettingsPage() {
               <InputField label="Tagline" value={branding.tagline} onChange={(v) => setBranding({ ...branding, tagline: v })} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <InputField label="Phone" value="+971 50 886 2683" />
-              <InputField label="Email" value="admin@coveestates.com" />
-              <InputField label="WhatsApp" value="+971508862683" />
+              <InputField label="Phone" value={branding.phone ?? ''} onChange={(v) => setBranding({ ...branding, phone: v })} placeholder="+971 50 000 0000" />
+              <InputField label="Email" value={branding.email ?? ''} onChange={(v) => setBranding({ ...branding, email: v })} placeholder="admin@yourcompany.com" />
+              <InputField label="WhatsApp" value={branding.whatsapp ?? ''} onChange={(v) => setBranding({ ...branding, whatsapp: v })} placeholder="+971500000000" />
             </div>
-            <TextareaField label="Address" value="8th Level, Moosa Tower 1, Dubai, UAE" rows={2} />
+            <TextareaField label="Address" value={branding.address ?? ''} onChange={(v) => setBranding({ ...branding, address: v })} rows={2} />
           </div>
         )}
 

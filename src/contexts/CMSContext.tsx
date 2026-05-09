@@ -410,6 +410,10 @@ export interface BrandingConfig {
   accent_color: string;
   font_family: string;
   logo_url?: string;
+  phone?: string;
+  email?: string;
+  whatsapp?: string;
+  address?: string;
 }
 
 export interface CMSData {
@@ -425,7 +429,11 @@ const DEFAULT_BRANDING: BrandingConfig = {
   tagline: 'Luxury Real Estate in Dubai',
   primary_color: '#C9A84C',
   accent_color: '#B8963E',
-  font_family: 'Plus Jakarta Sans'
+  font_family: 'Plus Jakarta Sans',
+  phone: '+971 50 886 2683',
+  email: 'admin@coveestates.com',
+  whatsapp: '+971508862683',
+  address: '8th Level, Moosa Tower 1, Dubai, UAE',
 };
 
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [

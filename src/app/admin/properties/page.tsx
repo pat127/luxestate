@@ -187,6 +187,31 @@ export default function PropertiesPage() {
   const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
 
+  // Helper: load locations from localStorage (Communities Manager) or fall back to static data
+  const loadLocations = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('coveestates_communities');
+      if (stored) return JSON.parse(stored) as { emirate: string; area: string; communities: string[] }[];
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
+  const getAreasFromStorage = useCallback((emirate: string): string[] => {
+    const locs = loadLocations();
+    if (locs) return locs.filter((l) => l.emirate === emirate).map((l) => l.area);
+    return getAreasForEmirate(emirate);
+  }, [loadLocations]);
+
+  const getCommunitiesFromStorage = useCallback((area: string, emirate: string): string[] => {
+    const locs = loadLocations();
+    if (locs) {
+      const match = locs.find((l) => l.emirate === emirate && l.area === area);
+      return match ? match.communities : [];
+    }
+    return getCommunitiesForArea(area);
+  }, [loadLocations]);
+
   // Load from localStorage on mount
   useEffect(() => {
     setPropertyList(loadProperties());
@@ -261,20 +286,20 @@ export default function PropertiesPage() {
 
   // Update areas when emirate changes
   useEffect(() => {
-    const areas = getAreasForEmirate(formData.emirate);
+    const areas = getAreasFromStorage(formData.emirate);
     setAvailableAreas(areas);
     setAvailableCommunities([]);
-  }, [formData.emirate]);
+  }, [formData.emirate, getAreasFromStorage]);
 
   // Update communities when area changes
   useEffect(() => {
     if (formData.locationArea) {
-      const comms = getCommunitiesForArea(formData.locationArea);
+      const comms = getCommunitiesFromStorage(formData.locationArea, formData.emirate);
       setAvailableCommunities(comms);
     } else {
       setAvailableCommunities([]);
     }
-  }, [formData.locationArea]);
+  }, [formData.locationArea, formData.emirate, getCommunitiesFromStorage]);
 
   const handleOpenModal = () => {
     setEditingProperty(null);
