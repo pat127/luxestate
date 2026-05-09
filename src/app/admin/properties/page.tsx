@@ -506,10 +506,12 @@ export default function PropertiesPage() {
   };
 
   const handleBulkPublish = (publish: boolean) => {
+    updatePropertyList(propertyList.map((p) => selectedIds.has(p.id) ? { ...p, published: publish } : p));
     clearSelection();
   };
 
   const handleBulkFeatured = (featured: boolean) => {
+    updatePropertyList(propertyList.map((p) => selectedIds.has(p.id) ? { ...p, featured } : p));
     clearSelection();
   };
 

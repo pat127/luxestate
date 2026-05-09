@@ -90,7 +90,7 @@ export default function FeaturedProjects({ content }: Props) {
           international?: boolean;
         }>;
         const adminConverted: ProjectItem[] = adminProjects
-          .filter((p) => p.published !== false && !p.international)
+          .filter((p) => p.featured === true)
           .map((p) => ({
             id: p.id,
             name: p.name,
