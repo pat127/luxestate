@@ -226,6 +226,16 @@ export default function PropertiesPage() {
     loadProperties();
   };
 
+  const handleToggleFeatured = async (id: string, current: boolean) => {
+    await supabase.from('properties').update({ featured: !current }).eq('id', id);
+    loadProperties();
+  };
+
+  const handleTogglePublished = async (id: string, current: boolean) => {
+    await supabase.from('properties').update({ published: !current }).eq('id', id);
+    loadProperties();
+  };
+
   const openNew = () => {
     setEditingId(null);
     setFormData({ ...defaultFormData, referenceNumber: generateRefNumber() });
@@ -492,6 +502,12 @@ export default function PropertiesPage() {
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
                       <button onClick={() => router.push(`/admin/properties/${property.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View</button>
+                      <button
+                        onClick={() => handleToggleFeatured(property.id, property.featured)}
+                        title={property.featured ? 'Remove from featured' : 'Mark as featured'}
+                        className={`px-3 py-2 border text-xs transition-colors ${property.featured ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20' : 'border-border text-muted-foreground hover:text-yellow-400 hover:border-yellow-400/30'}`}>
+                        <Icon name="StarIcon" size={13} />
+                      </button>
                       <button onClick={() => handleDelete(property.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors">
                         <Icon name="TrashIcon" size={13} />
                       </button>
@@ -687,14 +703,6 @@ export default function PropertiesPage() {
                   <div className="col-span-2">
                     <label className={labelCls}>Full Address</label>
                     <input className={inputCls} value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} placeholder="Full property address" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Latitude</label>
-                    <input className={inputCls} value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} placeholder="25.1972" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Longitude</label>
-                    <input className={inputCls} value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} placeholder="55.2744" />
                   </div>
                 </div>
               )}

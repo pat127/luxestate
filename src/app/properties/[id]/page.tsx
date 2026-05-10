@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -58,6 +58,108 @@ function StatPill({ icon, label, value }: { icon: string; label: string; value: 
       <div>
         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{label}</p>
         <p className="text-foreground text-xs font-bold">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Location Map ─────────────────────────────────────────────────────────────
+function LocationMap({ locationArea, community, emirate }: { locationArea?: string; community?: string; emirate?: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [pinPos, setPinPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapCenter, setMapCenter] = useState({ lat: 25.2048, lng: 55.2708 });
+  const zoom = 14;
+
+  useEffect(() => {
+    const query = [community, locationArea, emirate, 'UAE'].filter(Boolean).join(', ');
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=ae`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data[0]) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          setPinPos({ lat, lng });
+          setMapCenter({ lat, lng });
+        }
+      })
+      .catch(() => {});
+  }, [locationArea, community, emirate]);
+
+  const lat2tile = (lat: number, z: number) =>
+    Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
+  const lng2tile = (lng: number, z: number) =>
+    Math.floor((lng + 180) / 360 * Math.pow(2, z));
+
+  const latLngToPixel = (lat: number, lng: number, cLat: number, cLng: number, z: number, w: number, h: number) => {
+    const scale = Math.pow(2, z) * 256;
+    const toX = (l: number) => (l + 180) / 360 * scale;
+    const toY = (l: number) => {
+      const s = Math.sin(l * Math.PI / 180);
+      return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * scale;
+    };
+    return { x: toX(lng) - toX(cLng) + w / 2, y: toY(lat) - toY(cLat) + h / 2 };
+  };
+
+  const mapW = 600;
+  const mapH = 300;
+  const centerTileX = lng2tile(mapCenter.lng, zoom);
+  const centerTileY = lat2tile(mapCenter.lat, zoom);
+  const pinPixel = pinPos ? latLngToPixel(pinPos.lat, pinPos.lng, mapCenter.lat, mapCenter.lng, zoom, mapW, mapH) : null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-4">
+        <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">Location</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <div
+        ref={mapRef}
+        className="relative border border-border overflow-hidden bg-secondary"
+        style={{ height: 300 }}
+      >
+        {/* OSM Tiles */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[-1, 0, 1].map((dy) =>
+            [-1, 0, 1].map((dx) => {
+              const tx = centerTileX + dx;
+              const ty = centerTileY + dy;
+              const tileSize = 256;
+              const tileLeft = mapW / 2 + dx * tileSize - (mapW / 2 % tileSize);
+              const tileTop = mapH / 2 + dy * tileSize - (mapH / 2 % tileSize);
+              return (
+                <img
+                  key={`${dx}-${dy}`}
+                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${tx}/${ty}.png`}
+                  alt=""
+                  style={{ position: 'absolute', left: tileLeft, top: tileTop, width: tileSize, height: tileSize }}
+                />
+              );
+            })
+          )}
+        </div>
+
+        {/* Pin */}
+        {pinPixel && (
+          <div
+            className="absolute pointer-events-none z-10"
+            style={{ left: pinPixel.x - 14, top: pinPixel.y - 36 }}
+          >
+            <div className="flex flex-col items-center">
+              <div className="w-7 h-7 bg-primary border-2 border-white rounded-full shadow-xl flex items-center justify-center">
+                <div className="w-2.5 h-2.5 bg-white rounded-full" />
+              </div>
+              <div className="w-0.5 h-5 bg-primary" />
+            </div>
+          </div>
+        )}
+
+        {/* Location label */}
+        {(locationArea || community) && (
+          <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-3 py-1.5 pointer-events-none flex items-center gap-1.5">
+            <Icon name="MapPinIcon" size={11} className="text-primary" />
+            {[community, locationArea].filter(Boolean).join(', ')}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -312,6 +414,15 @@ export default function PropertyDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Location Map */}
+            {(property.location_area || property.community || property.emirate) && (
+              <LocationMap
+                locationArea={property.location_area}
+                community={property.community}
+                emirate={property.emirate}
+              />
+            )}
 
             <div className="lg:hidden space-y-5">
               <div className="flex items-center gap-4">

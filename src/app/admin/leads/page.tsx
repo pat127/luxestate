@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
@@ -50,6 +50,22 @@ const emptyForm: LeadForm = {
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
 };
 
+const AGENTS_STORAGE_KEY = 'admin_agents';
+
+function loadAgentNames(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
+    if (!stored) return [];
+    const agents = JSON.parse(stored);
+    return agents
+      .filter((a: any) => a.status === 'Active')
+      .map((a: any) => a.name as string);
+  } catch {
+    return [];
+  }
+}
+
 export default function LeadsPage() {
   const supabase = createClient();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -62,6 +78,7 @@ export default function LeadsPage() {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [agentNames, setAgentNames] = useState<string[]>([]);
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -70,7 +87,10 @@ export default function LeadsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadLeads(); }, [loadLeads]);
+  useEffect(() => {
+    loadLeads();
+    setAgentNames(loadAgentNames());
+  }, [loadLeads]);
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
 
@@ -106,9 +126,15 @@ export default function LeadsPage() {
     loadLeads();
   };
 
-  const openNew = () => { setEditLead(null); setForm(emptyForm); setShowModal(true); };
+  const openNew = () => {
+    setAgentNames(loadAgentNames());
+    setEditLead(null);
+    setForm(emptyForm);
+    setShowModal(true);
+  };
 
   const openEdit = (lead: Lead) => {
+    setAgentNames(loadAgentNames());
     setEditLead(lead);
     setForm({
       name: lead.name || '', email: lead.email || '', phone: lead.phone || '', whatsapp: '',
@@ -245,6 +271,12 @@ export default function LeadsPage() {
                       {lead.interest && <p className="text-xs text-primary truncate max-w-xs">{lead.interest}</p>}
                     </div>
                     {lead.budget && <p className="text-xs text-muted-foreground mt-0.5">Budget: {lead.budget}</p>}
+                    {lead.assigned_agent && (
+                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <Icon name="UserCircleIcon" size={11} className="text-primary" />
+                        Agent: <span className="text-foreground font-medium">{lead.assigned_agent}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB') : '—'}</p>
@@ -287,7 +319,26 @@ export default function LeadsPage() {
                 <div><label className={labelCls}>Budget</label><input className={inputCls} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. AED 2M–5M" /></div>
                 <div><label className={labelCls}>Nationality</label><input className={inputCls} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></div>
                 <div className="col-span-2"><label className={labelCls}>Interest / Property</label><input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" /></div>
-                <div><label className={labelCls}>Assigned Agent</label><input className={inputCls} value={form.assignedAgent} onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })} /></div>
+                <div>
+                  <label className={labelCls}>Assigned Agent</label>
+                  {agentNames.length > 0 ? (
+                    <select
+                      className={inputCls}
+                      value={form.assignedAgent}
+                      onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
+                    >
+                      <option value="">— Select Agent —</option>
+                      {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      className={inputCls}
+                      value={form.assignedAgent}
+                      onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
+                      placeholder="Agent name"
+                    />
+                  )}
+                </div>
                 <div><label className={labelCls}>Follow-up Date</label><input type="date" className={inputCls} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} /></div>
                 <div className="col-span-2"><label className={labelCls}>Notes</label><textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               </div>
