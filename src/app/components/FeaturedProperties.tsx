@@ -4,15 +4,30 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES, PropertyItem } from '@/contexts/CMSContext';
+import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES } from '@/contexts/CMSContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   content?: FeaturedPropertiesContent;
 }
 
+interface PropertyItem {
+  id: string;
+  name: string;
+  location: string;
+  price: string;
+  beds: number;
+  baths: number;
+  sqft: string;
+  tag: string;
+  href: string;
+  image: string;
+  alt: string;
+}
+
 function PropertyCard({ property, priority = false, rowSpan = '' }: {
-  property: FeaturedPropertiesContent['properties'][0];
+  property: PropertyItem;
   priority?: boolean;
   rowSpan?: string;
 }) {
@@ -20,18 +35,10 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
   return (
     <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${rowSpan}`}>
       <div className={`relative overflow-hidden ${rowSpan === 'md:row-span-2' ? 'h-full min-h-[500px]' : 'h-64 md:h-72'}`}>
-        <AppImage
-          src={property.image}
-          alt={property.alt}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority={priority} />
+        <AppImage src={property.image} alt={property.alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-4 left-4">
-          <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
-            {property.tag}
-          </span>
+          <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{property.tag}</span>
         </div>
         <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
@@ -40,62 +47,23 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
           <div>
             <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
             <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-              <Icon name="MapPinIcon" size={11} className="text-primary" />
-              {property.location}
+              <Icon name="MapPinIcon" size={11} className="text-primary" />{property.location}
             </p>
           </div>
           <span className="text-primary font-bold text-sm md:text-base text-right">{convertPrice(property.price)}</span>
         </div>
         <div className="flex items-center gap-5 text-xs text-muted-foreground border-t border-border pt-3">
-          <span className="flex items-center gap-1.5">
-            <Icon name="HomeIcon" size={12} className="text-primary" />
-            {property.beds} Beds
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Icon name="SparklesIcon" size={12} className="text-primary" />
-            {property.baths} Baths
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />
-            {property.sqft} sqft
-          </span>
+          {property.beds > 0 && <span className="flex items-center gap-1.5"><Icon name="HomeIcon" size={12} className="text-primary" />{property.beds} Beds</span>}
+          {property.baths > 0 && <span className="flex items-center gap-1.5"><Icon name="SparklesIcon" size={12} className="text-primary" />{property.baths} Baths</span>}
+          {property.sqft && <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>}
         </div>
       </div>
     </Link>
   );
 }
 
-function loadFeaturedProperties(): PropertyItem[] {
-  try {
-    const stored = localStorage.getItem('admin_properties');
-    if (!stored) return [];
-    const adminProps = JSON.parse(stored) as Array<{
-      id: number; name: string; location: string; price: string;
-      beds?: number; baths?: number; sqft: string; image: string; alt: string;
-      status?: string; type?: string; featured?: boolean; published?: boolean;
-    }>;
-    // First try featured=true, fallback to published=true
-    const featured = adminProps.filter((p) => p.featured === true);
-    const source = featured.length > 0 ? featured : adminProps.filter((p) => p.published === true || p.published === undefined);
-    return source.map((p) => ({
-      id: p.id,
-      name: p.name,
-      location: p.location,
-      price: p.price,
-      beds: p.beds ?? 0,
-      baths: p.baths ?? 0,
-      sqft: p.sqft,
-      tag: p.status || 'For Sale',
-      href: `/properties/${p.id}`,
-      image: p.image || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-      alt: p.alt || p.name,
-    }));
-  } catch {
-    return [];
-  }
-}
-
 export default function FeaturedProperties({ content }: Props) {
+  const supabase = createClient();
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROPERTIES;
 
@@ -103,17 +71,34 @@ export default function FeaturedProperties({ content }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setAllProperties(loadFeaturedProperties());
-    setLoaded(true);
-
-    // Re-load when admin saves data in another tab
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'admin_properties') {
-        setAllProperties(loadFeaturedProperties());
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    supabase
+      .from('properties')
+      .select('id, title, location_area, price_aed, bedrooms, bathrooms, area_sqft, image_urls, availability, featured, published')
+      .eq('published', true)
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => {
+        if (data) {
+          setAllProperties(data.map((p: any) => {
+            const imgs = p.image_urls ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean) : [];
+            return {
+              id: p.id,
+              name: p.title,
+              location: p.location_area || '',
+              price: p.price_aed ? `AED ${p.price_aed}` : 'Price on Request',
+              beds: parseInt(p.bedrooms) || 0,
+              baths: parseInt(p.bathrooms) || 0,
+              sqft: p.area_sqft || '',
+              tag: p.availability || 'For Sale',
+              href: `/properties/${p.id}`,
+              image: imgs[0] || '',
+              alt: p.title,
+            };
+          }));
+        }
+        setLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -139,22 +124,15 @@ export default function FeaturedProperties({ content }: Props) {
     <section ref={sectionRef} className="py-16 md:py-24 px-4 md:px-10 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between md:items-end mb-10 md:mb-16 gap-6 md:gap-8">
         <div className="animate-on-scroll stagger-children">
-          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
-            {c.eyebrow}
-          </span>
+          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">{c.eyebrow}</span>
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tighter leading-none">
             {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
         <div className="animate-on-scroll flex flex-col items-start md:items-end gap-4">
-          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">
-            {c.description}
-          </p>
-          <Link
-            href={c.cta_link}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300 py-1">
-            {c.cta_text}
-            <Icon name="ArrowRightIcon" size={14} />
+          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">{c.description}</p>
+          <Link href={c.cta_link} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300 py-1">
+            {c.cta_text}<Icon name="ArrowRightIcon" size={14} />
           </Link>
         </div>
       </div>
@@ -164,6 +142,10 @@ export default function FeaturedProperties({ content }: Props) {
           <Icon name="HomeIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">No featured properties available yet.</p>
           <p className="text-muted-foreground text-xs mt-1">Add properties in the admin panel to display them here.</p>
+        </div>
+      ) : !loaded ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 animate-on-scroll">

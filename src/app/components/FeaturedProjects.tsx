@@ -4,30 +4,40 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS, ProjectItem } from '@/contexts/CMSContext';
+import { FeaturedProjectsContent, DEFAULT_FEATURED_PROJECTS } from '@/contexts/CMSContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   content?: FeaturedProjectsContent;
 }
 
+interface ProjectItem {
+  id: string;
+  name: string;
+  developer: string;
+  location: string;
+  type: string;
+  completion: string;
+  price: string;
+  units: number;
+  sold: number;
+  image: string;
+  alt: string;
+  tag: string;
+}
+
 function ProjectCard({ project, priority = false, wide = false }: {
-  project: FeaturedProjectsContent['projects'][0];
+  project: ProjectItem;
   priority?: boolean;
   wide?: boolean;
 }) {
   const { convertPrice } = useCurrency();
   return (
-    <Link href={`/projects/${project.id}`} className={`project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500`}>
+    <Link href={`/projects/${project.id}`} className="project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500">
       <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
         {project.image ? (
-          <AppImage
-            src={project.image}
-            alt={project.alt}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-700"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority={priority} />
+          <AppImage src={project.image} alt={project.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
         ) : (
           <div className="w-full h-full bg-secondary flex items-center justify-center">
             <Icon name="BuildingOffice2Icon" size={48} className="text-muted-foreground/40" />
@@ -43,8 +53,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
             <div>
               <h3 className="text-white font-bold text-lg leading-tight">{project.name}</h3>
               <p className="text-white/70 text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-                <Icon name="MapPinIcon" size={11} className="text-primary" />
-                {project.location} · {project.developer}
+                <Icon name="MapPinIcon" size={11} className="text-primary" />{project.location} · {project.developer}
               </p>
             </div>
             <div className="text-right">
@@ -53,14 +62,8 @@ function ProjectCard({ project, priority = false, wide = false }: {
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs text-white/60 border-t border-white/10 pt-3">
-            <span className="flex items-center gap-1.5">
-              <Icon name="BuildingOffice2Icon" size={11} className="text-primary" />
-              {project.units} Units
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Icon name="CalendarIcon" size={11} className="text-primary" />
-              {project.completion}
-            </span>
+            {project.units > 0 && <span className="flex items-center gap-1.5"><Icon name="BuildingOffice2Icon" size={11} className="text-primary" />{project.units} Units</span>}
+            {project.completion && <span className="flex items-center gap-1.5"><Icon name="CalendarIcon" size={11} className="text-primary" />{project.completion}</span>}
             {project.sold > 0 && (
               <div className="flex-1 flex items-center gap-2">
                 <div className="flex-1 h-1 bg-white/10 overflow-hidden">
@@ -77,50 +80,8 @@ function ProjectCard({ project, priority = false, wide = false }: {
   );
 }
 
-function loadFeaturedProjects(): ProjectItem[] {
-  try {
-    const stored = localStorage.getItem('admin_projects');
-    if (!stored) return [];
-    const adminProjects = JSON.parse(stored) as Array<{
-      id: number; name: string; developer: string; location: string;
-      type: string; completion: string; price: string; units: number;
-      sold: number; image: string; alt: string; featured?: boolean; published?: boolean;
-      international?: boolean; images?: Array<{ url?: string; src?: string; caption?: string; alt?: string }>;
-    }>;
-    // First try featured=true, fallback to published=true
-    const featured = adminProjects.filter((p) => p.featured === true);
-    const source = featured.length > 0 ? featured : adminProjects.filter((p) => p.published === true || p.published === undefined);
-    return source.map((p) => {
-      // Resolve image: prefer first item in images array, then cover image
-      let img = '';
-      let imgAlt = p.alt || p.name || '';
-      if (Array.isArray(p.images) && p.images.length > 0) {
-        const first = p.images[0];
-        img = first?.url || first?.src || '';
-        imgAlt = first?.caption || first?.alt || imgAlt;
-      }
-      if (!img && p.image) img = p.image;
-      return {
-        id: p.id,
-        name: p.name,
-        developer: p.developer,
-        location: p.location,
-        type: p.type,
-        completion: p.completion,
-        price: p.price,
-        units: p.units,
-        sold: p.sold,
-        image: img,
-        alt: imgAlt,
-        tag: p.type === 'Completed' ? 'Completed' : 'Off-Plan',
-      };
-    });
-  } catch {
-    return [];
-  }
-}
-
 export default function FeaturedProjects({ content }: Props) {
+  const supabase = createClient();
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
 
@@ -128,17 +89,38 @@ export default function FeaturedProjects({ content }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setAllProjects(loadFeaturedProjects());
-    setLoaded(true);
-
-    // Re-load when admin saves data in another tab
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'admin_projects') {
-        setAllProjects(loadFeaturedProjects());
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    supabase
+      .from('projects')
+      .select('id, name, developer, location_area, project_type, handover_date, starting_price, total_units, sold_units, images, featured, published')
+      .eq('published', true)
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (data) {
+          setAllProjects(data.map((p: any) => {
+            const imgs = Array.isArray(p.images) ? p.images : [];
+            const img = imgs[0]?.url || imgs[0]?.src || '';
+            const imgAlt = imgs[0]?.caption || imgs[0]?.alt || p.name || '';
+            const soldPct = p.total_units > 0 ? Math.round((p.sold_units / p.total_units) * 100) : 0;
+            return {
+              id: p.id,
+              name: p.name,
+              developer: p.developer || '',
+              location: p.location_area || '',
+              type: p.project_type || 'Off-Plan',
+              completion: p.handover_date || '',
+              price: p.starting_price ? `AED ${p.starting_price}+` : 'Price on Request',
+              units: p.total_units || 0,
+              sold: soldPct,
+              image: img,
+              alt: imgAlt,
+              tag: p.project_type === 'Completed' ? 'Completed' : 'Off-Plan',
+            };
+          }));
+        }
+        setLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -164,27 +146,24 @@ export default function FeaturedProjects({ content }: Props) {
     <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-8">
         <div className="animate-on-scroll stagger-children">
-          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
-            {c.eyebrow}
-          </span>
+          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">{c.eyebrow}</span>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
             {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
         <div className="animate-on-scroll flex flex-col items-start md:items-end gap-4">
-          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">
-            {c.description}
-          </p>
-          <Link
-            href={c.cta_link}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300">
-            {c.cta_text}
-            <Icon name="ArrowRightIcon" size={14} />
+          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">{c.description}</p>
+          <Link href={c.cta_link} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300">
+            {c.cta_text}<Icon name="ArrowRightIcon" size={14} />
           </Link>
         </div>
       </div>
 
-      {loaded && projects.length === 0 ? (
+      {!loaded ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : loaded && projects.length === 0 ? (
         <div className="text-center py-20 border border-border">
           <Icon name="BuildingOffice2Icon" size={40} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">No featured projects available yet.</p>
@@ -192,11 +171,7 @@ export default function FeaturedProjects({ content }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-          {projects[0] && (
-            <div className="md:col-span-2">
-              <ProjectCard project={projects[0]} priority wide />
-            </div>
-          )}
+          {projects[0] && <div className="md:col-span-2"><ProjectCard project={projects[0]} priority wide /></div>}
           <div className="md:col-span-1 flex flex-col gap-4">
             {projects[1] && <ProjectCard project={projects[1]} />}
             {projects[2] && <ProjectCard project={projects[2]} />}

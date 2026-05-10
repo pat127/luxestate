@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
 
 interface Lead {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -12,41 +13,11 @@ interface Lead {
   status: string;
   budget: string;
   interest: string;
-  date: string;
-  assignedAgent?: string;
+  created_at: string;
+  assigned_agent?: string;
   nationality?: string;
   notes?: string;
-}
-
-const LEADS_STORAGE_KEY = 'admin_leads';
-const IMPORT_STORAGE_KEY = 'imported_leads';
-
-const seedLeads: Lead[] = [];
-
-function loadLeads(): Lead[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(LEADS_STORAGE_KEY);
-    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Lead[];
-    let base: Lead[] = stored ? JSON.parse(stored) : [];
-    // Merge imported leads that aren't already in base (by id)
-    const existingIds = new Set(base.map(l => l.id));
-    const newImports = imported.filter(l => !existingIds.has(l.id));
-    if (newImports.length > 0) {
-      base = [...base, ...newImports];
-      // Clear imported after merging so they don't re-appear on next load
-      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(base));
-    }
-    return base;
-  } catch {
-    return [];
-  }
-}
-
-function saveLeads(leads: Lead[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+  follow_up_date?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -66,7 +37,6 @@ const sourceColors: Record<string, string> = {
   'Walk-in': 'text-orange-400',
   'Property Finder': 'text-red-400',
   Bayut: 'text-orange-400',
-  Import: 'text-purple-400',
 };
 
 interface LeadForm {
@@ -80,219 +50,145 @@ const emptyForm: LeadForm = {
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
 };
 
-function sendNotification(title: string, body: string) {
-  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '/favicon.ico' });
-  }
-}
-
-function checkLeadReminders(leads: Lead[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  leads.forEach((lead) => {
-    if ((lead as any).followUpDate) {
-      const followUp = new Date((lead as any).followUpDate);
-      followUp.setHours(0, 0, 0, 0);
-      if (followUp.getTime() === today.getTime()) {
-        sendNotification(
-          `Lead Follow-Up Due Today`,
-          `Follow up with ${lead.name} (${lead.status}) — ${lead.interest || 'No interest specified'}`
-        );
-      } else if (followUp.getTime() === tomorrow.getTime()) {
-        sendNotification(
-          `Lead Follow-Up Due Tomorrow`,
-          `Reminder: Follow up with ${lead.name} (${lead.status}) tomorrow.`
-        );
-      }
-    }
-    // Notify for new leads (status = 'New' and date = 'Just now' or 'Today')
-    if (lead.status === 'New' && (lead.date === 'Just now' || lead.date === 'Today')) {
-      sendNotification(
-        `New Lead: ${lead.source}`,
-        `${lead.name} is interested in ${lead.interest || 'a property'}. Budget: ${lead.budget}`
-      );
-    }
-  });
-}
-
 export default function LeadsPage() {
+  const supabase = createClient();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
-
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [bulkStatusValue, setBulkStatusValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const notifiedIds = useRef<Set<number>>(new Set());
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    setLeads(loadLeads());
+  const loadLeads = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    if (data) setLeads(data);
+    setLoading(false);
   }, []);
 
-  // Request notification permission on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifPermission(Notification.permission);
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then((perm) => setNotifPermission(perm));
-      }
-    }
-  }, []);
-
-  // Poll for new imports every 2 seconds when page is visible
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Lead[];
-      if (imported.length > 0) {
-        setLeads(prev => {
-          const existingIds = new Set(prev.map(l => l.id));
-          const newImports = imported.filter(l => !existingIds.has(l.id));
-          if (newImports.length === 0) return prev;
-          const updated = [...prev, ...newImports];
-          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
-          localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-          // Notify for newly imported leads
-          if (notifPermission === 'granted') {
-            sendNotification('New Leads Imported', `${newImports.length} new lead${newImports.length > 1 ? 's' : ''} imported successfully.`);
-          }
-          return updated;
-        });
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [notifPermission]);
-
-  // Check follow-up reminders when leads load
-  useEffect(() => {
-    if (leads.length > 0 && notifPermission === 'granted') {
-      checkLeadReminders(leads);
-    }
-  }, [leads.length, notifPermission]);
-
-  const updateLeads = (updated: Lead[]) => {
-    setLeads(updated);
-    saveLeads(updated);
-  };
+  useEffect(() => { loadLeads(); }, [loadLeads]);
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
 
   const filtered = leads.filter((l) => {
-    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.email.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) ||
+      (l.email || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'All' || l.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
   const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id));
-
   const toggleSelectAll = () => {
-    if (allSelected) {
-      const newSet = new Set(selectedIds);
-      filtered.forEach((l) => newSet.delete(l.id));
-      setSelectedIds(newSet);
-    } else {
-      const newSet = new Set(selectedIds);
-      filtered.forEach((l) => newSet.add(l.id));
-      setSelectedIds(newSet);
-    }
+    if (allSelected) { const s = new Set(selectedIds); filtered.forEach(l => s.delete(l.id)); setSelectedIds(s); }
+    else { const s = new Set(selectedIds); filtered.forEach(l => s.add(l.id)); setSelectedIds(s); }
+  };
+  const toggleSelect = (id: string) => {
+    const s = new Set(selectedIds);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setSelectedIds(s);
   };
 
-  const toggleSelect = (id: number) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setSelectedIds(newSet);
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (!newStatus) return;
+    await supabase.from('leads').update({ status: newStatus }).in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
+    loadLeads();
   };
 
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const handleBulkStatusChange = () => {
-    if (!bulkStatusValue) return;
-    updateLeads(leads.map((l) => selectedIds.has(l.id) ? { ...l, status: bulkStatusValue } : l));
-    setBulkStatusValue('');
-    clearSelection();
-  };
-
-  const handleBulkDelete = () => {
-    updateLeads(leads.filter((l) => !selectedIds.has(l.id)));
+  const handleBulkDelete = async () => {
+    await supabase.from('leads').delete().in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
     setDeleteConfirm(false);
-    clearSelection();
+    loadLeads();
   };
 
   const openNew = () => { setEditLead(null); setForm(emptyForm); setShowModal(true); };
 
   const openEdit = (lead: Lead) => {
     setEditLead(lead);
-    setForm({ name: lead.name, email: lead.email, phone: lead.phone, whatsapp: '', source: lead.source, status: lead.status, budget: lead.budget, interest: lead.interest, nationality: lead.nationality || '', assignedAgent: lead.assignedAgent || '', notes: lead.notes || '', followUpDate: '' });
+    setForm({
+      name: lead.name || '', email: lead.email || '', phone: lead.phone || '', whatsapp: '',
+      source: lead.source || 'Website', status: lead.status || 'New',
+      budget: lead.budget || '', interest: lead.interest || '',
+      nationality: lead.nationality || '', assignedAgent: lead.assigned_agent || '',
+      notes: lead.notes || '', followUpDate: lead.follow_up_date || '',
+    });
     setShowModal(true);
   };
 
-  const handleSave = () => {
-    if (!form.name || !form.email) return;
-    if (editLead) {
-      updateLeads(leads.map(l => l.id === editLead.id ? { ...l, name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes } : l));
-    } else {
-      const newLead: Lead = { id: Date.now(), name: form.name, email: form.email, phone: form.phone, source: form.source, status: form.status, budget: form.budget, interest: form.interest, date: 'Just now', nationality: form.nationality, assignedAgent: form.assignedAgent, notes: form.notes };
-      updateLeads([...leads, newLead]);
-      // Notify on new lead added
-      if (notifPermission === 'granted') {
-        sendNotification('New Lead Added', `${form.name} — ${form.interest || 'No interest specified'}. Budget: ${form.budget}`);
-      }
-    }
-    setShowModal(false);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this lead?')) return;
+    await supabase.from('leads').delete().eq('id', id);
+    loadLeads();
   };
 
-  const handleDelete = (id: number) => updateLeads(leads.filter(l => l.id !== id));
+  const handleSave = async () => {
+    if (!form.name) return;
+    setSaving(true);
+    const payload = {
+      name: form.name, email: form.email, phone: form.phone,
+      source: form.source, status: form.status, budget: form.budget,
+      interest: form.interest, nationality: form.nationality,
+      assigned_agent: form.assignedAgent, notes: form.notes,
+      follow_up_date: form.followUpDate || null,
+    };
+    if (editLead) {
+      await supabase.from('leads').update(payload).eq('id', editLead.id);
+    } else {
+      await supabase.from('leads').insert(payload);
+    }
+    setSaving(false);
+    setShowModal(false);
+    loadLeads();
+  };
+
+  const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
+  const labelCls = "block text-xs text-[#aaa] mb-1";
+
+  // Stats
+  const newCount = leads.filter(l => l.status === 'New').length;
+  const qualifiedCount = leads.filter(l => l.status === 'Qualified').length;
+  const totalCount = leads.length;
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{leads.length} total leads</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage enquiries and lead pipeline</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
-            <Icon name="ArrowUpTrayIcon" size={14} />Import
-          </button>
-          <button className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
-            <Icon name="ArrowDownTrayIcon" size={14} />Export
-          </button>
-          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-            <Icon name="PlusIcon" size={14} />Add Lead
-          </button>
-        </div>
+        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+          <Icon name="PlusIcon" size={14} />Add Lead
+        </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-5">
-        {statuses.slice(1).map((s) => {
-          const count = leads.filter((l) => l.status === s).length;
-          return (
-            <button key={s} onClick={() => setFilterStatus(s === filterStatus ? 'All' : s)} className={`p-3 border text-center transition-colors ${filterStatus === s ? 'border-primary/50 bg-primary/5' : 'border-border bg-card hover:border-primary/20'}`}>
-              <p className="text-lg font-bold text-foreground">{count}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{s}</p>
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[
+          { label: 'Total Leads', value: totalCount, color: 'text-foreground' },
+          { label: 'New', value: newCount, color: 'text-blue-400' },
+          { label: 'Qualified', value: qualifiedCount, color: 'text-primary' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-card border border-border p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex items-center gap-3 mb-5">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-sm">
           <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input type="text" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
           {statuses.map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 text-xs font-medium transition-colors ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'}`}>{s}</button>
+            <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>{s}</button>
           ))}
         </div>
       </div>
@@ -301,173 +197,120 @@ export default function LeadsPage() {
       {selectedIds.size > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
-          <div className="flex items-center gap-2 ml-2">
-            <select value={bulkStatusValue} onChange={(e) => setBulkStatusValue(e.target.value)} className="px-2 py-1.5 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50">
-              <option value="">Change Status...</option>
-              {statuses.slice(1).map(s => <option key={s}>{s}</option>)}
-            </select>
-            <button onClick={handleBulkStatusChange} disabled={!bulkStatusValue} className="px-3 py-1.5 bg-card border border-border text-xs text-foreground hover:border-primary/50 transition-colors disabled:opacity-40">Apply</button>
+          <div className="flex items-center gap-2 flex-wrap ml-2">
+            {['Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => (
+              <button key={s} onClick={() => handleBulkStatusChange(s)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{s}</button>
+            ))}
             <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
-              <Icon name="TrashIcon" size={13} />Delete Selected
+              <Icon name="TrashIcon" size={13} />Delete
             </button>
           </div>
-          <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <Icon name="XMarkIcon" size={14} />
-          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"><Icon name="XMarkIcon" size={14} /></button>
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-card border border-border overflow-x-auto">
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-3 w-10">
-                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
-              </th>
-              {['Name', 'Source', 'Status', 'Budget', 'Interest', 'Agent', 'Date', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((lead, i) => (
-              <tr key={lead.id} className={`border-b border-border hover:bg-white/2 transition-colors ${selectedIds.has(lead.id) ? 'bg-primary/5' : i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
-                <td className="px-4 py-3">
-                  <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={() => toggleSelect(lead.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary text-xs font-bold">{lead.name[0]}</span>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20 border border-border">
+          <Icon name="UserGroupIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">No leads found.</p>
+          <button onClick={openNew} className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">Add First Lead</button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+            <span className="text-xs text-muted-foreground">Select all {filtered.length} leads</span>
+          </div>
+          <div className="space-y-2">
+            {filtered.map((lead) => (
+              <div key={lead.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(lead.id) ? 'border-primary/40' : 'border-border'}`}>
+                <div className="p-4 flex items-center gap-4">
+                  <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={() => toggleSelect(lead.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer flex-shrink-0" />
+                  <div className="w-10 h-10 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                    <Icon name="UserIcon" size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="text-sm font-bold text-foreground">{lead.name}</p>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>{lead.status}</span>
+                      {lead.source && <span className={`text-[10px] font-bold uppercase tracking-wider ${sourceColors[lead.source] || 'text-muted-foreground'}`}>{lead.source}</span>}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">{lead.email}</p>
+                    <div className="flex items-center gap-4 mt-1 flex-wrap">
+                      {lead.email && <p className="text-xs text-muted-foreground">{lead.email}</p>}
+                      {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                      {lead.interest && <p className="text-xs text-primary truncate max-w-xs">{lead.interest}</p>}
+                    </div>
+                    {lead.budget && <p className="text-xs text-muted-foreground mt-0.5">Budget: {lead.budget}</p>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB') : '—'}</p>
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={() => openEdit(lead)} className="px-3 py-1.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
+                      <button onClick={() => handleDelete(lead.id)} className="px-3 py-1.5 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={12} /></button>
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3"><span className={`text-xs font-semibold ${sourceColors[lead.source] || 'text-muted-foreground'}`}>{lead.source}</span></td>
-                <td className="px-4 py-3"><span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[lead.status] || ''}`}>{lead.status}</span></td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">{lead.budget}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{lead.interest}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{lead.assignedAgent || '—'}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{lead.date}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(lead)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Icon name="PencilIcon" size={13} /></button>
-                    <button onClick={() => handleDelete(lead.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
-                  </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">No leads found</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </>
+      )}
 
-      {/* Delete Confirm Modal */}
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-lg bg-[#0f1117] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a3040]">
+              <h2 className="text-base font-bold text-white">{editLead ? 'Edit Lead' : 'Add New Lead'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white transition-colors"><Icon name="XMarkIcon" size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2"><label className={labelCls}>Full Name *</label><input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Lead name" /></div>
+                <div><label className={labelCls}>Email</label><input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div><label className={labelCls}>Phone</label><input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <div><label className={labelCls}>Source</label>
+                  <select className={inputCls} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
+                    {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'Other'].map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div><label className={labelCls}>Status</label>
+                  <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                    {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div><label className={labelCls}>Budget</label><input className={inputCls} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. AED 2M–5M" /></div>
+                <div><label className={labelCls}>Nationality</label><input className={inputCls} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></div>
+                <div className="col-span-2"><label className={labelCls}>Interest / Property</label><input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" /></div>
+                <div><label className={labelCls}>Assigned Agent</label><input className={inputCls} value={form.assignedAgent} onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })} /></div>
+                <div><label className={labelCls}>Follow-up Date</label><input type="date" className={inputCls} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} /></div>
+                <div className="col-span-2"><label className={labelCls}>Notes</label><textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
+              <button onClick={handleSave} disabled={saving || !form.name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+                {saving ? 'Saving...' : editLead ? 'Update Lead' : 'Save Lead'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-card border border-border w-full max-w-sm p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center">
-                <Icon name="TrashIcon" size={20} className="text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Delete Leads</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{selectedIds.size} lead(s) will be deleted</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">This action cannot be undone. All selected leads will be permanently removed.</p>
+            <h3 className="text-base font-bold text-foreground mb-2">Delete {selectedIds.size} Leads?</h3>
+            <p className="text-sm text-muted-foreground mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleBulkDelete} className="flex-1 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add/Edit Lead Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card">
-              <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">{editLead ? 'Edit Lead' : 'Add New Lead'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Full Name *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="Full name" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Email *</label>
-                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="email@example.com" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Phone</label>
-                  <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="+971 50 000 0000" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">WhatsApp</label>
-                  <input type="text" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="+971 50 000 0000" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Nationality</label>
-                  <input type="text" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="e.g. British" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Source</label>
-                  <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                    <option>Website</option><option>Referral</option><option>Instagram</option><option>LinkedIn</option><option>Walk-in</option><option>Property Finder</option><option>Bayut</option><option>Dubizzle</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Status</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                    <option>New</option><option>Contacted</option><option>Qualified</option><option>Proposal</option><option>Negotiation</option><option>Lost</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Budget Range</label>
-                  <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="e.g. AED 2M - 5M" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Property Interest</label>
-                  <input type="text" value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" placeholder="e.g. Villa, Penthouse" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Assigned Agent</label>
-                  <select value={form.assignedAgent} onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                    <option value="">Select agent</option>
-                    <option>Sarah Mitchell</option><option>James Carter</option><option>Omar Hassan</option><option>Priya Sharma</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Follow-up Date</label>
-                  <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Notes</label>
-                <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none" placeholder="Lead notes..." />
-              </div>
-            </div>
-            <div className="flex gap-3 px-5 py-4 border-t border-border sticky bottom-0 bg-card">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleSave} className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors">{editLead ? 'Update Lead' : 'Save Lead'}</button>
+              <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button onClick={handleBulkDelete} className="flex-1 py-2 bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors">Delete</button>
             </div>
           </div>
         </div>
