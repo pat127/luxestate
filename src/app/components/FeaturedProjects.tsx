@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
@@ -81,7 +81,7 @@ function ProjectCard({ project, priority = false, wide = false }: {
 }
 
 export default function FeaturedProjects({ content }: Props) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const sectionRef = useRef<HTMLElement>(null);
   const c = content ?? DEFAULT_FEATURED_PROJECTS;
 

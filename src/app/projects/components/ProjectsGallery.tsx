@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import Link from 'next/link';
@@ -41,7 +41,7 @@ function getDisplayStatus(status: string): string {
 }
 
 export default function ProjectsGallery() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [activeType, setActiveType] = useState('All');
   const [displayProjects, setDisplayProjects] = useState<DisplayProject[]>([]);
   const [loaded, setLoaded] = useState(false);
