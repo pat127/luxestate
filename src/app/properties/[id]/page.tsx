@@ -331,7 +331,7 @@ export default function PropertyDetailPage() {
           <div className="lg:col-span-2 space-y-14">
 
             {/* Description */}
-            {property.description && (
+            {property.description && property.description.trim() && (
               <div data-observe className="animate-on-scroll space-y-5">
                 <div className="flex items-center gap-4">
                   <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">Overview</span>

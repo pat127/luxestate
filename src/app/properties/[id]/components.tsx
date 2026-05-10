@@ -179,6 +179,25 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Save lead to CRM
+    try {
+      const stored = localStorage.getItem('admin_leads');
+      const leads = stored ? JSON.parse(stored) : [];
+      const newLead = {
+        id: Date.now(),
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        source: 'Website',
+        status: 'New',
+        budget: '',
+        interest: propertyName,
+        date: 'Just now',
+        notes: form.message,
+      };
+      leads.push(newLead);
+      localStorage.setItem('admin_leads', JSON.stringify(leads));
+    } catch { /* ignore */ }
     setSent(true);
   };
 

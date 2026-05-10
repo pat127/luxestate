@@ -1646,14 +1646,14 @@ export default function PropertiesPage() {
               {activeTab === 'media' &&
             <div className="space-y-4">
                   <div>
-                    <label className={labelClass}>Image URLs (comma separated)</label>
+                    <label className={labelClass}>Image URLs (paste all URLs separated by commas)</label>
                     <textarea
-                  placeholder="https://image1.jpg, https://image2.jpg"
+                  placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, https://example.com/image3.jpg"
                   value={formData.imageUrls}
                   onChange={(e) => handleChange('imageUrls', e.target.value)}
-                  rows={3}
+                  rows={5}
                   className={inputClass + ' resize-none'} />
-                
+                  <p className="text-xs text-[#555] mt-1">Paste multiple image URLs separated by commas. The first image will be used as the cover.</p>
                   </div>
                   <div>
                     <label className={labelClass}>Video URL (YouTube/Vimeo)</label>

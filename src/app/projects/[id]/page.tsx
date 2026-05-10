@@ -224,7 +224,7 @@ function mapAdminProject(p: any): ProjectDetail {
     sold: typeof p.sold === 'number' ? p.sold : 0,
     type: p.type || '',
     reference: p.reference || `CE-PRJ-${String(p.id).padStart(3, '0')}`,
-    description: p.description || '',
+    description: (p.description || '').trim(),
     tagline: p.tagline || `${p.type || 'Off-Plan'} by ${p.developer || ''}`,
     highlights,
     unitTypes,
@@ -573,6 +573,25 @@ function EnquiryForm({ projectName, reference, unitTypes }: { projectName: strin
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Save lead to CRM
+    try {
+      const stored = localStorage.getItem('admin_leads');
+      const leads = stored ? JSON.parse(stored) : [];
+      const newLead = {
+        id: Date.now(),
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        source: 'Website',
+        status: 'New',
+        budget: '',
+        interest: form.unitType ? `${projectName} — ${form.unitType}` : projectName,
+        date: 'Just now',
+        notes: form.message,
+      };
+      leads.push(newLead);
+      localStorage.setItem('admin_leads', JSON.stringify(leads));
+    } catch { /* ignore */ }
     setSent(true);
   };
 

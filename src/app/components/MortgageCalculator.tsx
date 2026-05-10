@@ -57,8 +57,8 @@ export default function MortgageCalculator({ content }: Props) {
   }, []);
 
   const fmt = (n: number) => {
-    if (!mounted) return '$0';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+    if (!mounted) return 'AED 0';
+    return 'AED ' + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n);
   };
 
   const loanAmount = homePrice * (1 - downPayment / 100);

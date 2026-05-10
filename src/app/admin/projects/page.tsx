@@ -939,18 +939,22 @@ function ProjectsPageInner() {
               {activeTab === 'media' &&
             <div className="space-y-5">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className={labelCls + ' mb-0'}>Project Images</label>
-                      <button type="button" onClick={addProjectImage} className="flex items-center gap-1 text-xs text-[#c9a84c] hover:text-[#e0b85a] transition-colors"><Icon name="PlusIcon" size={12} />Add Image</button>
-                    </div>
-                    {projectImages.length === 0 && <p className="text-xs text-[#555] italic">No images added yet.</p>}
-                    {projectImages.map((img) =>
-                <div key={img.id} className="flex gap-2 mb-2 items-center">
-                        <input className={`${inputCls} flex-1`} placeholder="Image URL (https://...)" value={img.url} onChange={(e) => updateProjectImage(img.id, 'url', e.target.value)} />
-                        <input className={`${inputCls} w-36`} placeholder="Caption" value={img.caption} onChange={(e) => updateProjectImage(img.id, 'caption', e.target.value)} />
-                        <button type="button" onClick={() => removeProjectImage(img.id)} className="text-[#666] hover:text-red-400 transition-colors px-1"><Icon name="XMarkIcon" size={14} /></button>
-                      </div>
-                )}
+                    <label className={labelCls}>Project Images (paste URLs separated by commas)</label>
+                    <textarea
+                      className={`${inputCls} resize-none`}
+                      rows={5}
+                      placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, https://example.com/image3.jpg"
+                      value={projectImages.map((img) => img.url).join(', ')}
+                      onChange={(e) => {
+                        const urls = e.target.value.split(',').map((u) => u.trim()).filter(Boolean);
+                        setProjectImages(urls.map((url, i) => ({
+                          id: projectImages[i]?.id || Date.now() + i,
+                          url,
+                          caption: projectImages[i]?.caption || '',
+                        })));
+                      }}
+                    />
+                    <p className="text-xs text-[#555] mt-1">Paste multiple image URLs separated by commas. The first image will be used as the cover.</p>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
