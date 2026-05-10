@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-interface StoredLead { id: number; name: string; status?: string; source?: string; assignedAgent?: string; }
-interface StoredDeal { id: number; stage?: string; type?: string; value?: string; commission?: string; agent?: string; }
-interface StoredProperty { id: number; type?: string; status?: string; }
-interface StoredAgent { id: number; name: string; leads?: number; deals?: number; }
-interface StoredContact { id: number; name: string; }
+interface DbProperty { id: string; prop_category?: string; listing_type?: string; availability?: string; created_at?: string; }
+interface DbProject { id: string; status?: string; created_at?: string; }
+interface DbLead { id: string; status?: string; source?: string; created_at?: string; }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -32,100 +31,116 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function AdminDashboard() {
   const [view, setView] = useState<'team' | 'ceo'>('team');
+  const supabase = useMemo(() => createClient(), []);
 
-  // Real CRM data
-  const [leads, setLeads] = useState<StoredLead[]>([]);
-  const [deals, setDeals] = useState<StoredDeal[]>([]);
-  const [properties, setProperties] = useState<StoredProperty[]>([]);
-  const [agents, setAgents] = useState<StoredAgent[]>([]);
-  const [contacts, setContacts] = useState<StoredContact[]>([]);
+  const [properties, setProperties] = useState<DbProperty[]>([]);
+  const [projects, setProjects] = useState<DbProject[]>([]);
+  const [leads, setLeads] = useState<DbLead[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try { setLeads(JSON.parse(localStorage.getItem('admin_leads') || '[]')); } catch { /* ignore */ }
-    try { setDeals(JSON.parse(localStorage.getItem('admin_deals') || '[]')); } catch { /* ignore */ }
-    try {
-      const props = JSON.parse(localStorage.getItem('admin_properties') || '[]');
-      const imported = JSON.parse(localStorage.getItem('imported_properties') || '[]');
-      setProperties([...props, ...imported]);
-    } catch { /* ignore */ }
-    try { setAgents(JSON.parse(localStorage.getItem('admin_agents') || '[]')); } catch { /* ignore */ }
-    try { setContacts(JSON.parse(localStorage.getItem('admin_contacts') || '[]')); } catch { /* ignore */ }
-  }, []);
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const [propsRes, projRes, leadsRes] = await Promise.all([
+          supabase.from('properties').select('id, prop_category, listing_type, availability, created_at'),
+          supabase.from('projects').select('id, status, created_at'),
+          supabase.from('leads').select('id, status, source, created_at'),
+        ]);
+        setProperties(propsRes.data || []);
+        setProjects(projRes.data || []);
+        setLeads(leadsRes.data || []);
+      } catch {
+        // silently ignore
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, [supabase]);
 
   // Computed stats
-  const myLeads = leads.length;
-  const myListings = properties.length;
-  const closedDeals = deals.filter(d => d.stage === 'Closed Won');
-  const myDeals = closedDeals.length;
-  const myCommission = closedDeals.reduce((s, d) => {
-    const n = parseInt((d.commission || '').replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const totalProperties = properties.length;
+  const totalProjects = projects.length;
+  const totalLeads = leads.length;
+  const activeProjects = projects.filter(p => p.status === 'Active').length;
+  const newLeads = leads.filter(l => l.status === 'New').length;
+  const qualifiedLeads = leads.filter(l => l.status === 'Qualified').length;
 
-  // Pipeline stages
+  // Pipeline stages from leads
   const pipelineStages = [
     { stage: 'New', count: leads.filter(l => l.status === 'New').length, color: '#C9A84C' },
     { stage: 'Qualified', count: leads.filter(l => l.status === 'Qualified').length, color: '#B8963E' },
-    { stage: 'Proposal', count: deals.filter(d => d.stage === 'Proposal').length, color: '#A07830' },
-    { stage: 'Negotiation', count: deals.filter(d => d.stage === 'Negotiation').length, color: '#8B6914' },
-    { stage: 'Closed', count: closedDeals.length, color: '#6B5010' },
+    { stage: 'Contacted', count: leads.filter(l => l.status === 'Contacted').length, color: '#A07830' },
+    { stage: 'Negotiation', count: leads.filter(l => l.status === 'Negotiation').length, color: '#8B6914' },
+    { stage: 'Closed', count: leads.filter(l => l.status === 'Closed').length, color: '#6B5010' },
   ];
   const maxPipelineCount = Math.max(...pipelineStages.map(s => s.count), 1);
 
-  // Property type breakdown
-  const propTypes = ['Residential', 'Commercial', 'Off-Plan'];
+  // Property category breakdown
+  const propCategories = ['Residential', 'Commercial', 'Off-Plan'];
   const propColors = ['#C9A84C', '#B8963E', '#8B6914'];
-  const propTypeCounts = propTypes.map(t => properties.filter(p => p.type === t).length);
-  const totalPropCount = propTypeCounts.reduce((s, v) => s + v, 0) || 1;
-  const propertyTypeData = propTypes.map((name, i) => ({
+  const propCatCounts = propCategories.map(c => properties.filter(p => p.prop_category === c).length);
+  const totalPropCount = propCatCounts.reduce((s, v) => s + v, 0) || 1;
+  const propertyTypeData = propCategories.map((name, i) => ({
     name,
-    value: Math.round((propTypeCounts[i] / totalPropCount) * 100) || 0,
+    value: Math.round((propCatCounts[i] / totalPropCount) * 100) || 0,
     color: propColors[i],
   }));
 
-  // Monthly leads & conversions (last 6 months)
+  // Monthly leads (last 6 months based on created_at)
   const now = new Date();
   const leadsData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    const weight = [0.12, 0.14, 0.16, 0.18, 0.22, 0.18][i];
+    const nextD = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1);
+    const monthLeads = leads.filter(l => {
+      if (!l.created_at) return false;
+      const created = new Date(l.created_at);
+      return created >= d && created < nextD;
+    }).length;
+    const monthClosed = leads.filter(l => {
+      if (!l.created_at) return false;
+      const created = new Date(l.created_at);
+      return created >= d && created < nextD && l.status === 'Closed';
+    }).length;
     return {
       month: MONTHS[d.getMonth()],
-      leads: Math.round(myLeads * weight),
-      conversions: Math.round(myDeals * weight),
+      leads: monthLeads,
+      conversions: monthClosed,
     };
   });
 
-  // Commission vs target (last 6 months)
-  const totalCommissionM = myCommission / 1e6;
-  const targetM = Math.max(totalCommissionM * 1.2, 2.5);
-  const commissionData = Array.from({ length: 6 }, (_, i) => {
+  // Monthly properties added (last 6 months)
+  const propertiesData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    const weight = [0.12, 0.14, 0.16, 0.18, 0.22, 0.18][i];
+    const nextD = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1);
+    const count = properties.filter(p => {
+      if (!p.created_at) return false;
+      const created = new Date(p.created_at);
+      return created >= d && created < nextD;
+    }).length;
     return {
       month: MONTHS[d.getMonth()],
-      commission: parseFloat((totalCommissionM * weight).toFixed(2)),
-      target: parseFloat((targetM / 6).toFixed(2)),
+      properties: count,
+      projects: projects.filter(p => {
+        if (!p.created_at) return false;
+        const created = new Date(p.created_at);
+        return created >= d && created < nextD;
+      }).length,
     };
   });
 
   const statCards = [
-    { label: 'My Leads', value: myLeads.toString(), sub: 'total', change: `+${myLeads}`, icon: 'UserPlusIcon', positive: myLeads > 0 },
-    { label: 'My Listings', value: myListings.toString(), sub: 'total', change: `+${myListings}`, icon: 'HomeIcon', positive: myListings > 0 },
-    { label: 'My Deals', value: myDeals.toString(), sub: 'closed won', change: `+${myDeals}`, icon: 'BriefcaseIcon', positive: myDeals > 0 },
-    {
-      label: 'My Commission',
-      value: myCommission > 0 ? `AED ${(myCommission / 1000).toFixed(0)}K` : 'AED 0',
-      sub: 'from closed deals',
-      change: myCommission > 0 ? `AED ${(myCommission / 1000).toFixed(0)}K` : 'AED 0',
-      icon: 'CurrencyDollarIcon',
-      positive: myCommission > 0,
-    },
+    { label: 'Total Properties', value: loading ? '—' : totalProperties.toString(), sub: 'in database', change: `${totalProperties}`, icon: 'HomeIcon', positive: totalProperties > 0 },
+    { label: 'Total Projects', value: loading ? '—' : totalProjects.toString(), sub: 'all projects', change: `${activeProjects} active`, icon: 'BuildingOffice2Icon', positive: totalProjects > 0 },
+    { label: 'Total Leads', value: loading ? '—' : totalLeads.toString(), sub: 'all leads', change: `${newLeads} new`, icon: 'UserPlusIcon', positive: totalLeads > 0 },
+    { label: 'Qualified Leads', value: loading ? '—' : qualifiedLeads.toString(), sub: 'qualified', change: `${qualifiedLeads}`, icon: 'BriefcaseIcon', positive: qualifiedLeads > 0 },
   ];
 
   const secondaryCards = [
-    { label: 'Active Agents', value: agents.filter((a: any) => a.status !== 'Inactive').length.toString(), icon: 'IdentificationIcon' },
-    { label: 'Pipeline Deals', value: deals.filter(d => !['Closed Won', 'Closed Lost'].includes(d.stage || '')).length.toString(), icon: 'FunnelIcon' },
-    { label: 'My Contacts', value: contacts.length.toString(), icon: 'UsersIcon' },
+    { label: 'Active Projects', value: loading ? '—' : activeProjects.toString(), icon: 'BuildingOfficeIcon' },
+    { label: 'Pipeline Leads', value: loading ? '—' : leads.filter(l => !['Closed', 'Lost'].includes(l.status || '')).length.toString(), icon: 'FunnelIcon' },
+    { label: 'Lead Sources', value: loading ? '—' : [...new Set(leads.map(l => l.source).filter(Boolean))].length.toString(), icon: 'UsersIcon' },
   ];
 
   return (
@@ -206,20 +221,20 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Commission vs Target */}
+        {/* Properties & Projects Added */}
         <div className="bg-card border border-border p-5">
           <div className="flex items-center gap-2 mb-5">
-            <Icon name="CurrencyDollarIcon" size={16} className="text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Commission vs Target</h3>
+            <Icon name="HomeModernIcon" size={16} className="text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Properties & Projects Added</h3>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={commissionData}>
+            <BarChart data={propertiesData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
               <XAxis dataKey="month" tick={{ fill: '#888', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#888', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}M`} />
+              <YAxis tick={{ fill: '#888', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="commission" name="Commission (M)" fill="#C9A84C" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="target" name="Target (M)" fill="#2A2A2A" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="properties" name="Properties" fill="#C9A84C" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="projects" name="Projects" fill="#2A2A2A" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -231,7 +246,7 @@ export default function AdminDashboard() {
         <div className="bg-card border border-border p-5">
           <div className="flex items-center gap-2 mb-5">
             <Icon name="FunnelIcon" size={16} className="text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Deals Pipeline</h3>
+            <h3 className="text-sm font-bold text-foreground">Leads Pipeline</h3>
           </div>
           <div className="space-y-3">
             {pipelineStages.map((stage) => {
@@ -252,11 +267,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Properties by Type */}
+        {/* Properties by Category */}
         <div className="bg-card border border-border p-5">
           <div className="flex items-center gap-2 mb-5">
             <Icon name="HomeModernIcon" size={16} className="text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Properties by Type</h3>
+            <h3 className="text-sm font-bold text-foreground">Properties by Category</h3>
           </div>
           {properties.length > 0 ? (
             <div className="flex items-center gap-6">
