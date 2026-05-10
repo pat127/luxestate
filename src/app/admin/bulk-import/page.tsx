@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
 
 type ImportType = 'leads' | 'contacts' | 'properties' | 'projects' | 'blogs';
 type ImportStep = 'upload' | 'mapping' | 'validation' | 'confirm' | 'done';
@@ -183,10 +184,8 @@ function downloadCSV(content: string, filename: string) {
 
 // Convert a parsed row (mapped fields) into a typed record for storage
 function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record<string, unknown> {
-  const id = Date.now() + Math.floor(Math.random() * 10000);
   if (type === 'leads') {
     return {
-      id,
       name: fieldMap['name'] || 'Unknown',
       email: fieldMap['email'] || '',
       phone: fieldMap['phone'] || '',
@@ -196,61 +195,73 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
       interest: fieldMap['interest'] || '',
       nationality: fieldMap['nationality'] || '',
       notes: fieldMap['notes'] || '',
-      assignedAgent: '',
-      date: 'Imported',
+      assigned_agent: '',
     };
   }
   if (type === 'contacts') {
     return {
-      id,
       name: fieldMap['name'] || 'Unknown',
       email: fieldMap['email'] || '',
       phone: fieldMap['phone'] || '',
       type: fieldMap['type'] || 'Buyer',
       status: fieldMap['status'] || 'Active',
       nationality: fieldMap['nationality'] || '',
-      assignedAgent: fieldMap['assigned_agent'] || '',
+      assigned_agent: fieldMap['assigned_agent'] || '',
       source: 'Import',
-      lastContact: 'Imported',
-      deals: 0,
     };
   }
   if (type === 'properties') {
+    const imageUrlsRaw = fieldMap['image_urls'] || '';
     return {
-      id,
-      name: fieldMap['title'] || 'Imported Property',
-      location: fieldMap['location'] || '',
-      price: fieldMap['price'] ? `AED ${parseInt(fieldMap['price']).toLocaleString()}` : 'TBD',
-      type: fieldMap['property_type'] === 'Office' || fieldMap['property_type'] === 'Retail' || fieldMap['property_type'] === 'Warehouse' ? 'Commercial' : 'Residential',
-      status: fieldMap['status'] || 'Available',
-      beds: fieldMap['bedrooms'] ? parseInt(fieldMap['bedrooms']) : undefined,
-      baths: fieldMap['bathrooms'] ? parseInt(fieldMap['bathrooms']) : undefined,
-      sqft: fieldMap['area_sqft'] || '',
-      image: (fieldMap['image_urls'] || '').split(',')[0].trim() || 'https://images.unsplash.com/photo-1613724962881-c5171beaeea2',
-      alt: fieldMap['title'] || 'Imported property',
-      agent: fieldMap['agent'] || '',
+      title: fieldMap['title'] || 'Imported Property',
+      location_area: fieldMap['location'] || '',
+      price_aed: fieldMap['price'] || '',
+      prop_category:
+        fieldMap['property_type'] === 'Office' ||
+        fieldMap['property_type'] === 'Retail' ||
+        fieldMap['property_type'] === 'Warehouse'
+          ? 'Commercial' :'Residential',
+      property_type: fieldMap['property_type'] || 'Apartment',
+      listing_type: fieldMap['listing_type'] || 'For Sale',
+      availability: fieldMap['status'] || 'Available',
+      bedrooms: fieldMap['bedrooms'] || '',
+      bathrooms: fieldMap['bathrooms'] || '',
+      area_sqft: fieldMap['area_sqft'] || '',
+      reference_number: fieldMap['reference_number'] || '',
+      agent_name: fieldMap['agent'] || '',
+      image_urls: imageUrlsRaw,
+      video_url: fieldMap['video_url'] || '',
+      virtual_tour_url: fieldMap['virtual_tour_url'] || '',
+      community: fieldMap['community'] || '',
+      published: true,
+      featured: false,
     };
   }
   if (type === 'projects') {
+    const imageUrlsRaw = fieldMap['image_urls'] || '';
+    const imageArray = imageUrlsRaw
+      .split(',')
+      .map((u: string) => u.trim())
+      .filter(Boolean)
+      .map((url: string) => ({ url, alt: fieldMap['name'] || 'Project image' }));
     return {
-      id,
       name: fieldMap['name'] || 'Imported Project',
       developer: fieldMap['developer'] || '',
-      location: fieldMap['location'] || '',
-      type: fieldMap['type'] || 'Off-Plan',
+      location_area: fieldMap['location'] || '',
+      project_type: fieldMap['type'] || 'Off-Plan',
       status: fieldMap['status'] || 'Active',
-      units: fieldMap['total_units'] ? parseInt(fieldMap['total_units']) : 0,
-      sold: 0,
-      completion: fieldMap['completion'] || 'TBD',
-      price: fieldMap['starting_price'] ? `AED ${parseInt(fieldMap['starting_price']).toLocaleString()}+` : 'TBD',
+      starting_price: fieldMap['starting_price'] || '',
+      total_units: fieldMap['total_units'] ? parseInt(fieldMap['total_units']) : 0,
+      handover_date: fieldMap['completion'] || '',
       description: fieldMap['description'] || '',
-      image: (fieldMap['image_urls'] || '').split(',')[0].trim() || 'https://images.unsplash.com/photo-1614224352143-ef0bcc52828d',
-      alt: fieldMap['name'] || 'Imported project',
-      featured: false,
+      images: imageArray,
+      video_url: fieldMap['video_url'] || '',
+      virtual_tour_url: fieldMap['virtual_tour_url'] || '',
       published: true,
+      featured: false,
     };
   }
-  return { id, ...fieldMap };
+  return { ...fieldMap };
 }
 
 export default function BulkImportPage() {
@@ -263,7 +274,9 @@ export default function BulkImportPage() {
   const [mapping, setMapping] = useState<MappingState>({});
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [parsedData, setParsedData] = useState<{ headers: string[]; rows: string[][] }>({ headers: [], rows: [] });
+  const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
   const config = importConfigs[activeType];
 
@@ -320,37 +333,66 @@ export default function BulkImportPage() {
     setStep('validation');
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     setImporting(true);
     setImportProgress(0);
-    const interval = setInterval(() => {
-      setImportProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setImporting(false);
-          // Build records from parsed CSV rows using the mapping
-          const records = parsedData.rows.map((row) => {
-            const fieldMap: Record<string, string> = {};
-            Object.entries(mapping).forEach(([csvCol, fieldKey]) => {
-              if (fieldKey) {
-                const colIdx = parsedData.headers.indexOf(csvCol);
-                if (colIdx >= 0) fieldMap[fieldKey] = row[colIdx] || '';
-              }
-            });
-            return buildRecord(activeType, fieldMap);
-          });
-          // Persist to localStorage
-          if (typeof window !== 'undefined') {
-            const storageKey = IMPORT_STORAGE_KEYS[activeType];
-            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            localStorage.setItem(storageKey, JSON.stringify([...existing, ...records]));
-          }
-          setStep('done');
-          return 100;
+    setImportError(null);
+
+    // Build records from parsed CSV rows using the mapping
+    const records = parsedData.rows.map((row) => {
+      const fieldMap: Record<string, string> = {};
+      Object.entries(mapping).forEach(([csvCol, fieldKey]) => {
+        if (fieldKey) {
+          const colIdx = parsedData.headers.indexOf(csvCol);
+          if (colIdx >= 0) fieldMap[fieldKey] = row[colIdx] || '';
         }
-        return prev + 10;
       });
-    }, 200);
+      return buildRecord(activeType, fieldMap);
+    });
+
+    // Simulate progress while inserting
+    const progressInterval = setInterval(() => {
+      setImportProgress((prev) => (prev < 80 ? prev + 10 : prev));
+    }, 150);
+
+    try {
+      let tableName: string;
+      if (activeType === 'properties') {
+        tableName = 'properties';
+      } else if (activeType === 'projects') {
+        tableName = 'projects';
+      } else if (activeType === 'leads') {
+        tableName = 'leads';
+      } else {
+        // For contacts/blogs not yet in Supabase, fall back gracefully
+        clearInterval(progressInterval);
+        setImportProgress(100);
+        setImporting(false);
+        setStep('done');
+        return;
+      }
+
+      const { error } = await supabase.from(tableName).insert(records as any[]);
+
+      clearInterval(progressInterval);
+
+      if (error) {
+        setImportError(`Import failed: ${error.message}`);
+        setImporting(false);
+        setImportProgress(0);
+        return;
+      }
+
+      setImportProgress(100);
+      setImporting(false);
+      setStep('done');
+    } catch (err: unknown) {
+      clearInterval(progressInterval);
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setImportError(`Import failed: ${message}`);
+      setImporting(false);
+      setImportProgress(0);
+    }
   };
 
   const handleReset = () => {
@@ -676,6 +718,13 @@ export default function BulkImportPage() {
                   <p className="text-sm text-foreground font-medium">Ready to import <span className="text-primary font-bold">{parsedData.rows.length} {config.label}</span></p>
                   <p className="text-xs text-muted-foreground mt-1">This action will add the records to your system. Existing records will not be affected.</p>
                 </div>
+
+                {importError && (
+                  <div className="mt-4 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30">
+                    <Icon name="ExclamationCircleIcon" size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-400">{importError}</p>
+                  </div>
+                )}
 
                 {importing && (
                   <div className="mt-4">

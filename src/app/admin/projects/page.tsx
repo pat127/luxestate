@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import { useRouter } from 'next/navigation';
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
 
 function ProjectsPageInner() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -65,6 +65,7 @@ function ProjectsPageInner() {
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
@@ -121,10 +122,13 @@ function ProjectsPageInner() {
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('projects')
       .select('id, name, developer, location_area, project_type, status, total_units, sold_units, handover_date, starting_price, images, featured, published, international')
       .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error loading projects:', error.message);
+    }
     if (data) {
       setProjectList(data.map((p: any) => ({
         id: p.id,
@@ -144,7 +148,7 @@ function ProjectsPageInner() {
       })));
     }
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
 
@@ -232,6 +236,7 @@ function ProjectsPageInner() {
   const handleSave = async () => {
     if (!name) return;
     setSaving(true);
+    setSaveError(null);
     const parsedImages = imageUrlsText.split(',').map(u => u.trim()).filter(Boolean).map(url => ({ url, alt: name, caption: '' }));
     const payload = {
       name, developer, description, project_type: projectType, status,
@@ -255,12 +260,27 @@ function ProjectsPageInner() {
       master_plan_url: masterPlanUrl, video_url: videoUrl, virtual_tour_url: virtualTourUrl,
       brochure_url: brochureUrl, factsheet_url: factsheetUrl, price_list_url: priceListUrl,
     };
+
+    let error: any = null;
     if (editId) {
-      await supabase.from('projects').update(payload).eq('id', editId);
+      const result = await supabase.from('projects').update(payload).eq('id', editId);
+      error = result.error;
     } else {
-      await supabase.from('projects').insert({ ...payload, sold_units: 0 });
+      const result = await supabase.from('projects').insert({ ...payload, sold_units: 0 });
+      error = result.error;
     }
-    setSaving(false); setShowModal(false); resetModal(); setEditId(null); loadProjects();
+
+    setSaving(false);
+    if (error) {
+      console.error('Save error:', error);
+      setSaveError(error.message || 'Failed to save project. Please try again.');
+      return;
+    }
+    setShowModal(false);
+    setSaveError(null);
+    resetModal();
+    setEditId(null);
+    loadProjects();
   };
 
   const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
@@ -559,9 +579,12 @@ function ProjectsPageInner() {
 
             <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={saving || !name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
-                {saving ? 'Saving...' : editId ? 'Update Project' : 'Save Project'}
-              </button>
+              <div className="flex items-center gap-3">
+                {saveError && <p className="text-xs text-red-400 max-w-xs text-right">{saveError}</p>}
+                <button onClick={handleSave} disabled={saving || !name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+                  {saving ? 'Saving...' : editId ? 'Update Project' : 'Save Project'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

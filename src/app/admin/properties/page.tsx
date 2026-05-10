@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
@@ -123,7 +123,7 @@ function generateRefNumber() {
 
 export default function PropertiesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [activeType, setActiveType] = useState<PropertyType>('All');
   const [search, setSearch] = useState('');
@@ -135,6 +135,7 @@ export default function PropertiesPage() {
   const [propertyList, setPropertyList] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [shareProperty, setShareProperty] = useState<Property | null>(null);
@@ -149,6 +150,9 @@ export default function PropertiesPage() {
       .from('properties')
       .select('id, title, reference_number, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, agent_name, published, featured, created_at')
       .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error loading properties:', error.message);
+    }
     if (!error && data) {
       setPropertyList(data.map((p: any) => ({
         id: p.id,
@@ -169,7 +173,7 @@ export default function PropertiesPage() {
       })));
     }
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => { loadProperties(); }, [loadProperties]);
 
@@ -287,6 +291,7 @@ export default function PropertiesPage() {
   const handleSave = async () => {
     if (!formData.title) return;
     setSaving(true);
+    setSaveError(null);
     const payload = {
       title: formData.title,
       reference_number: formData.referenceNumber,
@@ -328,13 +333,23 @@ export default function PropertiesPage() {
       prop_category: formData.propCategory,
     };
 
+    let error: any = null;
     if (editingId) {
-      await supabase.from('properties').update(payload).eq('id', editingId);
+      const result = await supabase.from('properties').update(payload).eq('id', editingId);
+      error = result.error;
     } else {
-      await supabase.from('properties').insert(payload);
+      const result = await supabase.from('properties').insert(payload);
+      error = result.error;
     }
+
     setSaving(false);
+    if (error) {
+      console.error('Save error:', error);
+      setSaveError(error.message || 'Failed to save property. Please try again.');
+      return;
+    }
     setShowModal(false);
+    setSaveError(null);
     loadProperties();
   };
 
@@ -722,12 +737,15 @@ export default function PropertiesPage() {
 
             <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
-              <button
-                onClick={handleSave}
-                disabled={saving || !formData.title}
-                className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
-                {saving ? 'Saving...' : editingId ? 'Update Property' : 'Save Property'}
-              </button>
+              <div className="flex items-center gap-3">
+                {saveError && <p className="text-xs text-red-400 max-w-xs text-right">{saveError}</p>}
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !formData.title}
+                  className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+                  {saving ? 'Saving...' : editingId ? 'Update Property' : 'Save Property'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
