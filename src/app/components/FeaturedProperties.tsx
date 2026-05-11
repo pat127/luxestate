@@ -76,7 +76,7 @@ export default function FeaturedProperties({ content }: Props) {
       .from('properties')
       .select('id, title, location_area, price_aed, bedrooms, bathrooms, area_sqft, image_urls, availability, featured, published')
       .eq('published', true)
-      .order('featured', { ascending: false })
+      .eq('featured', true)
       .order('created_at', { ascending: false })
       .limit(6)
       .then(({ data }) => {
@@ -149,7 +149,7 @@ export default function FeaturedProperties({ content }: Props) {
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 animate-on-scroll">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
           {props[0] && <div className="md:col-span-2"><PropertyCard property={props[0]} priority /></div>}
           {props[1] && <div className="md:row-span-2 flex flex-col"><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
           {props[2] && <div className="md:col-span-1"><PropertyCard property={props[2]} /></div>}

@@ -93,7 +93,7 @@ export default function FeaturedProjects({ content }: Props) {
       .from('projects')
       .select('id, name, developer, location_area, project_type, handover_date, starting_price, total_units, sold_units, images, featured, published')
       .eq('published', true)
-      .order('featured', { ascending: false })
+      .eq('featured', true)
       .order('created_at', { ascending: false })
       .limit(3)
       .then(({ data }) => {

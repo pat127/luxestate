@@ -24,6 +24,7 @@ interface Agent {
 const AGENTS_STORAGE_KEY = 'admin_agents';
 
 const seedAgents: Agent[] = [
+  { id: 0, name: 'CEO Admin', email: 'ceo@luxestate.com', phone: '+971 50 886 2683', role: 'CEO / Senior Agent', status: 'Active', leads: 0, deals: 0, commission: 'AED 0', joined: 'Jan 2006', nationality: 'UAE', languages: ['English', 'Arabic'], specialization: 'Luxury Residential', licenseNo: 'RERA-00001' },
   { id: 1, name: 'Sarah Mitchell', email: 'sarah@luxestate.com', phone: '+971 50 100 2000', role: 'Senior Agent', status: 'Active', leads: 45, deals: 12, commission: 'AED 280,000', joined: 'Jan 2022', nationality: 'British', languages: ['English', 'French'], specialization: 'Luxury Residential', licenseNo: 'RERA-12345' },
   { id: 2, name: 'James Carter', email: 'james@luxestate.com', phone: '+971 55 200 3000', role: 'Agent', status: 'Active', leads: 32, deals: 8, commission: 'AED 190,000', joined: 'Mar 2022', nationality: 'American', languages: ['English'], specialization: 'Off-Plan', licenseNo: 'RERA-23456' },
   { id: 3, name: 'Omar Hassan', email: 'omar@luxestate.com', phone: '+971 52 300 4000', role: 'Senior Agent', status: 'Active', leads: 58, deals: 15, commission: 'AED 420,000', joined: 'Sep 2021', nationality: 'Emirati', languages: ['Arabic', 'English'], specialization: 'Commercial', licenseNo: 'RERA-34567' },

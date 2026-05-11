@@ -74,8 +74,18 @@ export default function AboutPage() {
               Our Story
             </span>
             <h1 className="text-hero text-foreground max-w-3xl">
-              {aboutPage.hero_headline || 'Built on Trust,'}{' '}
-              <span className="text-gold-shimmer">{aboutPage.hero_subheadline || 'Defined by Excellence'}</span>
+              {(() => {
+                const headline = aboutPage.hero_headline || 'Built on Trust, Defined by Excellence';
+                const words = headline.trim().split(' ');
+                const lastWord = words.pop();
+                const rest = words.join(' ');
+                return (
+                  <>
+                    {rest}{rest ? ' ' : ''}
+                    <span className="text-gold-shimmer">{lastWord}</span>
+                  </>
+                );
+              })()}
             </h1>
             <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
               {aboutPage.hero_description || 'Since 2006, Cove Estates has been the trusted partner for discerning clients seeking the finest properties in Dubai and beyond.'}

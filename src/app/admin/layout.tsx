@@ -75,6 +75,7 @@ function NavItem({ href, icon, label, active, collapsed }: NavItemProps) {
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const pathname = usePathname();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
 
@@ -186,10 +187,48 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
           <div />
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
-              <Icon name="BellIcon" size={18} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => { setShowNotifications(!showNotifications); setShowRoleSwitcher(false); }}
+                className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="BellIcon" size={18} />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border shadow-xl z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <p className="text-xs font-bold uppercase tracking-wider text-foreground">Notifications</p>
+                    <button onClick={() => setShowNotifications(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <Icon name="XMarkIcon" size={14} />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-border max-h-72 overflow-y-auto">
+                    {[
+                      { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
+                      { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
+                      { icon: 'BriefcaseIcon', title: 'Deal updated', desc: 'Palm Villa deal moved to Negotiation', time: '3 hr ago', color: 'text-purple-400' },
+                      { icon: 'CalendarIcon', title: 'Viewing scheduled', desc: 'Tomorrow at 10:00 AM — Downtown Apt', time: 'Yesterday', color: 'text-emerald-400' },
+                    ].map((n, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
+                        <div className={`w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5`}>
+                          <Icon name={n.icon as any} size={14} className={n.color} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">{n.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.desc}</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-border">
+                    <p className="text-[10px] text-center text-muted-foreground">All caught up</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Role switcher */}
             <div className="relative">
