@@ -7,6 +7,7 @@ import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UAE_LOCATIONS } from '@/lib/uaeLocations';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LocationSuggestion {
   label: string;
@@ -30,6 +31,7 @@ const ALL_LOCATION_SUGGESTIONS = buildLocationSuggestions();
 export default function HeroSection() {
   const page = useCMSPage('home');
   const router = useRouter();
+  const { t } = useLanguage();
   const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -177,13 +179,13 @@ export default function HeroSection() {
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') setShowSuggestions(false);
                     }}
-                    placeholder="Search communities or areas..."
+                    placeholder={t('hero.search_placeholder')}
                     className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
                 </div>
                 <button
                   onClick={handleSearch}
                   className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 md:px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 flex-shrink-0 group min-h-[48px]">
-                  Search
+                  {t('hero.search_button')}
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
               </div>

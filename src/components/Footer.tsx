@@ -5,36 +5,7 @@ import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useCurrency, Currency } from '@/contexts/CurrencyContext';
-
-const companyLinks = [
-  { label: 'About Us', href: '/about' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Our Team', href: '/about#team' },
-  { label: 'Careers', href: '#' },
-  { label: 'Contact', href: '/#contact' },
-];
-
-const propertyLinks = [
-  { label: 'Residential', href: '/residential' },
-  { label: 'Commercial', href: '/commercial' },
-  { label: 'Off-Plan Projects', href: '/projects' },
-  { label: 'International', href: '/international' },
-  { label: 'Investment Properties', href: '/residential' },
-];
-
-const areaLinks = [
-  { label: 'Downtown Dubai', href: '/residential' },
-  { label: 'Palm Jumeirah', href: '/residential' },
-  { label: 'Dubai Marina', href: '/residential' },
-  { label: 'Emirates Hills', href: '/residential' },
-  { label: 'DIFC', href: '/commercial' },
-];
-
-const legalLinks = [
-  { label: 'Privacy Policy', href: '/privacy-policy' },
-  { label: 'Terms of Service', href: '/terms-of-service' },
-  { label: 'Cookie Policy', href: '/cookie-policy' },
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const socialLinks = [
   { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/coveestates' },
@@ -103,6 +74,38 @@ function CurrencySelector() {
 }
 
 export default function Footer() {
+  const { t } = useLanguage();
+
+  const companyLinks = [
+    { label: t('footer.company_about'), href: '/about' },
+    { label: t('footer.company_blog'), href: '/blog' },
+    { label: t('footer.company_team'), href: '/about#team' },
+    { label: t('footer.company_careers'), href: '#' },
+    { label: t('footer.company_contact'), href: '/#contact' },
+  ];
+
+  const propertyLinks = [
+    { label: t('footer.prop_residential'), href: '/residential' },
+    { label: t('footer.prop_commercial'), href: '/commercial' },
+    { label: t('footer.prop_offplan'), href: '/projects' },
+    { label: t('footer.prop_international'), href: '/international' },
+    { label: t('footer.prop_investment'), href: '/residential' },
+  ];
+
+  const areaLinks = [
+    { label: t('footer.area_downtown'), href: '/residential' },
+    { label: t('footer.area_palm'), href: '/residential' },
+    { label: t('footer.area_marina'), href: '/residential' },
+    { label: t('footer.area_emirates'), href: '/residential' },
+    { label: t('footer.area_difc'), href: '/commercial' },
+  ];
+
+  const legalLinks = [
+    { label: t('footer.privacy'), href: '/privacy-policy' },
+    { label: t('footer.terms'), href: '/terms-of-service' },
+    { label: t('footer.cookies'), href: '/cookie-policy' },
+  ];
+
   return (
     <footer className="border-t border-border bg-background">
       {/* Main Footer Grid */}
@@ -114,7 +117,7 @@ export default function Footer() {
               <AppLogo size={48} />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-              Curating the world's finest properties for those who demand the exceptional. Dubai's premier luxury real estate agency.
+              {t('footer.tagline')}
             </p>
             {/* Social Links */}
             <div className="flex items-center gap-3 mt-1">
@@ -147,14 +150,14 @@ export default function Footer() {
           </div>
 
           {/* Company Column */}
-          <FooterColumn title="Company" links={companyLinks} />
+          <FooterColumn title={t('footer.company')} links={companyLinks} />
 
           {/* Properties Column */}
-          <FooterColumn title="Properties" links={propertyLinks} />
+          <FooterColumn title={t('footer.properties')} links={propertyLinks} />
 
           {/* Areas Column - hidden on small mobile, shown from md */}
           <div className="col-span-2 md:col-span-1">
-            <FooterColumn title="Areas We Cover" links={areaLinks} />
+            <FooterColumn title={t('footer.areas')} links={areaLinks} />
           </div>
         </div>
       </div>
@@ -163,7 +166,7 @@ export default function Footer() {
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
           <span className="text-muted-foreground text-xs tracking-widest text-center sm:text-left">
-            © 2026 Cove Estatez Real Estate LLC. All rights reserved.
+            {t('footer.copyright')}
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

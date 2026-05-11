@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { ContactContent, DEFAULT_CONTACT } from '@/contexts/CMSContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   content?: ContactContent;
@@ -45,6 +46,7 @@ function saveContactAsLead(form: {
 export default function ContactSection({ content }: Props) {
   const c = content ?? DEFAULT_CONTACT;
   const details = c.details ?? DEFAULT_CONTACT.details;
+  const { t } = useLanguage();
 
   const [form, setForm] = useState({
     name: '',
@@ -131,32 +133,32 @@ export default function ContactSection({ content }: Props) {
                 <div className="w-16 h-16 border border-primary flex items-center justify-center mx-auto mb-6">
                   <Icon name="CheckIcon" size={24} className="text-primary" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-3">Inquiry Received</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-3">{t('contact.received_title')}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Thank you for reaching out. A Cove Estates principal will contact you personally within 24 hours.
+                  {t('contact.received_body')}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Full Name *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.full_name')} *</label>
                     <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="Alexandra Whitmore" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Email Address *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.email')} *</label>
                     <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="alex@family.com" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Phone</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.phone')}</label>
                     <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="+1 (212) 000-0000" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Budget Range</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.budget')}</label>
                     <select value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors cursor-pointer">
-                      <option value="">Select Range</option>
+                      <option value="">{t('contact.budget_select')}</option>
                       <option value="1m-5m">$1M – $5M</option>
                       <option value="5m-15m">$5M – $15M</option>
                       <option value="15m-50m">$15M – $50M</option>
@@ -165,25 +167,29 @@ export default function ContactSection({ content }: Props) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Property Type</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.property_type')}</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {['Residential', 'Commercial', 'New Development'].map((type) => (
-                      <button key={type} type="button" onClick={() => setForm({ ...form, propertyType: type })} className={`py-3 text-xs font-bold border transition-all duration-300 ${form.propertyType === type ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`}>
-                        {type}
+                    {[
+                      { key: 'contact.property_residential', value: 'Residential' },
+                      { key: 'contact.property_commercial', value: 'Commercial' },
+                      { key: 'contact.property_new_dev', value: 'New Development' },
+                    ].map((type) => (
+                      <button key={type.value} type="button" onClick={() => setForm({ ...form, propertyType: type.value })} className={`py-3 text-xs font-bold border transition-all duration-300 ${form.propertyType === type.value ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`}>
+                        {t(type.key)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Your Vision</label>
-                  <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground resize-none" placeholder="Tell us about your ideal property — location, architecture, lifestyle requirements..." />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.your_vision')}</label>
+                  <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground resize-none" placeholder={t('contact.vision_placeholder')} />
                 </div>
                 <button type="submit" className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group min-h-[52px]">
-                  Submit Private Inquiry
+                  {t('contact.submit')}
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
                 <p className="text-muted-foreground text-[10px] text-center leading-relaxed">
-                  All inquiries are handled with complete discretion. We never share client information.
+                  {t('contact.discretion')}
                 </p>
               </form>
             )}
