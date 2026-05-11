@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useCMS } from '@/contexts/CMSContext';
+import { useCurrency, Currency } from '@/contexts/CurrencyContext';
+import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
 
 const navLinks = [
   { label: 'Residential', href: '/residential' },
@@ -21,11 +23,95 @@ const mobileNavLinks = [
   { label: 'About Us', href: '/about' },
 ];
 
+const CURRENCIES: Currency[] = ['AED', 'USD', 'GBP', 'EUR'];
+
+function CurrencyLanguageSelector() {
+  const { currency, setCurrency } = useCurrency();
+  const { language, setLanguage } = useLanguage();
+  const [currOpen, setCurrOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const currRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (currRef.current && !currRef.current.contains(e.target as Node)) setCurrOpen(false);
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const currentLang = LANGUAGES.find((l) => l.code === language);
+
+  return (
+    <div className="hidden md:flex items-center gap-1">
+      {/* Currency Dropdown */}
+      <div ref={currRef} className="relative">
+        <button
+          onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); }}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-white/80 hover:text-primary border border-transparent hover:border-primary/30 transition-all duration-300"
+        >
+          {currency}
+          <Icon name="ChevronDownIcon" size={11} className={`transition-transform duration-200 ${currOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {currOpen && (
+          <div className="absolute top-full right-0 mt-1 bg-card border border-border shadow-xl z-50 min-w-[80px]">
+            {CURRENCIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => { setCurrency(c); setCurrOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-[0.15em] transition-colors duration-200 ${
+                  currency === c ? 'text-primary bg-primary/10' : 'text-foreground hover:text-primary hover:bg-primary/5'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-4 bg-white/20" />
+
+      {/* Language Dropdown */}
+      <div ref={langRef} className="relative">
+        <button
+          onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); }}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-white/80 hover:text-primary border border-transparent hover:border-primary/30 transition-all duration-300"
+        >
+          {currentLang?.code.toUpperCase()}
+          <Icon name="ChevronDownIcon" size={11} className={`transition-transform duration-200 ${langOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {langOpen && (
+          <div className="absolute top-full right-0 mt-1 bg-card border border-border shadow-xl z-50 min-w-[140px]">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => { setLanguage(l.code as Language); setLangOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors duration-200 flex items-center justify-between gap-3 ${
+                  language === l.code ? 'text-primary bg-primary/10' : 'text-foreground hover:text-primary hover:bg-primary/5'
+                }`}
+              >
+                <span className="uppercase tracking-[0.15em]">{l.label}</span>
+                <span className="text-muted-foreground font-normal normal-case tracking-normal">{l.nativeLabel}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const { branding } = useCMS();
+  const { currency, setCurrency } = useCurrency();
+  const { language, setLanguage } = useLanguage();
 
   const logoSrc = branding?.logo_url || '/assets/images/app_logo.png';
 
@@ -85,8 +171,11 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* CTA + Hamburger */}
+          {/* CTA + Currency/Language + Hamburger */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Currency + Language selectors - desktop only */}
+            <CurrencyLanguageSelector />
+
             {/* WhatsApp - desktop only */}
             <a
               href="https://wa.me/971508862683"
@@ -152,7 +241,43 @@ export default function Header() {
               ))}
             </nav>
 
-            <div className="mt-8 space-y-3">
+            {/* Mobile Currency + Language selectors */}
+            <div className="mt-6 flex items-center gap-3 border-b border-border pb-6">
+              <div className="flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Currency</p>
+                <div className="flex gap-2 flex-wrap">
+                  {(['AED', 'USD', 'GBP', 'EUR'] as Currency[]).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCurrency(c)}
+                      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-[0.1em] border transition-colors duration-200 ${
+                        currency === c ? 'border-primary text-primary bg-primary/10' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Language</p>
+                <div className="flex gap-2 flex-wrap">
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => setLanguage(l.code as Language)}
+                      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-[0.1em] border transition-colors duration-200 ${
+                        language === l.code ? 'border-primary text-primary bg-primary/10' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      }`}
+                    >
+                      {l.code.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
               <Link
                 href="/#contact"
                 className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-primary-foreground text-sm font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 min-h-[52px]"

@@ -72,7 +72,9 @@ function LocationMap({ locationArea, community, emirate }: { locationArea?: stri
 
   useEffect(() => {
     const query = [community, locationArea, emirate, 'UAE'].filter(Boolean).join(', ');
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=ae`)
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=ae&accept-language=en`, {
+      headers: { 'Accept-Language': 'en' },
+    })
       .then(r => r.json())
       .then(data => {
         if (data && data[0]) {
@@ -129,7 +131,7 @@ function LocationMap({ locationArea, community, emirate }: { locationArea?: stri
               return (
                 <img
                   key={`${dx}-${dy}`}
-                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${tx}/${ty}.png`}
+                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/${zoom}/${tx}/${ty}.png`}
                   alt=""
                   style={{ position: 'absolute', left: tileLeft, top: tileTop, width: tileSize, height: tileSize }}
                 />

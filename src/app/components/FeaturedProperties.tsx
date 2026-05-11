@@ -34,7 +34,7 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
   const { convertPrice } = useCurrency();
   const isTall = rowSpan === 'md:row-span-2';
   return (
-    <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${rowSpan} ${isTall ? 'flex flex-col' : ''}`}>
+    <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer h-full ${isTall ? 'flex flex-col' : ''}`}>
       <div className={`relative overflow-hidden ${isTall ? 'flex-1 min-h-[300px]' : 'h-64 md:h-72'}`}>
         <AppImage src={property.image} alt={property.alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -149,13 +149,13 @@ export default function FeaturedProperties({ content }: Props) {
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-          {props[0] && <div className="md:col-span-2"><PropertyCard property={props[0]} priority /></div>}
-          {props[1] && <div className="md:row-span-2 flex flex-col"><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
-          {props[2] && <div className="md:col-span-1"><PropertyCard property={props[2]} /></div>}
-          {props[3] && <div className="md:col-span-1"><PropertyCard property={props[3]} /></div>}
-          {props[4] && <div className="md:col-span-2"><PropertyCard property={props[4]} /></div>}
-          {props[5] && <div className="md:col-span-1"><PropertyCard property={props[5]} /></div>}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto animate-on-scroll">
+          {props[0] && <div className="md:col-span-2 md:row-span-1"><PropertyCard property={props[0]} priority /></div>}
+          {props[1] && <div className="md:col-span-1 md:row-span-2" style={{ minHeight: 0 }}><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
+          {props[2] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[2]} /></div>}
+          {props[3] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[3]} /></div>}
+          {props[4] && <div className="md:col-span-2 md:row-span-1"><PropertyCard property={props[4]} /></div>}
+          {props[5] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[5]} /></div>}
         </div>
       )}
     </section>

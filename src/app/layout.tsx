@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import '../styles/tailwind.css';
 import { CMSProvider } from '@/contexts/CMSContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -181,7 +182,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={plusJakartaSans.className}>
         <CMSProvider>
           <CurrencyProvider defaultCurrency="AED">
-            {children}
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
           </CurrencyProvider>
         </CMSProvider>
       </body>
