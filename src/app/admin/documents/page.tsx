@@ -90,7 +90,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'buyer_nationality', label: 'Buyer Nationality', type: 'text', required: true, placeholder: 'e.g. British' },
       { key: 'seller_name', label: 'Seller Full Name', type: 'text', required: true, placeholder: 'Full legal name...' },
       { key: 'seller_passport', label: 'Seller Passport / Emirates ID', type: 'text', required: true, placeholder: 'e.g. B7654321' },
-      { key: 'property_ref', label: 'Property Reference No.', type: 'text', required: true, placeholder: 'e.g. LX-RES-004' },
+      { key: 'property_ref', label: 'Property Reference No.', type: 'text', required: true, placeholder: 'e.g. CE-RES-004' },
       { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'Full property address...' },
       { key: 'property_type', label: 'Property Type', type: 'select', required: true, options: ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Office', 'Retail', 'Warehouse'] },
       { key: 'agreed_price', label: 'Agreed Sale Price (AED)', type: 'number', required: true },
@@ -114,7 +114,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'date', label: 'Date', type: 'date', required: true },
       { key: 'buyer_name', label: 'Buyer / Investor Name', type: 'text', required: true, placeholder: 'Full legal name...' },
       { key: 'buyer_company', label: 'Buyer Company (if applicable)', type: 'text', required: false, placeholder: 'Company name...' },
-      { key: 'property_ref', label: 'Property Reference', type: 'text', required: true, placeholder: 'e.g. LX-RES-004' },
+      { key: 'property_ref', label: 'Property Reference', type: 'text', required: true, placeholder: 'e.g. CE-RES-004' },
       { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'Full address...' },
       { key: 'offer_price', label: 'Offer Price (AED)', type: 'number', required: true },
       { key: 'validity_period', label: 'LOI Validity Period', type: 'select', required: true, options: ['7 Days', '14 Days', '21 Days', '30 Days'] },
@@ -231,7 +231,7 @@ const INITIAL_DOCUMENTS: FilledDocument[] = [
       buyer_nationality: 'British',
       seller_name: 'Cove Estates LLC',
       seller_passport: 'B7654321',
-      property_ref: 'LX-RES-004',
+      property_ref: 'CE-RES-004',
       property_address: 'Meridian Villa, Palm Jumeirah, Dubai',
       property_type: 'Villa',
       agreed_price: '42000000',
@@ -291,13 +291,13 @@ function generateRefNo(id: number, shortName: string) {
   const year = new Date().getFullYear();
   const month = String(new Date().getMonth() + 1).padStart(2, '0');
   const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `LX/${shortName}/${year}/${month}/${rand}`;
+  return `CE/${shortName}/${year}/${month}/${rand}`;
 }
 
 // ─── Sophisticated Document Preview (PDF-style) ───────────────────────────────
 function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; template?: TemplateDefinition }) {
   const f = doc.fields;
-  const refNo = `LX/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
+  const refNo = `CE/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
   const isNCNDA = doc.templateId === 'ncnda';
 
   const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
@@ -509,7 +509,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     if (!win) return;
     const f = doc.fields;
     const isNCNDA = doc.templateId === 'ncnda';
-    const refNo = `LX/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
+    const refNo = `CE/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
 
     const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
     const party1Sub = isNCNDA
