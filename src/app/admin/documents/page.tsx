@@ -718,7 +718,9 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
 
 // ─── Terms Editor Modal ───────────────────────────────────────────────────────
 function TermsEditor({ template, onClose, onSave }: { template: TemplateDefinition; onClose: () => void; onSave: (terms: TemplateTerm[]) => void }) {
-  const [rawText, setRawText] = useState<string>('');
+  const [rawText, setRawText] = useState<string>(() =>
+    template.terms.length > 0 ? template.terms.map((t) => t.text).join('\n\n') : ''
+  );
   const [showPreview, setShowPreview] = useState(false);
 
   // Parse raw text into terms: split by double newline or numbered lines
