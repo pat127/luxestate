@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FormField {
@@ -37,7 +38,7 @@ interface FilledDocument {
   created_at: string;
 }
 
-type ActiveTab = 'templates' | 'documents';
+type ActiveTab = 'templates' | 'documents' | 'pending';
 type ModalMode = 'create' | 'edit' | null;
 
 const CATEGORIES = ['NDA', 'Sales Contract', 'Rental Agreement', 'Offer Letter', 'Custom'];
@@ -668,6 +669,8 @@ function DocumentPreviewModal({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DocumentsPage() {
   const supabase = createClient();
+  const { isRole } = useRole();
+  const isCEO = isRole('super_admin');
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('templates');
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
@@ -780,6 +783,14 @@ export default function DocumentsPage() {
     return matchSearch && matchCat;
   });
 
+  const pendingApprovalDocs = documents.filter(d => d.doc_status === 'Pending Approval');
+
+  const filteredPendingDocs = pendingApprovalDocs.filter(d => {
+    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.template_name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = filterCategory === 'All' || d.category === filterCategory;
+    return matchSearch && matchCat;
+  });
+
   const previewTemplate = previewDoc ? templates.find(t => t.id === previewDoc.template_id) || null : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -800,15 +811,49 @@ export default function DocumentsPage() {
           </button>
         </div>
 
+        {/* CEO Pending Approval Banner */}
+        {isCEO && pendingApprovalDocs.length > 0 && (
+          <div className="mb-5 bg-amber-500/10 border border-amber-500/20 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-400">
+                  {pendingApprovalDocs.length} document{pendingApprovalDocs.length > 1 ? 's' : ''} pending your approval
+                </p>
+                <p className="text-xs text-amber-400/60 mt-0.5">Review and e-sign to approve</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className="text-xs bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 px-3 py-1.5 transition-colors font-medium"
+            >
+              Review Now
+            </button>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-5 border-b border-white/10">
-          {(['templates', 'documents'] as ActiveTab[]).map(tab => (
+          {(['templates', 'documents', ...(isCEO ? ['pending'] : [])] as (ActiveTab | 'pending')[]).map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white/70'}`}
+              onClick={() => setActiveTab(tab as ActiveTab)}
+              className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px flex items-center gap-2 ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white/70'}`}
             >
-              {tab === 'templates' ? `Templates (${templates.length})` : `My Documents (${documents.length})`}
+              {tab === 'templates' && `Templates (${templates.length})`}
+              {tab === 'documents' && `My Documents (${documents.length})`}
+              {tab === 'pending' && (
+                <>
+                  <span>Pending Approval</span>
+                  {pendingApprovalDocs.length > 0 && (
+                    <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                      {pendingApprovalDocs.length}
+                    </span>
+                  )}
+                </>
+              )}
             </button>
           ))}
         </div>
@@ -888,6 +933,37 @@ export default function DocumentsPage() {
                     className="w-full text-sm bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary font-medium py-2 transition-colors"
                   >
                     Fill Document
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        ) : activeTab === 'pending' ? (
+          /* ── Pending Approval List (CEO only) ── */
+          filteredPendingDocs.length === 0 ? (
+            <div className="text-center py-20 text-white/30">
+              <div className="text-4xl mb-3">✅</div>
+              <p className="text-sm">No documents pending approval.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredPendingDocs.map(doc => (
+                <div key={doc.id} className="bg-[#111] border border-amber-500/20 hover:border-amber-500/40 transition-colors px-5 py-4 flex items-center gap-4">
+                  <div className="w-8 h-8 bg-amber-500/10 flex items-center justify-center text-amber-400 flex-shrink-0">
+                    <Icon.File />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{doc.title}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{doc.template_name} · {doc.category} · Submitted {new Date(doc.created_at).toLocaleDateString('en-GB')}</div>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 flex-shrink-0 ${STATUS_STYLES[doc.doc_status]}`}>
+                    {doc.doc_status}
+                  </span>
+                  <button
+                    onClick={() => setPreviewDoc(doc)}
+                    className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors flex-shrink-0"
+                  >
+                    <Icon.Check /> Review & Sign
                   </button>
                 </div>
               ))}

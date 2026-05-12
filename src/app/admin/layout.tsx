@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { RoleProvider, useRole, mockUsersList, type UserRole, type Permission } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 const allCrmLinks = [
   { label: 'Dashboard', href: '/admin', icon: 'Squares2X2Icon', permission: 'view_dashboard' as Permission },
@@ -76,15 +77,39 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
   const pathname = usePathname();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
+  const supabase = createClient();
+
+  const fetchPendingDocs = useCallback(async () => {
+    if (!isRole('super_admin')) return;
+    const { data } = await supabase
+      .from('filled_documents')
+      .select('id, title, template_name, created_at')
+      .eq('doc_status', 'Pending Approval')
+      .order('created_at', { ascending: false });
+    if (data) setPendingDocs(data);
+  }, [supabase, isRole]);
+
+  useEffect(() => {
+    fetchPendingDocs();
+  }, [fetchPendingDocs, currentUser.role]);
+
+  // Re-fetch when notifications panel opens
+  const handleBellClick = () => {
+    setShowNotifications(!showNotifications);
+    setShowRoleSwitcher(false);
+    if (!showNotifications) fetchPendingDocs();
+  };
 
   const crmLinks = allCrmLinks.filter((l) => can(l.permission));
   const cmsLinks = allCmsLinks.filter((l) => {
-    // CMS section visible only to super_admin (CEO) and marketing roles
     if (!isRole('super_admin', 'marketing')) return false;
     return can(l.permission);
   });
+
+  const totalNotifications = isRole('super_admin') ? pendingDocs.length : 0;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -189,11 +214,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <div className="relative">
               <button
-                onClick={() => { setShowNotifications(!showNotifications); setShowRoleSwitcher(false); }}
+                onClick={handleBellClick}
                 className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Icon name="BellIcon" size={18} />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+                {totalNotifications > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-black">{totalNotifications > 9 ? '9+' : totalNotifications}</span>
+                  </span>
+                )}
+                {totalNotifications === 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+                )}
               </button>
 
               {showNotifications && (
@@ -205,6 +237,25 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     </button>
                   </div>
                   <div className="divide-y divide-border max-h-72 overflow-y-auto">
+                    {/* CEO: Pending approval documents */}
+                    {isRole('super_admin') && pendingDocs.length > 0 && pendingDocs.map((doc) => (
+                      <Link
+                        key={doc.id}
+                        href="/admin/documents"
+                        onClick={() => setShowNotifications(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
+                          <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">Pending Approval</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{doc.title || doc.template_name}</p>
+                        </div>
+                        <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
+                      </Link>
+                    ))}
+                    {/* Static general notifications */}
                     {[
                       { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
                       { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
@@ -212,7 +263,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       { icon: 'CalendarIcon', title: 'Viewing scheduled', desc: 'Tomorrow at 10:00 AM — Downtown Apt', time: 'Yesterday', color: 'text-emerald-400' },
                     ].map((n, i) => (
                       <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className={`w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5`}>
+                        <div className="w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5">
                           <Icon name={n.icon as any} size={14} className={n.color} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -222,6 +273,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
                       </div>
                     ))}
+                    {isRole('super_admin') && pendingDocs.length === 0 && (
+                      <div className="px-4 py-3">
+                        <p className="text-[11px] text-muted-foreground">No documents pending your approval</p>
+                      </div>
+                    )}
                   </div>
                   <div className="px-4 py-2.5 border-t border-border">
                     <p className="text-[10px] text-center text-muted-foreground">All caught up</p>
