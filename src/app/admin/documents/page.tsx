@@ -74,14 +74,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'duration', label: 'Agreement Duration', type: 'select', required: true, options: ['1 Year', '2 Years', '3 Years', '5 Years', 'Indefinite'] },
       { key: 'governing_law', label: 'Governing Law', type: 'text', required: true, placeholder: 'e.g. Laws of the UAE' },
     ],
-    terms: [
-      { id: 1, text: '"Confidential Information" means all information disclosed by one Party to the other relating to Property, the seller, the buyer, or any related negotiations, whether oral, written, electronic or otherwise.' },
-      { id: 2, text: 'Both Parties agree to maintain strict confidentiality regarding all information shared under this agreement, including but not limited to client lists, property details, financial data, and business strategies.' },
-      { id: 3, text: 'Neither Party shall circumvent the other to directly contact, solicit, or transact with any client, investor, or counterparty introduced through this agreement without prior written consent.' },
-      { id: 4, text: 'All introductions made under this agreement shall be protected for the duration specified herein. Any transaction resulting from such introductions shall entitle the introducing party to their agreed commission.' },
-      { id: 5, text: 'This agreement shall be governed by and construed in accordance with the laws of the jurisdiction specified above. Any disputes shall be resolved through arbitration in Dubai, UAE.' },
-      { id: 6, text: 'Breach of this agreement shall entitle the non-breaching party to seek injunctive relief and damages, including but not limited to lost commissions and legal fees.' },
-    ],
+    terms: [],
   },
   {
     id: 'mou',
@@ -108,14 +101,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'agent_name', label: 'Agent Name', type: 'text', required: false, placeholder: 'Handling agent...' },
       { key: 'special_conditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Any special conditions...' },
     ],
-    terms: [
-      { id: 1, text: 'The Buyer agrees to pay the deposit amount specified above within 5 business days of signing this MOU. Failure to do so shall render this agreement null and void.' },
-      { id: 2, text: 'The Seller agrees to provide vacant possession of the property on the agreed completion date, free from all encumbrances unless otherwise stated.' },
-      { id: 3, text: 'Both parties agree to cooperate fully with the Dubai Land Department (DLD) transfer process and provide all required documentation within the stipulated timeframes.' },
-      { id: 4, text: 'In the event the Buyer withdraws from this agreement after paying the deposit, the deposit shall be forfeited to the Seller as liquidated damages.' },
-      { id: 5, text: 'In the event the Seller withdraws from this agreement after receiving the deposit, the Seller shall return double the deposit amount to the Buyer as liquidated damages.' },
-      { id: 6, text: 'All agency fees and commissions shall be paid by the respective parties as agreed and shall not be deducted from the sale price.' },
-    ],
+    terms: [],
   },
   {
     id: 'loi',
@@ -136,12 +122,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'due_diligence_period', label: 'Due Diligence Period (days)', type: 'number', required: false },
       { key: 'agent_name', label: 'Agent Name', type: 'text', required: false },
     ],
-    terms: [
-      { id: 1, text: 'This Letter of Intent is non-binding and serves as an expression of the Buyer\'s intent to purchase the above-referenced property subject to satisfactory due diligence and formal agreement.' },
-      { id: 2, text: 'The Seller agrees to grant the Buyer an exclusivity period as specified above, during which the property shall be taken off the market.' },
-      { id: 3, text: 'Both parties agree to negotiate in good faith towards executing a formal Sale and Purchase Agreement (SPA) within the validity period of this LOI.' },
-      { id: 4, text: 'This LOI shall expire automatically upon the end of the validity period unless extended in writing by both parties.' },
-    ],
+    terms: [],
   },
   {
     id: 'offer',
@@ -162,12 +143,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'offer_expiry', label: 'Offer Expiry Date', type: 'date', required: true },
       { key: 'special_requests', label: 'Special Requests / Conditions', type: 'textarea', required: false },
     ],
-    terms: [
-      { id: 1, text: 'This offer is binding upon acceptance by the Seller and shall constitute a legally enforceable agreement to purchase the above property.' },
-      { id: 2, text: 'The Buyer confirms that funds are available and ready to be transferred upon acceptance of this offer.' },
-      { id: 3, text: 'This offer shall expire on the date specified above unless accepted in writing by the Seller prior to expiry.' },
-      { id: 4, text: 'Upon acceptance, both parties agree to execute a formal MOU/SPA within 5 business days.' },
-    ],
+    terms: [],
   },
   {
     id: 'spa',
@@ -196,15 +172,7 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { key: 'payment_schedule', label: 'Payment Schedule', type: 'textarea', required: true, placeholder: 'Describe payment milestones...' },
       { key: 'special_conditions', label: 'Special Conditions', type: 'textarea', required: false },
     ],
-    terms: [
-      { id: 1, text: 'The Seller agrees to sell and the Buyer agrees to purchase the above property at the agreed sale price, subject to the terms and conditions set forth in this agreement.' },
-      { id: 2, text: 'Title to the property shall pass to the Buyer upon full payment of the sale price and completion of the DLD transfer process.' },
-      { id: 3, text: 'The Seller warrants that the property is free from all encumbrances, liens, and third-party claims as of the transfer date.' },
-      { id: 4, text: 'All service charges, utility bills, and municipality fees shall be apportioned between the parties as of the completion date.' },
-      { id: 5, text: 'The Buyer shall be responsible for all DLD transfer fees, registration fees, and any applicable taxes unless otherwise agreed in writing.' },
-      { id: 6, text: 'In the event of default by either party, the non-defaulting party shall be entitled to terminate this agreement and seek all remedies available under UAE law.' },
-      { id: 7, text: 'This agreement shall be governed by the laws of the United Arab Emirates and the parties submit to the exclusive jurisdiction of the Dubai courts.' },
-    ],
+    terms: [],
   },
 ];
 
@@ -384,17 +352,11 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {isNCNDA ? (
             <>
               <p style={{ fontSize: '11px', lineHeight: 1.9, marginBottom: '10px', color: '#333' }}>
-                <strong>{f.party1_company || 'Cove Estates LLC'}</strong>, a company incorporated in Dubai, United Arab Emirates with license{' '}
-                <strong>{f.party1_license || '1432541'}</strong>, ORN no <strong>{f.party1_orn || '46855'}</strong> and office at{' '}
-                <strong>{f.party1_address || '802, Moosa Tower, Dubai, UAE'}</strong>{' '}
-                (&ldquo;<strong>{f.party1_initials || 'LX'}</strong>&rdquo;), representing the <strong>Buyer</strong>. (First Party)
+                {f.party1_company && <><strong>{f.party1_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party1_license ? <> with license <strong>{f.party1_license}</strong></> : null}{f.party1_orn ? <>, ORN no <strong>{f.party1_orn}</strong></> : null}{f.party1_address ? <> and office at <strong>{f.party1_address}</strong></> : null}{f.party1_initials ? <> (&ldquo;<strong>{f.party1_initials}</strong>&rdquo;)</> : null}, representing the <strong>Buyer</strong>. (First Party)</>}
               </p>
               <p style={{ fontSize: '11px', textAlign: 'center', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>— and —</p>
               <p style={{ fontSize: '11px', lineHeight: 1.9, color: '#333' }}>
-                <strong>{f.party2_company || '[COMPANY]'}</strong>, a company incorporated in Dubai, United Arab Emirates with Trade license{' '}
-                <strong>{f.party2_license || '[LICENSE]'}</strong>, ORN <strong>{f.party2_orn || '[ORN]'}</strong> and office at{' '}
-                <strong>{f.party2_address || '[ADDRESS]'}</strong>, Dubai, UAE{' '}
-                (&ldquo;<strong>{f.party2_initials || '[INITIALS]'}</strong>&rdquo;), representing <strong>Seller</strong>. (Second Party)
+                {f.party2_company && <><strong>{f.party2_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party2_license ? <> with Trade license <strong>{f.party2_license}</strong></> : null}{f.party2_orn ? <>, ORN <strong>{f.party2_orn}</strong></> : null}{f.party2_address ? <> and office at <strong>{f.party2_address}</strong></> : null}{f.party2_initials ? <>, Dubai, UAE (&ldquo;<strong>{f.party2_initials}</strong>&rdquo;)</> : null}, representing <strong>Seller</strong>. (Second Party)</>}
               </p>
             </>
           ) : (
@@ -412,24 +374,12 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
       )}
 
       {/* ── BACKGROUND (NCNDA specific) ── */}
-      {isNCNDA && (
+      {isNCNDA && f.property_description && (
         <div style={{ marginBottom: '20px' }}>
           <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
             BACKGROUND
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {[
-              `The Parties acknowledge that they wish to share information relating to ${f.property_description || 'Plots (listed in appendix "Property").'}.`,
-              `${f.party1_company || 'Cove Estates'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
-              'Both Parties agree to disclose and receive information pertaining to the parties they respectively represent.',
-              'Both Parties agree to be retained by their respective clients in terms of fees and agree not to circumvent.',
-            ].map((item, i) => (
-              <li key={i} style={{ fontSize: '11px', lineHeight: 1.8, marginBottom: '6px', color: '#333', paddingLeft: '16px', position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 0, color: '#C9A84C', fontWeight: 'bold' }}>•</span>
-                {item}
-              </li>
-            ))}
-          </ul>
+          <p style={{ fontSize: '11px', lineHeight: 1.8, color: '#333' }}>{f.property_description}</p>
         </div>
       )}
 
@@ -497,6 +447,7 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
       )}
 
       {/* ── Clauses / Terms ── */}
+      {doc.terms.length > 0 && (
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
           {isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}
@@ -505,11 +456,12 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {doc.terms.map((term, i) => (
             <li key={term.id} style={{ display: 'flex', gap: '10px', marginBottom: '10px', fontSize: '11px', lineHeight: 1.8, color: '#333' }}>
               <span style={{ color: '#C9A84C', fontWeight: 'bold', flexShrink: 0, minWidth: '20px' }}>{i + 1}.</span>
-              <span>{isNCNDA ? <><strong>{i === 0 ? 'CONFIDENTIAL INFORMATION — ' : i === 1 ? 'NON-DISCLOSURE — ' : i === 2 ? 'NON-CIRCUMVENTION — ' : i === 3 ? 'PROTECTION OF INTRODUCTIONS — ' : i === 4 ? 'GOVERNING LAW — ' : 'REMEDIES — '}</strong></> : null}{term.text}</span>
+              <span>{term.text}</span>
             </li>
           ))}
         </ol>
       </div>
+      )}
 
       {/* ── Notes ── */}
       {doc.notes && (
@@ -624,8 +576,8 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       <div>
         <div class="logo">COVE ESTATES</div>
         <div style="font-size:9px;color:#888;letter-spacing:3px;text-transform:uppercase;font-family:Arial,sans-serif;margin-top:4px">Luxury Real Estate · Dubai, UAE</div>
-        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">License: ${f.party1_license || '1432541'} · ORN: ${f.party1_orn || '46855'}</div>
-        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_address || '802, Moosa Tower, Dubai, UAE'}</div>
+        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_license ? `License: ${f.party1_license}` : ''}${f.party1_orn ? ` · ORN: ${f.party1_orn}` : ''}</div>
+        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_address || ''}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;font-weight:bold;color:#333;font-family:Arial,sans-serif;text-transform:uppercase;letter-spacing:1px">${doc.category}</div>
@@ -636,20 +588,14 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     <div class="doc-title">${doc.templateName.toUpperCase()}<div style="width:60px;height:2px;background:#C9A84C;margin:8px auto 0"></div></div>
     <p>This Agreement is made on <strong>${fmtDate(f.date || '')}</strong> (the "Effective Date").</p>
     ${(isNCNDA || isMOU) ? `<div class="section-title">BY AND BETWEEN</div>
-    ${isNCNDA ? `<p><strong>${f.party1_company || 'Cove Estates LLC'}</strong>, a company incorporated in Dubai, UAE with license <strong>${f.party1_license || '1432541'}</strong>, ORN no <strong>${f.party1_orn || '46855'}</strong> and office at <strong>${f.party1_address || '802, Moosa Tower, Dubai, UAE'}</strong> ("<strong>${f.party1_initials || 'CE'}</strong>"), representing the <strong>Buyer</strong>. (First Party)</p>
+    ${isNCNDA ? `${f.party1_company ? `<p><strong>${f.party1_company}</strong>, a company incorporated in Dubai, UAE${f.party1_license ? ` with license <strong>${f.party1_license}</strong>` : ''}${f.party1_orn ? `, ORN no <strong>${f.party1_orn}</strong>` : ''}${f.party1_address ? ` and office at <strong>${f.party1_address}</strong>` : ''}${f.party1_initials ? ` ("<strong>${f.party1_initials}</strong>")` : ''}, representing the <strong>Buyer</strong>. (First Party)</p>` : ''}
     <p style="text-align:center;font-style:italic;color:#888">— and —</p>
-    <p><strong>${f.party2_company || '[COMPANY]'}</strong>, a company incorporated in Dubai, UAE with Trade license <strong>${f.party2_license || '[LICENSE]'}</strong>, ORN <strong>${f.party2_orn || '[ORN]'}</strong> and office at <strong>${f.party2_address || '[ADDRESS]'}</strong>, Dubai, UAE ("<strong>${f.party2_initials || '[INITIALS]'}</strong>"), representing <strong>Seller</strong>. (Second Party)</p>` :
-    `<p><strong>Buyer:</strong> ${f.buyer_name || '___________'}${f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}${f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}</p>
+    ${f.party2_company ? `<p><strong>${f.party2_company}</strong>, a company incorporated in Dubai, UAE${f.party2_license ? ` with Trade license <strong>${f.party2_license}</strong>` : ''}${f.party2_orn ? `, ORN <strong>${f.party2_orn}</strong>` : ''}${f.party2_address ? ` and office at <strong>${f.party2_address}</strong>` : ''}${f.party2_initials ? `, Dubai, UAE ("<strong>${f.party2_initials}</strong>")` : ''}, representing <strong>Seller</strong>. (Second Party)</p>` : ''}` :
+    `<p><strong>Buyer:</strong> ${f.buyer_name || ''}${f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}${f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}</p>
     <p style="text-align:center;font-style:italic;color:#888">— and —</p>
-    <p><strong>Seller:</strong> ${f.seller_name || '___________'}${f.seller_passport ? ` (Passport/ID: ${f.seller_passport})` : ''}</p>`}` : ''}
-    ${isNCNDA ? `<div class="section-title">BACKGROUND</div>
-    <ul style="list-style:none;padding:0">
-      ${[`The Parties acknowledge that they wish to share information relating to ${f.property_description || 'Plots (listed in appendix "Property").'}.`,
-        `${f.party1_company || 'Cove Estates'} is representing the Buyer and ${f.party2_initials || 'the Second Party'} is representing the Seller.`,
-        'Both Parties agree to disclose and receive information pertaining to the parties they respectively represent.',
-        'Both Parties agree to be retained by their respective clients in terms of fees and agree not to circumvent.']
-        .map(item => `<li style="font-size:11px;line-height:1.8;margin-bottom:6px;color:#333;padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#C9A84C;font-weight:bold">•</span>${item}</li>`).join('')}
-    </ul>` : ''}
+    <p><strong>Seller:</strong> ${f.seller_name || ''}${f.seller_passport ? ` (Passport/ID: ${f.seller_passport})` : ''}</p>`}` : ''}
+    ${isNCNDA && f.property_description ? `<div class="section-title">BACKGROUND</div>
+    <p style="font-size:11px;line-height:1.8;color:#333">${f.property_description}</p>` : ''}
     ${!isNCNDA && (f.property_ref || f.property_address) ? `<div class="section-title">PROPERTY DETAILS</div>
     <table><tbody>
       ${[['Property Reference', f.property_ref], ['Property Address', f.property_address], ['Property Type', f.property_type]].filter(([,v]) => v).map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('')}
@@ -658,10 +604,10 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     <table><tbody>
       ${[['Agreed Sale Price', fmtCurrency(f.agreed_price || f.sale_price || f.offer_price || '')], ['Deposit Amount', f.deposit_amount ? fmtCurrency(f.deposit_amount) : ''], ['Payment Method', f.payment_method], ['Completion Date', f.completion_date ? fmtDate(f.completion_date) : '']].filter(([,v]) => v).map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('')}
     </tbody></table>` : ''}
-    <div class="section-title">${isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}</div>
+    ${doc.terms.length > 0 ? `<div class="section-title">${isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}</div>
     <ol class="terms-list">
       ${doc.terms.map((t, i) => `<li><span class="term-num">${i + 1}.</span><span>${t.text}</span></li>`).join('')}
-    </ol>
+    </ol>` : ''}
     <div class="sig-grid">
       <div class="sig-box">
         <div class="sig-label">${isNCNDA ? 'First Party / Authorised Signatory' : 'Buyer / Authorised Signatory'}</div>
