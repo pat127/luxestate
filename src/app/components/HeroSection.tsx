@@ -180,7 +180,8 @@ export default function HeroSection() {
                       if (e.key === 'Escape') setShowSuggestions(false);
                     }}
                     placeholder={t('hero.search_placeholder')}
-                    className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none" />
+                    className="bg-transparent text-foreground placeholder-muted-foreground text-sm w-full outline-none"
+                    suppressHydrationWarning />
                 </div>
                 <button
                   onClick={handleSearch}
