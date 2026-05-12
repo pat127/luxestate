@@ -196,72 +196,6 @@ const STATUS_STYLES: Record<DocStatus, string> = {
   Rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
 };
 
-const INITIAL_DOCUMENTS: FilledDocument[] = [
-  {
-    id: 1,
-    templateId: 'ncnda',
-    templateName: 'Non-Circumvention, Non-Disclosure Agreement',
-    shortName: 'NCNDA',
-    category: 'NDA',
-    title: 'NCNDA — Cove Estates LLC & Investor Corp — May 2026',
-    fields: {
-      date: '2026-05-02',
-      party1_company: 'Cove Estates LLC',
-      party1_license: '1432541',
-      party1_orn: '46855',
-      party1_address: '802, Moosa Tower, Dubai, UAE',
-      party1_signatory: 'Ahmed Al-Rashid',
-      party1_initials: 'LX',
-      party2_company: 'Investor Corp',
-      party2_license: '54321',
-      party2_orn: '09876',
-      party2_address: 'Abu Dhabi, UAE',
-      party2_signatory: 'James Harrington',
-      party2_initials: 'IC',
-      property_description: 'Plots listed in Appendix A',
-      duration: '2 Years',
-      governing_law: 'Laws of the UAE',
-    },
-    notes: '',
-    terms: DEFAULT_TEMPLATES[0].terms,
-    status: 'Approved',
-    createdAt: 'May 2, 2026',
-    ceoSignature: 'Ahmed Al-Rashid',
-    approvedAt: 'May 2, 2026',
-    submittedBy: 'Admin',
-  },
-  {
-    id: 2,
-    templateId: 'mou',
-    templateName: 'Memorandum of Understanding',
-    shortName: 'MOU',
-    category: 'Sales Contract',
-    title: 'MOU — James Harrington — Meridian Villa — Apr 2026',
-    fields: {
-      date: '2026-04-28',
-      buyer_name: 'James Harrington',
-      buyer_passport: 'A1234567',
-      buyer_nationality: 'British',
-      seller_name: 'Cove Estates LLC',
-      seller_passport: 'B7654321',
-      property_ref: 'CE-RES-004',
-      property_address: 'Meridian Villa, Palm Jumeirah, Dubai',
-      property_type: 'Villa',
-      agreed_price: '42000000',
-      deposit_amount: '4200000',
-      payment_method: 'Cash',
-      completion_date: '2026-06-30',
-      transfer_date: '2026-06-30',
-      agent_name: 'Sarah Mitchell',
-    },
-    notes: '',
-    terms: DEFAULT_TEMPLATES[1].terms,
-    status: 'Pending Approval',
-    createdAt: 'Apr 28, 2026',
-    submittedBy: 'Sarah M.',
-  },
-];
-
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Ico = {
   Folder: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg>,
@@ -478,7 +412,6 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px', marginTop: '48px' }}>
         <div>
           <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-            {sig1 && <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig1}</div>}
           </div>
           <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party A' : 'Buyer'}</div>
           <div style={{ fontSize: '10px', fontWeight: 600, color: '#333' }}>{sig1 || '___________________________'}</div>
@@ -487,7 +420,6 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
         </div>
         <div>
           <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-            {sig2 && <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig2}</div>}
           </div>
           <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party B' : 'Seller'}</div>
           <div style={{ fontSize: '10px', fontWeight: 600, color: '#333' }}>{sig2 || '___________________________'}</div>
@@ -620,14 +552,14 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       </div>` : ''}
       <div class="sig-grid">
         <div>
-          <div class="sig-line">${sig1 ? `<div class="sig-cursive">${sig1}</div>` : ''}</div>
+          <div class="sig-line"></div>
           <div class="sig-role">${isNCNDA ? 'Party A' : 'Buyer'}</div>
           <div class="sig-name">${sig1 || '___________________________'}</div>
           ${isNCNDA && f.party1_company ? `<div class="sig-company">${f.party1_company}</div>` : ''}
           <div class="sig-date">Date: ${f.date ? fmtDate(f.date) : '_______________'}</div>
         </div>
         <div>
-          <div class="sig-line">${sig2 ? `<div class="sig-cursive">${sig2}</div>` : ''}</div>
+          <div class="sig-line"></div>
           <div class="sig-role">${isNCNDA ? 'Party B' : 'Seller'}</div>
           <div class="sig-name">${sig2 || '___________________________'}</div>
           ${isNCNDA && f.party2_company ? `<div class="sig-company">${f.party2_company}</div>` : ''}
@@ -1075,7 +1007,7 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState('');
   const [templates, setTemplates] = useState<TemplateDefinition[]>(DEFAULT_TEMPLATES);
   const [uploadedTemplates, setUploadedTemplates] = useState<UploadedTemplate[]>([]);
-  const [documents, setDocuments] = useState<FilledDocument[]>(INITIAL_DOCUMENTS);
+  const [documents, setDocuments] = useState<FilledDocument[]>([]);
 
   // Fill modal (standard templates)
   const [fillTemplate, setFillTemplate] = useState<TemplateDefinition | null>(null);
