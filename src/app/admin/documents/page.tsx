@@ -774,7 +774,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
 
 // ─── Terms Editor Modal ───────────────────────────────────────────────────────
 function TermsEditor({ template, onClose, onSave }: { template: TemplateDefinition; onClose: () => void; onSave: (terms: TemplateTerm[]) => void }) {
-  const [rawText, setRawText] = useState<string>(template.terms.map(t => t.text).join('\n\n'));
+  const [rawText, setRawText] = useState<string>('');
   const [showPreview, setShowPreview] = useState(false);
 
   // Parse raw text into terms: split by double newline or numbered lines
@@ -787,7 +787,6 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
   }, [rawText]);
 
   const handleSave = () => {
-    if (parsedTerms.length === 0) return;
     onSave(parsedTerms);
   };
 
@@ -850,10 +849,9 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
           <button onClick={onClose} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
           <button
             onClick={handleSave}
-            disabled={parsedTerms.length === 0}
-            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold disabled:opacity-40"
+            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold"
           >
-            Save Terms ({parsedTerms.length} clause{parsedTerms.length !== 1 ? 's' : ''})
+            Save Terms{parsedTerms.length > 0 ? ` (${parsedTerms.length} clause${parsedTerms.length !== 1 ? 's' : ''})` : ''}
           </button>
         </div>
       </div>
