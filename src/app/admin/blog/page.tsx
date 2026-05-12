@@ -93,6 +93,8 @@ export default function BlogPostsPage() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<PostForm>(emptyForm);
   const [activeTab, setActiveTab] = useState<'content' | 'seo'>('content');
+  const [importMsg, setImportMsg] = useState('');
+  const csvInputRef = React.useRef<HTMLInputElement>(null);
 
   // Persist posts to localStorage whenever they change
   useEffect(() => {
@@ -151,6 +153,103 @@ export default function BlogPostsPage() {
     setPosts(posts.filter(p => p.id !== id));
   };
 
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) { setImportMsg('CSV must have a header row and at least one data row.'); return; }
+
+        // Parse header row — support quoted fields
+        const parseRow = (row: string): string[] => {
+          const result: string[] = [];
+          let cur = '';
+          let inQuote = false;
+          for (let i = 0; i < row.length; i++) {
+            const ch = row[i];
+            if (ch === '"') { inQuote = !inQuote; }
+            else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
+            else { cur += ch; }
+          }
+          result.push(cur.trim());
+          return result;
+        };
+
+        const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''));
+
+        // Field mapping: CSV header → BlogPost field
+        const fieldMap: Record<string, keyof BlogPost | 'tags_str'> = {
+          title: 'title',
+          slug: 'slug',
+          excerpt: 'excerpt',
+          category: 'category',
+          author: 'author',
+          status: 'status',
+          featured_image: 'featuredImage',
+          featured_image_url: 'featuredImage',
+          image: 'featuredImage',
+          image_url: 'featuredImage',
+          tags: 'tags_str',
+          meta_title: 'metaTitle',
+          seo_title: 'metaTitle',
+          meta_description: 'metaDesc',
+          meta_desc: 'metaDesc',
+          seo_description: 'metaDesc',
+          publish_date: 'publishDate',
+          date: 'publishDate',
+          views: 'views',
+        };
+
+        const imported: BlogPost[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseRow(lines[i]);
+          if (values.every(v => !v)) continue;
+          const row: Record<string, string> = {};
+          headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+
+          const title = row['title'] || '';
+          if (!title) continue;
+
+          const slug = row['slug'] || title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const tagsRaw = row['tags'] || '';
+          const tags = tagsRaw ? tagsRaw.split(/[;|]/).map(t => t.trim()).filter(Boolean) : [];
+
+          const post: BlogPost = {
+            id: Date.now() + i,
+            title,
+            slug,
+            excerpt: row['excerpt'] || '',
+            category: row['category'] || 'Market Insights',
+            author: row['author'] || 'Admin',
+            status: row['status'] || 'Draft',
+            views: parseInt(row['views'] || '0', 10) || 0,
+            date: row['publish_date'] || row['date'] || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            featuredImage: row['featured_image'] || row['featured_image_url'] || row['image'] || row['image_url'] || '',
+            tags,
+            metaTitle: row['meta_title'] || row['seo_title'] || '',
+            metaDesc: row['meta_description'] || row['meta_desc'] || row['seo_description'] || '',
+            publishDate: row['publish_date'] || row['date'] || '',
+          };
+          imported.push(post);
+        }
+
+        if (imported.length === 0) { setImportMsg('No valid rows found. Ensure CSV has a "title" column.'); return; }
+        setPosts(prev => [...imported, ...prev]);
+        setImportMsg(`✓ Imported ${imported.length} post${imported.length > 1 ? 's' : ''}`);
+        setTimeout(() => setImportMsg(''), 4000);
+      } catch {
+        setImportMsg('Failed to parse CSV. Please check the file format.');
+        setTimeout(() => setImportMsg(''), 4000);
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    e.target.value = '';
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -159,9 +258,14 @@ export default function BlogPostsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">{posts.length} total posts</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
+          {importMsg && <span className={`text-xs font-semibold ${importMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{importMsg}</span>}
+          <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVImport} />
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+          >
             <Icon name="ArrowUpTrayIcon" size={14} />
-            Import
+            Import CSV
           </button>
           <button
             onClick={openNew}

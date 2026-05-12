@@ -48,6 +48,7 @@ function saveAgents(agents: Agent[]) {
 }
 
 const roleColors: Record<string, string> = {
+  'CEO / Senior Agent': 'text-yellow-400 bg-yellow-400/10',
   'Senior Agent': 'text-primary bg-primary/10',
   'Agent': 'text-blue-400 bg-blue-400/10',
   'Junior Agent': 'text-muted-foreground bg-muted/50',
@@ -392,7 +393,7 @@ export default function AgentsPage() {
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Role</label>
                   <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                    <option>Junior Agent</option><option>Agent</option><option>Senior Agent</option><option>Team Lead</option>
+                    <option>CEO / Senior Agent</option><option>Junior Agent</option><option>Agent</option><option>Senior Agent</option><option>Team Lead</option>
                   </select>
                 </div>
                 <div>

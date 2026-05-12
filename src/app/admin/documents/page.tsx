@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TemplateField {
@@ -774,56 +774,87 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
 
 // ─── Terms Editor Modal ───────────────────────────────────────────────────────
 function TermsEditor({ template, onClose, onSave }: { template: TemplateDefinition; onClose: () => void; onSave: (terms: TemplateTerm[]) => void }) {
-  const [terms, setTerms] = useState<TemplateTerm[]>([...template.terms]);
-  const [newTerm, setNewTerm] = useState('');
+  const [rawText, setRawText] = useState<string>(template.terms.map(t => t.text).join('\n\n'));
+  const [showPreview, setShowPreview] = useState(false);
 
-  const addTerm = () => {
-    if (!newTerm.trim()) return;
-    setTerms([...terms, { id: Date.now(), text: newTerm.trim() }]);
-    setNewTerm('');
+  // Parse raw text into terms: split by double newline or numbered lines
+  const parsedTerms = React.useMemo((): TemplateTerm[] => {
+    const blocks = rawText
+      .split(/\n{2,}/)
+      .map(b => b.replace(/^\d+\.\s*/, '').trim())
+      .filter(Boolean);
+    return blocks.map((text, i) => ({ id: i + 1, text }));
+  }, [rawText]);
+
+  const handleSave = () => {
+    if (parsedTerms.length === 0) return;
+    onSave(parsedTerms);
   };
-
-  const updateTerm = (id: number, text: string) => setTerms(terms.map((t) => t.id === id ? { ...t, text } : t));
-  const removeTerm = (id: number) => setTerms(terms.filter((t) => t.id !== id));
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
             <h2 className="text-sm font-bold text-white">Edit Terms — {template.shortName}</h2>
             <p className="text-xs text-white/40 mt-0.5">{template.name}</p>
           </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-3">
-          {terms.map((term, i) => (
-            <div key={term.id} className="flex gap-3 items-start">
-              <span className="text-primary font-bold text-sm mt-2 flex-shrink-0 w-5">{i + 1}.</span>
-              <textarea
-                value={term.text}
-                onChange={(e) => updateTerm(term.id, e.target.value)}
-                rows={3}
-                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50 resize-none"
-              />
-              <button onClick={() => removeTerm(term.id)} className="mt-2 text-white/30 hover:text-red-400 transition-colors flex-shrink-0"><Ico.Trash /></button>
-            </div>
-          ))}
-          <div className="flex gap-3 items-start pt-2 border-t border-white/10">
-            <span className="text-white/30 font-bold text-sm mt-2 flex-shrink-0 w-5">{terms.length + 1}.</span>
-            <textarea
-              value={newTerm}
-              onChange={(e) => setNewTerm(e.target.value)}
-              rows={3}
-              placeholder="Add a new term..."
-              className="flex-1 px-3 py-2 bg-white/5 border border-dashed border-white/20 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-            />
-            <button onClick={addTerm} disabled={!newTerm.trim()} className="mt-2 w-8 h-8 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors disabled:opacity-30 flex items-center justify-center flex-shrink-0">&lt;Ico.Plus /&gt;</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-1.5 h-8 px-3 text-xs rounded-md border transition-colors ${showPreview ? 'bg-primary/10 border-primary/30 text-primary' : 'border-white/10 text-white/60 hover:text-white'}`}
+            >
+              <Ico.Eye /> {showPreview ? 'Edit' : 'Preview'}
+            </button>
+            <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
           </div>
         </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {!showPreview ? (
+            <div className="space-y-3">
+              <p className="text-xs text-white/40">
+                Paste or type your terms and clauses below. Separate each clause with a blank line. Numbered prefixes (1. 2. etc.) are optional — they will be added automatically in the document.
+              </p>
+              <textarea
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                rows={20}
+                placeholder={`Paste your terms here...\n\nEach clause separated by a blank line becomes a numbered term.\n\nExample:\n\nConfidential Information means all information disclosed by one Party to the other...\n\nBoth Parties agree to maintain strict confidentiality regarding all information shared...`}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50 resize-none leading-relaxed"
+              />
+              <p className="text-xs text-white/30">
+                {parsedTerms.length} clause{parsedTerms.length !== 1 ? 's' : ''} detected
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-white/40 mb-4">Preview of how terms will appear in the document:</p>
+              {parsedTerms.length === 0 ? (
+                <p className="text-sm text-white/30 text-center py-8">No terms to preview. Add content in the Edit tab.</p>
+              ) : (
+                <ol className="space-y-4 list-none">
+                  {parsedTerms.map((term, i) => (
+                    <li key={term.id} className="flex gap-3 p-3 bg-white/5 border border-white/10 rounded-md">
+                      <span className="text-primary font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
+                      <span className="text-sm text-white/80 leading-relaxed">{term.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-3 px-6 py-4 border-t border-white/10">
           <button onClick={onClose} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
-          <button onClick={() => onSave(terms)} className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold">Save Terms</button>
+          <button
+            onClick={handleSave}
+            disabled={parsedTerms.length === 0}
+            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold disabled:opacity-40"
+          >
+            Save Terms ({parsedTerms.length} clause{parsedTerms.length !== 1 ? 's' : ''})
+          </button>
         </div>
       </div>
     </div>
