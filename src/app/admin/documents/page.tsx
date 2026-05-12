@@ -946,7 +946,6 @@ export default function DocumentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Document Center</h1>
-          <p className="text-white/50 text-sm mt-1">Create, manage, and approve legal documents</p>
         </div>
       </div>
 
