@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TemplateField {
@@ -28,6 +28,17 @@ interface TemplateDefinition {
   requiresApproval: boolean;
 }
 
+// Uploaded template with free-form content and {{placeholder}} fields
+interface UploadedTemplate {
+  id: string;
+  name: string;
+  shortName: string;
+  category: string;
+  content: string; // raw text with {{field_name}} placeholders
+  placeholders: string[]; // extracted unique placeholder keys
+  createdAt: string;
+}
+
 type DocStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected';
 
 interface FilledDocument {
@@ -45,6 +56,8 @@ interface FilledDocument {
   ceoSignature?: string;
   approvedAt?: string;
   submittedBy: string;
+  // For uploaded templates
+  uploadedContent?: string;
 }
 
 // ─── Default Templates ────────────────────────────────────────────────────────
@@ -264,6 +277,7 @@ const Ico = {
   Search: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>,
   Share: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg>,
   Settings: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>,
+  Upload: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -294,21 +308,119 @@ function generateRefNo(id: number, shortName: string) {
   return `CE/${shortName}/${year}/${month}/${rand}`;
 }
 
+// Extract {{placeholder}} keys from template content
+function extractPlaceholders(content: string): string[] {
+  const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
+  const keys = matches.map(m => m.replace(/\{\{|\}\}/g, '').trim());
+  return [...new Set(keys)];
+}
+
+// Replace {{placeholder}} in content with filled values
+function fillPlaceholders(content: string, values: Record<string, string>): string {
+  return content.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+    const trimmed = key.trim();
+    return values[trimmed] || `___________`;
+  });
+}
+
+// Convert placeholder key to readable label
+function placeholderToLabel(key: string): string {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ─── Sophisticated Document Preview (PDF-style) ───────────────────────────────
 function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; template?: TemplateDefinition }) {
   const f = doc.fields;
   const refNo = `CE/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
   const isNCNDA = doc.templateId === 'ncnda';
 
-  const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
-  const party1Sub = isNCNDA
-    ? [f.party1_license ? `License No. ${f.party1_license}` : null, f.party1_orn ? `ORN ${f.party1_orn}` : null, f.party1_address || null].filter(Boolean).join('  ·  ')
-    : [f.buyer_passport ? `Passport / ID: ${f.buyer_passport}` : null, f.buyer_nationality || null].filter(Boolean).join('  ·  ');
+  // For uploaded templates, render filled content directly
+  if (doc.uploadedContent) {
+    const filledContent = fillPlaceholders(doc.uploadedContent, f);
+    return (
+      <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', Arial, sans-serif", background: '#fff', color: '#1a1a1a' }}>
+        {/* ── Reference Strip ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e8e3d8', paddingBottom: '14px', marginBottom: '40px' }}>
+          <div style={{ fontSize: '9px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 600 }}>Cove Estates · Confidential</div>
+          <div style={{ fontSize: '9px', letterSpacing: '1.5px', color: '#b0a080', fontWeight: 600 }}>Ref: <span style={{ color: '#8a7040' }}>{refNo}</span></div>
+        </div>
+        {/* ── Document Title ── */}
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '4px', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '14px', fontWeight: 700 }}>{doc.category}</div>
+          <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '1px', color: '#0f0f0f', lineHeight: 1.3, textTransform: 'uppercase' }}>{doc.templateName}</div>
+          <div style={{ width: '48px', height: '2px', background: '#C9A84C', margin: '16px auto 0' }} />
+        </div>
+        {/* ── Filled Content ── */}
+        <div style={{ fontSize: '11px', color: '#333', lineHeight: 1.9, whiteSpace: 'pre-wrap', marginBottom: '48px' }}>
+          {filledContent}
+        </div>
+        {/* ── Signature Zone ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px', marginTop: '48px' }}>
+          <div>
+            <div style={{ minHeight: '48px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '8px' }} />
+            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Authorised Signatory</div>
+            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>Date: _______________</div>
+          </div>
+          <div>
+            <div style={{ minHeight: '48px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '8px' }} />
+            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Authorised Signatory</div>
+            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>Date: _______________</div>
+          </div>
+        </div>
+        {/* ── Seal Area ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
+          <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — First Party</div>
+            <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
+            </div>
+          </div>
+          <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Second Party</div>
+            <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
+            </div>
+          </div>
+        </div>
+        {/* ── CEO Approval Stamp ── */}
+        {doc.status === 'Approved' && doc.ceoSignature && (
+          <div style={{ border: '1.5px solid #22c55e', background: '#f0fdf4', padding: '20px', textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2.5px', color: '#16a34a', marginBottom: '8px' }}>✓ Approved &amp; Executed</div>
+            <div style={{ fontSize: '28px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif' }}>{doc.ceoSignature}</div>
+            <div style={{ fontSize: '9px', color: '#888', marginTop: '6px', letterSpacing: '1px' }}>Authorised on {doc.approvedAt}</div>
+          </div>
+        )}
+        {/* ── Footer Rule ── */}
+        <div style={{ borderTop: '1px solid #e8e3d8', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Confidential · Not for Distribution</div>
+          <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1px' }}>{refNo}</div>
+        </div>
+      </div>
+    );
+  }
 
+  // ── Standard template preview ──
+  const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
   const party2Name = f.party2_company || f.seller_name || '___________________________';
-  const party2Sub = isNCNDA
-    ? [f.party2_license ? `License No. ${f.party2_license}` : null, f.party2_orn ? `ORN ${f.party2_orn}` : null, f.party2_address || null].filter(Boolean).join('  ·  ')
-    : [f.seller_passport ? `Passport / ID: ${f.seller_passport}` : null].filter(Boolean).join('  ·  ');
+
+  // Build compact inline party strings
+  const buildPartyLine = (partyNum: 1 | 2): string => {
+    const label = partyNum === 1 ? 'Party A' : 'Party B';
+    if (isNCNDA) {
+      const name = partyNum === 1 ? (f.party1_company || '_____________________') : (f.party2_company || '_____________________');
+      const license = partyNum === 1 ? (f.party1_license || '________') : (f.party2_license || '________');
+      const rera = partyNum === 1 ? (f.party1_orn || '________') : (f.party2_orn || '________');
+      const address = partyNum === 1 ? (f.party1_address || '__________________') : (f.party2_address || '__________________');
+      return `${label}: ${name}, Trade License No.: ${license}, RERA No.: ${rera}, Address: ${address} ("${label}")`;
+    } else {
+      const name = partyNum === 1 ? (f.buyer_name || '_____________________') : (f.seller_name || '_____________________');
+      const id = partyNum === 1 ? (f.buyer_passport || '________') : (f.seller_passport || '________');
+      const nationality = partyNum === 1 ? (f.buyer_nationality || '') : '';
+      const parts = [`${label}: ${name}`, `Passport/ID: ${id}`];
+      if (nationality) parts.push(nationality);
+      return parts.join(', ') + ` ("${label}")`;
+    }
+  };
 
   const sig1 = f.party1_signatory || f.buyer_name || '';
   const sig2 = f.party2_signatory || f.seller_name || '';
@@ -337,81 +449,28 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
         <div style={{ width: '48px', height: '2px', background: '#C9A84C', margin: '16px auto 0' }} />
       </div>
 
-      {/* ── Parties ── */}
-      <div style={{ marginBottom: '52px' }}>
-        <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '28px' }}>
+      {/* ── Parties — compact inline format ── */}
+      <div style={{ marginBottom: '40px' }}>
+        <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, marginBottom: '14px' }}>
           Parties to this Agreement
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', gap: '0', alignItems: 'start' }}>
-          {/* Party 1 */}
-          <div style={{ padding: '20px 24px', background: '#faf9f6', border: '1px solid #ede8dc' }}>
-            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 700, marginBottom: '10px' }}>
-              First Party
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f0f0f', marginBottom: '6px', lineHeight: 1.3 }}>
-              {party1Name}
-            </div>
-            {party1Sub && (
-              <div style={{ fontSize: '10px', color: '#888', lineHeight: 1.7 }}>
-                {party1Sub}
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '28px' }}>
-            <div style={{ fontSize: '10px', color: '#C9A84C', fontWeight: 700 }}>&amp;</div>
-          </div>
-
-          {/* Party 2 */}
-          <div style={{ padding: '20px 24px', background: '#faf9f6', border: '1px solid #ede8dc' }}>
-            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 700, marginBottom: '10px' }}>
-              Second Party
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f0f0f', marginBottom: '6px', lineHeight: 1.3 }}>
-              {party2Name}
-            </div>
-            {party2Sub && (
-              <div style={{ fontSize: '10px', color: '#888', lineHeight: 1.7 }}>
-                {party2Sub}
-              </div>
-            )}
-          </div>
+        <div style={{ fontSize: '11px', color: '#333', lineHeight: 2, borderLeft: '2px solid #e8e3d8', paddingLeft: '14px' }}>
+          <div style={{ marginBottom: '6px' }}>{buildPartyLine(1)}</div>
+          <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: '10px', marginBottom: '6px', marginLeft: '2px' }}>and</div>
+          <div>{buildPartyLine(2)}</div>
         </div>
-
         {f.date && (
-          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#999' }}>
+          <div style={{ marginTop: '14px', fontSize: '10px', color: '#999' }}>
             Effective Date: <span style={{ color: '#555', fontWeight: 600 }}>{fmtDate(f.date)}</span>
             {f.duration ? <span style={{ marginLeft: '16px' }}>Duration: <span style={{ color: '#555', fontWeight: 600 }}>{f.duration}</span></span> : null}
           </div>
         )}
       </div>
 
-      {/* ── Seal Area ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
-        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>
-            Official Seal — First Party
-          </div>
-          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-          </div>
-        </div>
-        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>
-            Official Seal — Second Party
-          </div>
-          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Terms & Conditions ── */}
       {doc.terms && doc.terms.length > 0 && (
         <div style={{ marginBottom: '48px' }}>
-          <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, marginBottom: '20px' }}>
             Terms &amp; Conditions
           </div>
           <div style={{ borderTop: '1px solid #e8e3d8', paddingTop: '20px' }}>
@@ -429,12 +488,48 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
         </div>
       )}
 
+      {/* ── Signature Zone ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px', marginTop: '48px' }}>
+        <div>
+          <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+            {sig1 && <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig1}</div>}
+          </div>
+          <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party A' : 'Buyer'}</div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>{sig1 || '___________________________'}</div>
+          {isNCNDA && f.party1_company && <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party1_company}</div>}
+          <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>Date: {f.date ? fmtDate(f.date) : '_______________'}</div>
+        </div>
+        <div>
+          <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+            {sig2 && <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig2}</div>}
+          </div>
+          <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party B' : 'Seller'}</div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>{sig2 || '___________________________'}</div>
+          {isNCNDA && f.party2_company && <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party2_company}</div>}
+          <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>Date: _______________</div>
+        </div>
+      </div>
+
+      {/* ── Seal Area ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
+        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Party A</div>
+          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
+          </div>
+        </div>
+        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Party B</div>
+          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
+          </div>
+        </div>
+      </div>
+
       {/* ── CEO Approval Stamp ── */}
       {doc.status === 'Approved' && doc.ceoSignature && (
         <div style={{ border: '1.5px solid #22c55e', background: '#f0fdf4', padding: '20px', textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2.5px', color: '#16a34a', marginBottom: '8px' }}>
-            ✓ Approved &amp; Executed
-          </div>
+          <div style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2.5px', color: '#16a34a', marginBottom: '8px' }}>✓ Approved &amp; Executed</div>
           <div style={{ fontSize: '28px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif' }}>{doc.ceoSignature}</div>
           <div style={{ fontSize: '9px', color: '#888', marginTop: '6px', letterSpacing: '1px' }}>Authorised on {doc.approvedAt}</div>
         </div>
@@ -442,12 +537,8 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
 
       {/* ── Footer Rule ── */}
       <div style={{ borderTop: '1px solid #e8e3d8', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-          Confidential · Not for Distribution
-        </div>
-        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1px' }}>
-          {refNo}
-        </div>
+        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Confidential · Not for Distribution</div>
+        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1px' }}>{refNo}</div>
       </div>
     </div>
   );
@@ -473,16 +564,28 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     const isNCNDA = doc.templateId === 'ncnda';
     const refNo = `CE/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
 
-    const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
-    const party1Sub = isNCNDA
-      ? [f.party1_license ? `License No. ${f.party1_license}` : null, f.party1_orn ? `ORN ${f.party1_orn}` : null, f.party1_address || null].filter(Boolean).join('  ·  ')
-      : [f.buyer_passport ? `Passport / ID: ${f.buyer_passport}` : null, f.buyer_nationality || null].filter(Boolean).join('  ·  ');
-    const party2Name = f.party2_company || f.seller_name || '___________________________';
-    const party2Sub = isNCNDA
-      ? [f.party2_license ? `License No. ${f.party2_license}` : null, f.party2_orn ? `ORN ${f.party2_orn}` : null, f.party2_address || null].filter(Boolean).join('  ·  ')
-      : [f.seller_passport ? `Passport / ID: ${f.seller_passport}` : null].filter(Boolean).join('  ·  ');
+    const buildPartyLinePrint = (partyNum: 1 | 2): string => {
+      const label = partyNum === 1 ? 'Party A' : 'Party B';
+      if (isNCNDA) {
+        const name = partyNum === 1 ? (f.party1_company || '_____________________') : (f.party2_company || '_____________________');
+        const license = partyNum === 1 ? (f.party1_license || '________') : (f.party2_license || '________');
+        const rera = partyNum === 1 ? (f.party1_orn || '________') : (f.party2_orn || '________');
+        const address = partyNum === 1 ? (f.party1_address || '__________________') : (f.party2_address || '__________________');
+        return `${label}: ${name}, Trade License No.: ${license}, RERA No.: ${rera}, Address: ${address} ("${label}")`;
+      } else {
+        const name = partyNum === 1 ? (f.buyer_name || '_____________________') : (f.seller_name || '_____________________');
+        const id = partyNum === 1 ? (f.buyer_passport || '________') : (f.seller_passport || '________');
+        const nationality = partyNum === 1 ? (f.buyer_nationality || '') : '';
+        const parts = [`${label}: ${name}`, `Passport/ID: ${id}`];
+        if (nationality) parts.push(nationality);
+        return parts.join(', ') + ` ("${label}")`;
+      }
+    };
+
     const sig1 = f.party1_signatory || f.buyer_name || '';
     const sig2 = f.party2_signatory || f.seller_name || '';
+
+    const filledContent = doc.uploadedContent ? fillPlaceholders(doc.uploadedContent, f) : null;
 
     win.document.write(`<!DOCTYPE html><html><head><title>${doc.title}</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -497,15 +600,12 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       .category-label { font-size: 7px; letter-spacing: 4px; text-transform: uppercase; color: #C9A84C; margin-bottom: 14px; font-weight: 700; }
       .doc-title { font-size: 20px; font-weight: 700; letter-spacing: 1px; color: #0f0f0f; text-transform: uppercase; line-height: 1.3; }
       .gold-rule { width: 48px; height: 2px; background: #C9A84C; margin: 16px auto 0; }
-      .section-label { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #C9A84C; font-weight: 700; text-align: center; margin-bottom: 28px; }
-      .parties-grid { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: start; margin-bottom: 52px; }
-      .party-box { padding: 20px 24px; background: #faf9f6; border: 1px solid #ede8dc; }
-      .party-role { font-size: 7px; letter-spacing: 2.5px; text-transform: uppercase; color: #b0a080; font-weight: 700; margin-bottom: 10px; }
-      .party-name { font-size: 14px; font-weight: 700; color: #0f0f0f; margin-bottom: 6px; line-height: 1.3; }
-      .party-sub { font-size: 10px; color: #888; line-height: 1.7; }
-      .and-divider { display: flex; align-items: center; justify-content: center; padding-top: 28px; font-size: 10px; color: #C9A84C; font-weight: 700; }
-      .effective-date { text-align: center; margin-top: 20px; font-size: 10px; color: #999; }
-      .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; }
+      .parties-section { margin-bottom: 40px; }
+      .parties-label { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #C9A84C; font-weight: 700; margin-bottom: 14px; }
+      .parties-inline { font-size: 11px; color: #333; line-height: 2; border-left: 2px solid #e8e3d8; padding-left: 14px; }
+      .party-and { color: #C9A84C; font-weight: 700; font-size: 10px; margin: 4px 0 4px 2px; }
+      .effective-date { margin-top: 14px; font-size: 10px; color: #999; }
+      .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; margin-top: 48px; }
       .sig-line { min-height: 56px; border-bottom: 1.5px solid #1a1a1a; margin-bottom: 10px; display: flex; align-items: flex-end; padding-bottom: 6px; }
       .sig-cursive { font-size: 26px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; line-height: 1; }
       .sig-role { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
@@ -523,6 +623,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       .approved-date { font-size: 9px; color: #888; margin-top: 6px; letter-spacing: 1px; }
       .footer-rule { border-top: 1px solid #e8e3d8; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
       .footer-text { font-size: 8px; color: #c0b080; letter-spacing: 1.5px; text-transform: uppercase; }
+      .uploaded-content { font-size: 11px; color: #333; line-height: 1.9; white-space: pre-wrap; margin-bottom: 48px; }
       @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
     </style></head><body><div class="page">
       <div class="ref-strip">
@@ -534,48 +635,48 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
         <div class="doc-title">${doc.templateName.toUpperCase()}</div>
         <div class="gold-rule"></div>
       </div>
-      <div class="section-label">Parties to this Agreement</div>
-      <div class="parties-grid">
-        <div class="party-box">
-          <div class="party-role">First Party</div>
-          <div class="party-name">${party1Name}</div>
-          ${party1Sub ? `<div class="party-sub">${party1Sub}</div>` : ''}
+      ${filledContent
+        ? `<div class="uploaded-content">${filledContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`
+        : `<div class="parties-section">
+        <div class="parties-label">Parties to this Agreement</div>
+        <div class="parties-inline">
+          <div>${buildPartyLinePrint(1)}</div>
+          <div class="party-and">and</div>
+          <div>${buildPartyLinePrint(2)}</div>
         </div>
-        <div class="and-divider">&amp;</div>
-        <div class="party-box">
-          <div class="party-role">Second Party</div>
-          <div class="party-name">${party2Name}</div>
-          ${party2Sub ? `<div class="party-sub">${party2Sub}</div>` : ''}
+        ${f.date ? `<div class="effective-date">Effective Date: <strong>${fmtDate(f.date)}</strong>${f.duration ? `&nbsp;&nbsp;·&nbsp;&nbsp;Duration: <strong>${f.duration}</strong>` : ''}</div>` : ''}
+      </div>`}
+      ${doc.terms && doc.terms.length > 0 ? `
+      <div style="margin-bottom:48px">
+        <div class="parties-label">Terms &amp; Conditions</div>
+        <div style="border-top:1px solid #e8e3d8;padding-top:20px">
+          ${doc.terms.map((term, idx) => `<div style="display:flex;gap:14px;margin-bottom:16px;align-items:flex-start"><div style="flex-shrink:0;width:22px;height:22px;background:#faf9f6;border:1px solid #ede8dc;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#C9A84C">${idx + 1}</div><div style="font-size:11px;color:#444;line-height:1.75;flex:1">${term.text}</div></div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="sig-grid">
+        <div>
+          <div class="sig-line">${sig1 ? `<div class="sig-cursive">${sig1}</div>` : ''}</div>
+          <div class="sig-role">${isNCNDA ? 'Party A' : 'Buyer'}</div>
+          <div class="sig-name">${sig1 || '___________________________'}</div>
+          ${isNCNDA && f.party1_company ? `<div class="sig-company">${f.party1_company}</div>` : ''}
+          <div class="sig-date">Date: ${f.date ? fmtDate(f.date) : '_______________'}</div>
+        </div>
+        <div>
+          <div class="sig-line">${sig2 ? `<div class="sig-cursive">${sig2}</div>` : ''}</div>
+          <div class="sig-role">${isNCNDA ? 'Party B' : 'Seller'}</div>
+          <div class="sig-name">${sig2 || '___________________________'}</div>
+          ${isNCNDA && f.party2_company ? `<div class="sig-company">${f.party2_company}</div>` : ''}
+          <div class="sig-date">Date: _______________</div>
         </div>
       </div>
-      ${f.date ? `<div class="effective-date">Effective Date: <strong>${fmtDate(f.date)}</strong>${f.duration ? `&nbsp;&nbsp;·&nbsp;&nbsp;Duration: <strong>${f.duration}</strong>` : ''}</div>` : ''}
-      <div style="margin-top:52px">
-        <div class="section-label">Authorised Signatures</div>
-        <div class="sig-grid">
-          <div>
-            <div class="sig-line">${sig1 ? `<div class="sig-cursive">${sig1}</div>` : ''}</div>
-            <div class="sig-role">${isNCNDA ? 'First Party' : 'Buyer'}</div>
-            <div class="sig-name">${sig1 || '___________________________'}</div>
-            ${isNCNDA && f.party1_company ? `<div class="sig-company">${f.party1_company}</div>` : ''}
-            <div class="sig-date">Date: ${f.date ? fmtDate(f.date) : '_______________'}</div>
-          </div>
-          <div>
-            <div class="sig-line">${sig2 ? `<div class="sig-cursive">${sig2}</div>` : ''}</div>
-            <div class="sig-role">${isNCNDA ? 'Second Party' : 'Seller'}</div>
-            <div class="sig-name">${sig2 || '___________________________'}</div>
-            ${isNCNDA && f.party2_company ? `<div class="sig-company">${f.party2_company}</div>` : ''}
-            <div class="sig-date">Date: _______________</div>
-          </div>
+      <div class="seal-grid">
+        <div class="seal-box">
+          <div class="seal-label">Official Seal — Party A</div>
+          <div class="seal-circle"><div class="seal-text">SEAL</div></div>
         </div>
-        <div class="seal-grid">
-          <div class="seal-box">
-            <div class="seal-label">Official Seal — First Party</div>
-            <div class="seal-circle"><div class="seal-text">SEAL</div></div>
-          </div>
-          <div class="seal-box">
-            <div class="seal-label">Official Seal — Second Party</div>
-            <div class="seal-circle"><div class="seal-text">SEAL</div></div>
-          </div>
+        <div class="seal-box">
+          <div class="seal-label">Official Seal — Party B</div>
+          <div class="seal-circle"><div class="seal-text">SEAL</div></div>
         </div>
       </div>
       ${doc.ceoSignature ? `<div class="approved-stamp"><div class="approved-label">✓ Approved &amp; Executed</div><div class="approved-sig">${doc.ceoSignature}</div><div class="approved-date">Authorised on ${doc.approvedAt}</div></div>` : ''}
@@ -682,7 +783,6 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
   );
   const [showPreview, setShowPreview] = useState(false);
 
-  // Parse raw text into terms: split by double newline or numbered lines
   const parsedTerms = React.useMemo((): TemplateTerm[] => {
     const blocks = rawText
       .split(/\n{2,}/)
@@ -690,10 +790,6 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
       .filter(Boolean);
     return blocks.map((text, i) => ({ id: i + 1, text }));
   }, [rawText]);
-
-  const handleSave = () => {
-    onSave(parsedTerms);
-  };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -713,29 +809,24 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
             <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto p-6">
           {!showPreview ? (
             <div className="space-y-3">
-              <p className="text-xs text-white/40">
-                Paste or type your terms and clauses below. Separate each clause with a blank line. Numbered prefixes (1. 2. etc.) are optional — they will be added automatically in the document.
-              </p>
+              <p className="text-xs text-white/40">Paste or type your terms and clauses below. Separate each clause with a blank line.</p>
               <textarea
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 rows={20}
-                placeholder={`Paste your terms here...\n\nEach clause separated by a blank line becomes a numbered term.\n\nExample:\n\nConfidential Information means all information disclosed by one Party to the other...\n\nBoth Parties agree to maintain strict confidentiality regarding all information shared...`}
+                placeholder={`Paste your terms here...\n\nEach clause separated by a blank line becomes a numbered term.`}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50 resize-none leading-relaxed"
               />
-              <p className="text-xs text-white/30">
-                {parsedTerms.length} clause{parsedTerms.length !== 1 ? 's' : ''} detected
-              </p>
+              <p className="text-xs text-white/30">{parsedTerms.length} clause{parsedTerms.length !== 1 ? 's' : ''} detected</p>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-xs text-white/40 mb-4">Preview of how terms will appear in the document:</p>
               {parsedTerms.length === 0 ? (
-                <p className="text-sm text-white/30 text-center py-8">No terms to preview. Add content in the Edit tab.</p>
+                <p className="text-sm text-white/30 text-center py-8">No terms to preview.</p>
               ) : (
                 <ol className="space-y-4 list-none">
                   {parsedTerms.map((term) => (
@@ -748,15 +839,218 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
             </div>
           )}
         </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
+          <button
+            onClick={() => { onSave(parsedTerms); }}
+            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold"
+          >
+            Save Terms{parsedTerms.length > 0 ? ` (${parsedTerms.length} clause${parsedTerms.length !== 1 ? 's' : ''})` : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload Template Modal ────────────────────────────────────────────────────
+function UploadTemplateModal({ onClose, onSave }: { onClose: () => void; onSave: (tpl: UploadedTemplate) => void }) {
+  const [name, setName] = useState('');
+  const [shortName, setShortName] = useState('');
+  const [category, setCategory] = useState('Custom');
+  const [content, setContent] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const placeholders = useMemo(() => extractPlaceholders(content), [content]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setContent(ev.target?.result as string || '');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSave = () => {
+    if (!name.trim() || !content.trim()) return;
+    const tpl: UploadedTemplate = {
+      id: `uploaded_${Date.now()}`,
+      name: name.trim(),
+      shortName: shortName.trim() || name.trim().slice(0, 6).toUpperCase(),
+      category: category.trim() || 'Custom',
+      content,
+      placeholders,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+    onSave(tpl);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h2 className="text-sm font-bold text-white">Upload Document Template</h2>
+            <p className="text-xs text-white/40 mt-0.5">Use {'{{field_name}}'} placeholders for fields that need filling</p>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Template meta */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Template Name *</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Agency Agreement" className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Short Code</label>
+              <input type="text" value={shortName} onChange={e => setShortName(e.target.value.toUpperCase())} placeholder="e.g. AGMT" maxLength={8} className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Category</label>
+            <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Agency, NDA, Sales Contract" className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+          </div>
+
+          {/* File upload or paste */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">Document Content *</label>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="flex items-center gap-1.5 h-7 px-3 text-xs border border-white/10 text-white/60 rounded-md hover:bg-white/5 transition-colors"
+              >
+                <Ico.Upload /> Upload .txt file
+              </button>
+              <input ref={fileRef} type="file" accept=".txt,.text" onChange={handleFileUpload} className="hidden" />
+            </div>
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={14}
+              placeholder={`Paste your document text here. Use {{field_name}} for fields that need to be filled in.\n\nExample:\nThis agreement is entered into on {{date}} between {{party_a_name}}, Trade License No.: {{party_a_license}}, RERA No.: {{party_a_rera}}, Address: {{party_a_address}}, Dubai, UAE ("Party A")\n\nand\n\n{{party_b_name}}, Trade License No.: {{party_b_license}}, Address: {{party_b_address}}, Dubai, UAE ("Party B").`}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50 resize-none leading-relaxed font-mono"
+            />
+          </div>
+
+          {/* Detected placeholders */}
+          {placeholders.length > 0 && (
+            <div className="bg-primary/5 border border-primary/20 rounded-md p-4">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">{placeholders.length} field{placeholders.length !== 1 ? 's' : ''} detected</p>
+              <div className="flex flex-wrap gap-2">
+                {placeholders.map(p => (
+                  <span key={p} className="text-[10px] px-2 py-1 bg-primary/10 text-primary/80 rounded border border-primary/20 font-mono">{`{{${p}}}`}</span>
+                ))}
+              </div>
+              <p className="text-xs text-white/30 mt-2">These fields will appear as inputs when filling this document.</p>
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-3 px-6 py-4 border-t border-white/10">
           <button onClick={onClose} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
           <button
             onClick={handleSave}
-            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold"
+            disabled={!name.trim() || !content.trim()}
+            className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50"
           >
-            Save Terms{parsedTerms.length > 0 ? ` (${parsedTerms.length} clause${parsedTerms.length !== 1 ? 's' : ''})` : ''}
+            Save Template
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fill Uploaded Template Modal ─────────────────────────────────────────────
+function FillUploadedTemplateModal({ tpl, onClose, onSave }: {
+  tpl: UploadedTemplate;
+  onClose: () => void;
+  onSave: (fields: Record<string, string>, title: string, status: DocStatus) => void;
+}) {
+  const [fields, setFields] = useState<Record<string, string>>(
+    Object.fromEntries(tpl.placeholders.map(p => [p, '']))
+  );
+  const [title, setTitle] = useState(`${tpl.shortName} — ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const previewContent = useMemo(() => fillPlaceholders(tpl.content, fields), [tpl.content, fields]);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-primary text-xs font-black">{tpl.shortName.slice(0, 3)}</span>
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white">{tpl.shortName} — {tpl.name}</h2>
+              <p className="text-xs text-white/40 mt-0.5">{tpl.placeholders.length} fields to fill</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-1.5 h-8 px-3 text-xs rounded-md border transition-colors ${showPreview ? 'bg-primary/10 border-primary/30 text-primary' : 'border-white/10 text-white/60 hover:text-white'}`}
+            >
+              <Ico.Eye /> {showPreview ? 'Form' : 'Preview'}
+            </button>
+            <button onClick={onClose} className="text-white/40 hover:text-white">&lt;Ico.X /&gt;</button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {!showPreview ? (
+            <div className="space-y-5">
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-1.5">Document Title *</label>
+                <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+              </div>
+              {tpl.placeholders.length === 0 ? (
+                <p className="text-sm text-white/40 text-center py-8">No placeholders found in this template. You can save it directly.</p>
+              ) : (
+                <div>
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Fill in Fields</h3>
+                  <div className="space-y-4">
+                    {tpl.placeholders.map(key => (
+                      <div key={key}>
+                        <label className="text-xs font-medium text-white/70 block mb-1">
+                          {placeholderToLabel(key)}
+                        </label>
+                        <input
+                          type="text"
+                          value={fields[key] || ''}
+                          onChange={e => setFields({ ...fields, [key]: e.target.value })}
+                          placeholder={`Enter ${placeholderToLabel(key).toLowerCase()}...`}
+                          className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-md p-8">
+              <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', Arial, sans-serif", color: '#1a1a1a', fontSize: '11px', lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
+                {previewContent}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
+          <div className="flex gap-2">
+            <button onClick={() => onSave(fields, title, 'Draft')} className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors">Save as Draft</button>
+            <button onClick={() => onSave(fields, title, 'Pending Approval')} className="h-9 px-4 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1.5 font-semibold">
+              <Ico.Send /> Submit for Approval
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -820,14 +1114,21 @@ export default function DocumentsPage() {
   const [activeTab, setActiveTab] = useState<'templates' | 'documents' | 'approvals'>('templates');
   const [search, setSearch] = useState('');
   const [templates, setTemplates] = useState<TemplateDefinition[]>(DEFAULT_TEMPLATES);
+  const [uploadedTemplates, setUploadedTemplates] = useState<UploadedTemplate[]>([]);
   const [documents, setDocuments] = useState<FilledDocument[]>(INITIAL_DOCUMENTS);
 
-  // Fill modal
+  // Fill modal (standard templates)
   const [fillTemplate, setFillTemplate] = useState<TemplateDefinition | null>(null);
   const [fillTitle, setFillTitle] = useState('');
   const [fillFields, setFillFields] = useState<Record<string, string>>({});
   const [fillNotes, setFillNotes] = useState('');
   const [showFillPreview, setShowFillPreview] = useState(false);
+
+  // Fill modal (uploaded templates)
+  const [fillUploadedTpl, setFillUploadedTpl] = useState<UploadedTemplate | null>(null);
+
+  // Upload template modal
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   // Preview modal
   const [previewDoc, setPreviewDoc] = useState<FilledDocument | null>(null);
@@ -836,6 +1137,7 @@ export default function DocumentsPage() {
   const [termsTemplate, setTermsTemplate] = useState<TemplateDefinition | null>(null);
 
   const filteredTemplates = templates.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()) || t.shortName.toLowerCase().includes(search.toLowerCase()));
+  const filteredUploaded = uploadedTemplates.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()) || t.shortName.toLowerCase().includes(search.toLowerCase()));
   const myDocuments = documents.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()) || d.shortName.toLowerCase().includes(search.toLowerCase()));
   const approvalDocs = documents.filter((d) => d.status === 'Pending Approval');
 
@@ -869,6 +1171,27 @@ export default function DocumentsPage() {
     };
     setDocuments([doc, ...documents]);
     setFillTemplate(null);
+    setActiveTab(status === 'Pending Approval' ? 'approvals' : 'documents');
+  };
+
+  const saveUploadedDoc = (tpl: UploadedTemplate, fields: Record<string, string>, title: string, status: DocStatus) => {
+    const doc: FilledDocument = {
+      id: Date.now(),
+      templateId: tpl.id,
+      templateName: tpl.name,
+      shortName: tpl.shortName,
+      category: tpl.category,
+      title: title || tpl.shortName,
+      fields,
+      notes: '',
+      terms: [],
+      status,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      submittedBy: 'Admin',
+      uploadedContent: tpl.content,
+    };
+    setDocuments([doc, ...documents]);
+    setFillUploadedTpl(null);
     setActiveTab(status === 'Pending Approval' ? 'approvals' : 'documents');
   };
 
@@ -911,7 +1234,7 @@ export default function DocumentsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-white/10">
         {[
-          { key: 'templates', label: 'Templates', icon: <Ico.Folder />, count: templates.length },
+          { key: 'templates', label: 'Templates', icon: <Ico.Folder />, count: templates.length + uploadedTemplates.length },
           { key: 'documents', label: 'My Documents', icon: <Ico.File />, count: myDocuments.length },
           { key: 'approvals', label: 'Approvals', icon: <Ico.Check />, count: approvalDocs.length },
         ].map((tab) => (
@@ -926,46 +1249,112 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">&lt;Ico.Search /&gt;</span>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="w-full h-9 pl-9 pr-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+      {/* Search + Upload button */}
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">&lt;Ico.Search /&gt;</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="w-full h-9 pl-9 pr-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+        </div>
+        {activeTab === 'templates' && (
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-1.5 h-9 px-4 text-xs font-semibold border border-white/10 text-white/70 rounded-md hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <Ico.Upload /> Upload Template
+          </button>
+        )}
       </div>
 
       {/* ── Templates Tab ── */}
       {activeTab === 'templates' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTemplates.map((tpl) => (
-            <div key={tpl.id} className="bg-[#111] border border-white/10 hover:border-primary/30 transition-colors rounded-xl p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 flex items-center justify-center rounded-lg flex-shrink-0">
-                    <span className="text-primary text-sm font-black">{tpl.shortName.slice(0, 3)}</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-white text-sm leading-tight">{tpl.shortName}</div>
-                    <span className="text-[10px] text-white/40 border border-white/10 px-1.5 py-0.5 rounded mt-1 inline-block">{tpl.category}</span>
+        <div className="space-y-6">
+          {/* Standard templates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTemplates.map((tpl) => (
+              <div key={tpl.id} className="bg-[#111] border border-white/10 hover:border-primary/30 transition-colors rounded-xl p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 flex items-center justify-center rounded-lg flex-shrink-0">
+                      <span className="text-primary text-sm font-black">{tpl.shortName.slice(0, 3)}</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white text-sm leading-tight">{tpl.shortName}</div>
+                      <span className="text-[10px] text-white/40 border border-white/10 px-1.5 py-0.5 rounded mt-1 inline-block">{tpl.category}</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-xs text-white/50 mb-3 line-clamp-2">{tpl.description}</p>
+                <div className="flex items-center gap-3 text-[10px] text-white/30 mb-4">
+                  <span>{tpl.fields.length} fields</span>
+                  <span>·</span>
+                  <span>{tpl.terms.length} terms</span>
+                  <span>·</span>
+                  <span>{tpl.requiresApproval ? 'CEO approval' : 'No approval'}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => openFill(tpl)} className="flex-1 h-8 text-xs font-semibold bg-primary text-black rounded-md hover:bg-primary/90 transition-colors">
+                    Fill Document
+                  </button>
+                  <button onClick={() => setTermsTemplate(tpl)} className="h-8 px-3 text-xs border border-white/10 text-white/60 rounded-md hover:bg-white/5 transition-colors flex items-center gap-1" title="Edit Terms">
+                    <Ico.Settings /> Terms
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-white/50 mb-3 line-clamp-2">{tpl.description}</p>
-              <div className="flex items-center gap-3 text-[10px] text-white/30 mb-4">
-                <span>{tpl.fields.length} fields</span>
-                <span>·</span>
-                <span>{tpl.terms.length} terms</span>
-                <span>·</span>
-                <span>{tpl.requiresApproval ? 'CEO approval' : 'No approval'}</span>
+            ))}
+          </div>
+
+          {/* Uploaded templates */}
+          {filteredUploaded.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-white/40">Uploaded Templates</div>
+                <div className="flex-1 h-px bg-white/10" />
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => openFill(tpl)} className="flex-1 h-8 text-xs font-semibold bg-primary text-black rounded-md hover:bg-primary/90 transition-colors">
-                  Fill Document
-                </button>
-                <button onClick={() => setTermsTemplate(tpl)} className="h-8 px-3 text-xs border border-white/10 text-white/60 rounded-md hover:bg-white/5 transition-colors flex items-center gap-1" title="Edit Terms">
-                  <Ico.Settings /> Terms
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredUploaded.map((tpl) => (
+                  <div key={tpl.id} className="bg-[#111] border border-white/10 hover:border-primary/30 transition-colors rounded-xl p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500/10 flex items-center justify-center rounded-lg flex-shrink-0">
+                          <span className="text-blue-400 text-sm font-black">{tpl.shortName.slice(0, 3)}</span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white text-sm leading-tight">{tpl.shortName}</div>
+                          <span className="text-[10px] text-white/40 border border-white/10 px-1.5 py-0.5 rounded mt-1 inline-block">{tpl.category}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setUploadedTemplates(uploadedTemplates.filter(t => t.id !== tpl.id))}
+                        className="p-1 text-white/20 hover:text-red-400 transition-colors"
+                      >
+                        <Ico.Trash />
+                      </button>
+                    </div>
+                    <p className="text-xs text-white/50 mb-3 line-clamp-2">{tpl.name}</p>
+                    <div className="flex items-center gap-3 text-[10px] text-white/30 mb-4">
+                      <span>{tpl.placeholders.length} fields</span>
+                      <span>·</span>
+                      <span>Uploaded {tpl.createdAt}</span>
+                    </div>
+                    <button onClick={() => setFillUploadedTpl(tpl)} className="w-full h-8 text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-md hover:bg-blue-500/20 transition-colors">
+                      Fill Document
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Empty uploaded state hint */}
+          {uploadedTemplates.length === 0 && (
+            <div className="border border-dashed border-white/10 rounded-xl p-6 text-center">
+              <div className="text-white/20 mb-2">&lt;Ico.Upload /&gt;</div>
+              <p className="text-xs text-white/30">Upload your own document templates with <span className="text-white/50 font-mono">{'{{placeholder}}'}</span> fields</p>
+              <button onClick={() => setShowUploadModal(true)} className="mt-3 h-8 px-4 text-xs border border-white/10 text-white/50 rounded-md hover:bg-white/5 transition-colors">
+                Upload Template
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1025,7 +1414,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* ── Fill Document Modal ── */}
+      {/* ── Fill Document Modal (standard) ── */}
       {fillTemplate && !showFillPreview && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
@@ -1073,17 +1462,13 @@ export default function DocumentsPage() {
                 <textarea value={fillNotes} onChange={(e) => setFillNotes(e.target.value)} rows={3} placeholder="Any additional notes..." className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none" />
               </div>
               <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
-                <p className="text-xs text-white/50"><span className="text-primary font-semibold">{fillTemplate.terms.length} terms</span> from the template will be included. You can edit template terms from the Templates tab.</p>
+                <p className="text-xs text-white/50"><span className="text-primary font-semibold">{fillTemplate.terms.length} terms</span> from the template will be included.</p>
               </div>
             </div>
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10">
               <button onClick={() => setFillTemplate(null)} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
               <div className="flex gap-2">
-                {/* Preview Document Button */}
-                <button
-                  onClick={() => setShowFillPreview(true)}
-                  className="h-9 px-4 text-xs border border-primary/30 text-primary rounded-md hover:bg-primary/10 transition-colors flex items-center gap-1.5"
-                >
+                <button onClick={() => setShowFillPreview(true)} className="h-9 px-4 text-xs border border-primary/30 text-primary rounded-md hover:bg-primary/10 transition-colors flex items-center gap-1.5">
                   <Ico.Eye /> Preview Document
                 </button>
                 <button onClick={() => saveDoc('Draft')} className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors">Save as Draft</button>
@@ -1104,6 +1489,26 @@ export default function DocumentsPage() {
           notes={fillNotes}
           title={fillTitle}
           onClose={() => setShowFillPreview(false)}
+        />
+      )}
+
+      {/* ── Fill Uploaded Template Modal ── */}
+      {fillUploadedTpl && (
+        <FillUploadedTemplateModal
+          tpl={fillUploadedTpl}
+          onClose={() => setFillUploadedTpl(null)}
+          onSave={(fields, title, status) => saveUploadedDoc(fillUploadedTpl, fields, title, status)}
+        />
+      )}
+
+      {/* ── Upload Template Modal ── */}
+      {showUploadModal && (
+        <UploadTemplateModal
+          onClose={() => setShowUploadModal(false)}
+          onSave={(tpl) => {
+            setUploadedTemplates([...uploadedTemplates, tpl]);
+            setShowUploadModal(false);
+          }}
         />
       )}
 
