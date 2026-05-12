@@ -367,21 +367,6 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
             <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>Date: _______________</div>
           </div>
         </div>
-        {/* ── Seal Area ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
-          <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — First Party</div>
-            <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-            </div>
-          </div>
-          <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Second Party</div>
-            <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-            </div>
-          </div>
-        </div>
         {/* ── CEO Approval Stamp ── */}
         {doc.status === 'Approved' && doc.ceoSignature && (
           <div style={{ border: '1.5px solid #22c55e', background: '#f0fdf4', padding: '20px', textAlign: 'center', marginBottom: '32px' }}>
@@ -492,37 +477,21 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px', marginTop: '48px' }}>
         <div>
           <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-            {sig1 && <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig1}</div>}
+            {sig1 && <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig1}</div>}
           </div>
           <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party A' : 'Buyer'}</div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>{sig1 || '___________________________'}</div>
-          {isNCNDA && f.party1_company && <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party1_company}</div>}
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#333' }}>{sig1 || '___________________________'}</div>
+          {isNCNDA && f.party1_company && <div style={{ fontSize: '9px', color: '#888', marginTop: '2px' }}>{f.party1_company}</div>}
           <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>Date: {f.date ? fmtDate(f.date) : '_______________'}</div>
         </div>
         <div>
           <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-            {sig2 && <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig2}</div>}
+            {sig2 && <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>{sig2}</div>}
           </div>
           <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>{isNCNDA ? 'Party B' : 'Seller'}</div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>{sig2 || '___________________________'}</div>
-          {isNCNDA && f.party2_company && <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party2_company}</div>}
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#333' }}>{sig2 || '___________________________'}</div>
+          {isNCNDA && f.party2_company && <div style={{ fontSize: '9px', color: '#888', marginTop: '2px' }}>{f.party2_company}</div>}
           <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>Date: _______________</div>
-        </div>
-      </div>
-
-      {/* ── Seal Area ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
-        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Party A</div>
-          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-          </div>
-        </div>
-        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>Official Seal — Party B</div>
-          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
-          </div>
         </div>
       </div>
 
@@ -607,16 +576,11 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       .effective-date { margin-top: 14px; font-size: 10px; color: #999; }
       .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; margin-top: 48px; }
       .sig-line { min-height: 56px; border-bottom: 1.5px solid #1a1a1a; margin-bottom: 10px; display: flex; align-items: flex-end; padding-bottom: 6px; }
-      .sig-cursive { font-size: 26px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; line-height: 1; }
+      .sig-cursive { font-size: 14px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; line-height: 1; }
       .sig-role { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-      .sig-name { font-size: 11px; font-weight: 600; color: #333; }
-      .sig-company { font-size: 10px; color: #888; margin-top: 2px; }
+      .sig-name { font-size: 10px; font-weight: 600; color: #333; }
+      .sig-company { font-size: 9px; color: #888; margin-top: 2px; }
       .sig-date { font-size: 10px; color: #aaa; margin-top: 6px; }
-      .seal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; }
-      .seal-box { border: 1px dashed #d4c9a8; padding: 20px; text-align: center; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-      .seal-label { font-size: 7px; letter-spacing: 2.5px; text-transform: uppercase; color: #c0b080; font-weight: 700; margin-bottom: 8px; }
-      .seal-circle { width: 52px; height: 52px; border: 1px dashed #d4c9a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-      .seal-text { font-size: 8px; color: #d4c9a8; letter-spacing: 1px; }
       .approved-stamp { border: 1.5px solid #22c55e; background: #f0fdf4; padding: 20px; text-align: center; margin-bottom: 32px; }
       .approved-label { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #16a34a; margin-bottom: 8px; }
       .approved-sig { font-size: 28px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; }
@@ -667,16 +631,6 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
           <div class="sig-name">${sig2 || '___________________________'}</div>
           ${isNCNDA && f.party2_company ? `<div class="sig-company">${f.party2_company}</div>` : ''}
           <div class="sig-date">Date: _______________</div>
-        </div>
-      </div>
-      <div class="seal-grid">
-        <div class="seal-box">
-          <div class="seal-label">Official Seal — Party A</div>
-          <div class="seal-circle"><div class="seal-text">SEAL</div></div>
-        </div>
-        <div class="seal-box">
-          <div class="seal-label">Official Seal — Party B</div>
-          <div class="seal-circle"><div class="seal-text">SEAL</div></div>
         </div>
       </div>
       ${doc.ceoSignature ? `<div class="approved-stamp"><div class="approved-label">✓ Approved &amp; Executed</div><div class="approved-sig">${doc.ceoSignature}</div><div class="approved-date">Authorised on ${doc.approvedAt}</div></div>` : ''}
