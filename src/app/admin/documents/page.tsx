@@ -388,65 +388,6 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
         )}
       </div>
 
-      {/* ── Signature Zone ── */}
-      <div style={{ marginBottom: '40px' }}>
-        <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '28px' }}>
-          Authorised Signatures
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-          {/* Sig 1 */}
-          <div>
-            <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-              {sig1 ? (
-                <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
-                  {sig1}
-                </div>
-              ) : (
-                <div style={{ height: '32px' }} />
-              )}
-            </div>
-            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
-              {isNCNDA ? 'First Party' : 'Buyer'}
-            </div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>
-              {sig1 || '___________________________'}
-            </div>
-            {isNCNDA && f.party1_company && (
-              <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party1_company}</div>
-            )}
-            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>
-              Date: {f.date ? fmtDate(f.date) : '_______________'}
-            </div>
-          </div>
-
-          {/* Sig 2 */}
-          <div>
-            <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
-              {sig2 ? (
-                <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
-                  {sig2}
-                </div>
-              ) : (
-                <div style={{ height: '32px' }} />
-              )}
-            </div>
-            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
-              {isNCNDA ? 'Second Party' : 'Seller'}
-            </div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>
-              {sig2 || '___________________________'}
-            </div>
-            {isNCNDA && f.party2_company && (
-              <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party2_company}</div>
-            )}
-            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>
-              Date: _______________
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Seal Area ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
         <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -466,6 +407,27 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           </div>
         </div>
       </div>
+
+      {/* ── Terms & Conditions ── */}
+      {doc.terms && doc.terms.length > 0 && (
+        <div style={{ marginBottom: '48px' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '24px' }}>
+            Terms &amp; Conditions
+          </div>
+          <div style={{ borderTop: '1px solid #e8e3d8', paddingTop: '20px' }}>
+            {doc.terms.map((term, idx) => (
+              <div key={term.id} style={{ display: 'flex', gap: '14px', marginBottom: '16px', alignItems: 'flex-start' }}>
+                <div style={{ flexShrink: 0, width: '22px', height: '22px', background: '#faf9f6', border: '1px solid #ede8dc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#C9A84C', letterSpacing: '0.5px' }}>
+                  {idx + 1}
+                </div>
+                <div style={{ fontSize: '11px', color: '#444', lineHeight: 1.75, flex: 1 }}>
+                  {term.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── CEO Approval Stamp ── */}
       {doc.status === 'Approved' && doc.ceoSignature && (
