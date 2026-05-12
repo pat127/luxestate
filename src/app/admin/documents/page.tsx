@@ -352,11 +352,11 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {isNCNDA ? (
             <>
               <p style={{ fontSize: '11px', lineHeight: 1.9, marginBottom: '10px', color: '#333' }}>
-                {f.party1_company && <><strong>{f.party1_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party1_license ? <> with license <strong>{f.party1_license}</strong></> : null}{f.party1_orn ? <>, ORN no <strong>{f.party1_orn}</strong></> : null}{f.party1_address ? <> and office at <strong>{f.party1_address}</strong></> : null}{f.party1_initials ? <> (&ldquo;<strong>{f.party1_initials}</strong>&rdquo;)</> : null}, representing the <strong>Buyer</strong>. (First Party)</>}
+                {f.party1_company && <><strong>{f.party1_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party1_license ? <> with license <strong>{f.party1_license}</strong></> : null}{f.party1_orn ? <>, ORN no <strong>{f.party1_orn}</strong></> : null}{f.party1_address ? <> and office at <strong>{f.party1_address}</strong></> : null}{f.party1_initials ? <> (&ldquo;<strong>{f.party1_initials}</strong>&rdquo;)</> : null}. (First Party)</>}
               </p>
               <p style={{ fontSize: '11px', textAlign: 'center', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>— and —</p>
               <p style={{ fontSize: '11px', lineHeight: 1.9, color: '#333' }}>
-                {f.party2_company && <><strong>{f.party2_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party2_license ? <> with Trade license <strong>{f.party2_license}</strong></> : null}{f.party2_orn ? <>, ORN <strong>{f.party2_orn}</strong></> : null}{f.party2_address ? <> and office at <strong>{f.party2_address}</strong></> : null}{f.party2_initials ? <>, Dubai, UAE (&ldquo;<strong>{f.party2_initials}</strong>&rdquo;)</> : null}, representing <strong>Seller</strong>. (Second Party)</>}
+                {f.party2_company && <><strong>{f.party2_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party2_license ? <> with Trade license <strong>{f.party2_license}</strong></> : null}{f.party2_orn ? <>, ORN <strong>{f.party2_orn}</strong></> : null}{f.party2_address ? <> and office at <strong>{f.party2_address}</strong></> : null}{f.party2_initials ? <>, Dubai, UAE (&ldquo;<strong>{f.party2_initials}</strong>&rdquo;)</> : null}. (Second Party)</>}
               </p>
             </>
           ) : (
@@ -453,9 +453,8 @@ function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; templa
           {isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}
         </div>
         <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {doc.terms.map((term, i) => (
-            <li key={term.id} style={{ display: 'flex', gap: '10px', marginBottom: '10px', fontSize: '11px', lineHeight: 1.8, color: '#333' }}>
-              <span style={{ color: '#C9A84C', fontWeight: 'bold', flexShrink: 0, minWidth: '20px' }}>{i + 1}.</span>
+          {doc.terms.map((term) => (
+            <li key={term.id} style={{ marginBottom: '10px', fontSize: '11px', lineHeight: 1.8, color: '#333' }}>
               <span>{term.text}</span>
             </li>
           ))}
@@ -561,8 +560,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
       td:first-child { color: #666; width: 45%; }
       td:last-child { font-weight: 600; }
       .terms-list { list-style: none; }
-      .terms-list li { display: flex; gap: 10px; margin-bottom: 10px; font-size: 11px; line-height: 1.8; color: #333; }
-      .term-num { color: #C9A84C; font-weight: bold; flex-shrink: 0; min-width: 20px; }
+      .terms-list li { margin-bottom: 10px; font-size: 11px; line-height: 1.8; color: #333; }
       .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
       .sig-box { border-top: 2px solid #1a1a1a; padding-top: 12px; }
       .sig-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; font-family: Arial, sans-serif; margin-bottom: 8px; }
@@ -588,9 +586,9 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     <div class="doc-title">${doc.templateName.toUpperCase()}<div style="width:60px;height:2px;background:#C9A84C;margin:8px auto 0"></div></div>
     <p>This Agreement is made on <strong>${fmtDate(f.date || '')}</strong> (the "Effective Date").</p>
     ${(isNCNDA || isMOU) ? `<div class="section-title">BY AND BETWEEN</div>
-    ${isNCNDA ? `${f.party1_company ? `<p><strong>${f.party1_company}</strong>, a company incorporated in Dubai, UAE${f.party1_license ? ` with license <strong>${f.party1_license}</strong>` : ''}${f.party1_orn ? `, ORN no <strong>${f.party1_orn}</strong>` : ''}${f.party1_address ? ` and office at <strong>${f.party1_address}</strong>` : ''}${f.party1_initials ? ` ("<strong>${f.party1_initials}</strong>")` : ''}, representing the <strong>Buyer</strong>. (First Party)</p>` : ''}
+    ${isNCNDA ? `${f.party1_company ? `<p><strong>${f.party1_company}</strong>, a company incorporated in Dubai, UAE${f.party1_license ? ` with license <strong>${f.party1_license}</strong>` : ''}${f.party1_orn ? `, ORN no <strong>${f.party1_orn}</strong>` : ''}${f.party1_address ? ` and office at <strong>${f.party1_address}</strong>` : ''}${f.party1_initials ? ` ("<strong>${f.party1_initials}</strong>")` : ''}. (First Party)</p>` : ''}
     <p style="text-align:center;font-style:italic;color:#888">— and —</p>
-    ${f.party2_company ? `<p><strong>${f.party2_company}</strong>, a company incorporated in Dubai, UAE${f.party2_license ? ` with Trade license <strong>${f.party2_license}</strong>` : ''}${f.party2_orn ? `, ORN <strong>${f.party2_orn}</strong>` : ''}${f.party2_address ? ` and office at <strong>${f.party2_address}</strong>` : ''}${f.party2_initials ? `, Dubai, UAE ("<strong>${f.party2_initials}</strong>")` : ''}, representing <strong>Seller</strong>. (Second Party)</p>` : ''}` :
+    ${f.party2_company ? `<p><strong>${f.party2_company}</strong>, a company incorporated in Dubai, UAE${f.party2_license ? ` with Trade license <strong>${f.party2_license}</strong>` : ''}${f.party2_orn ? `, ORN <strong>${f.party2_orn}</strong>` : ''}${f.party2_address ? ` and office at <strong>${f.party2_address}</strong>` : ''}${f.party2_initials ? `, Dubai, UAE ("<strong>${f.party2_initials}</strong>")` : ''}. (Second Party)</p>` : ''}` :
     `<p><strong>Buyer:</strong> ${f.buyer_name || ''}${f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}${f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}</p>
     <p style="text-align:center;font-style:italic;color:#888">— and —</p>
     <p><strong>Seller:</strong> ${f.seller_name || ''}${f.seller_passport ? ` (Passport/ID: ${f.seller_passport})` : ''}</p>`}` : ''}
@@ -606,7 +604,7 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
     </tbody></table>` : ''}
     ${doc.terms.length > 0 ? `<div class="section-title">${isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}</div>
     <ol class="terms-list">
-      ${doc.terms.map((t, i) => `<li><span class="term-num">${i + 1}.</span><span>${t.text}</span></li>`).join('')}
+      ${doc.terms.map((t) => `<li><span>${t.text}</span></li>`).join('')}
     </ol>` : ''}
     <div class="sig-grid">
       <div class="sig-box">
@@ -779,9 +777,8 @@ function TermsEditor({ template, onClose, onSave }: { template: TemplateDefiniti
                 <p className="text-sm text-white/30 text-center py-8">No terms to preview. Add content in the Edit tab.</p>
               ) : (
                 <ol className="space-y-4 list-none">
-                  {parsedTerms.map((term, i) => (
-                    <li key={term.id} className="flex gap-3 p-3 bg-white/5 border border-white/10 rounded-md">
-                      <span className="text-primary font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
+                  {parsedTerms.map((term) => (
+                    <li key={term.id} className="p-3 bg-white/5 border border-white/10 rounded-md">
                       <span className="text-sm text-white/80 leading-relaxed">{term.text}</span>
                     </li>
                   ))}
