@@ -836,26 +836,29 @@ export default function DocumentsPage() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-5 border-b border-white/10">
-          {(['templates', 'documents', ...(isCEO ? ['pending'] : [])] as (ActiveTab | 'pending')[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as ActiveTab)}
-              className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px flex items-center gap-2 ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white/70'}`}
-            >
-              {tab === 'templates' && `Templates (${templates.length})`}
-              {tab === 'documents' && `My Documents (${documents.length})`}
-              {tab === 'pending' && (
-                <>
-                  <span>Pending Approval</span>
-                  {pendingApprovalDocs.length > 0 && (
-                    <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                      {pendingApprovalDocs.length}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          ))}
+          {(['templates', 'documents', 'pending'] as ActiveTab[]).map(tab => {
+            if (tab === 'pending' && !isCEO) return null;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px flex items-center gap-2 ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white/70'}`}
+              >
+                {tab === 'templates' && `Templates (${templates.length})`}
+                {tab === 'documents' && `My Documents (${documents.length})`}
+                {tab === 'pending' && (
+                  <>
+                    <span>Pending Approval</span>
+                    {pendingApprovalDocs.length > 0 && (
+                      <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                        {pendingApprovalDocs.length}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search + Filter */}

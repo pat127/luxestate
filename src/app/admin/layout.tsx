@@ -83,18 +83,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   const fetchPendingDocs = useCallback(async () => {
-    if (!isRole('super_admin')) return;
+    if (currentUser.role !== 'super_admin') return;
     const { data } = await supabase
       .from('filled_documents')
       .select('id, title, template_name, created_at')
       .eq('doc_status', 'Pending Approval')
       .order('created_at', { ascending: false });
     if (data) setPendingDocs(data);
-  }, [supabase, isRole]);
+  }, [supabase, currentUser.role]);
 
   useEffect(() => {
     fetchPendingDocs();
-  }, [fetchPendingDocs, currentUser.role]);
+  }, [fetchPendingDocs]);
 
   // Re-fetch when notifications panel opens
   const handleBellClick = () => {
@@ -109,7 +109,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return can(l.permission);
   });
 
-  const totalNotifications = isRole('super_admin') ? pendingDocs.length : 0;
+  const totalNotifications = currentUser.role === 'super_admin' ? pendingDocs.length : 0;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -238,7 +238,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   </div>
                   <div className="divide-y divide-border max-h-72 overflow-y-auto">
                     {/* CEO: Pending approval documents */}
-                    {isRole('super_admin') && pendingDocs.length > 0 && pendingDocs.map((doc) => (
+                    {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
                       <Link
                         key={doc.id}
                         href="/admin/documents"
@@ -273,7 +273,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
                       </div>
                     ))}
-                    {isRole('super_admin') && pendingDocs.length === 0 && (
+                    {currentUser.role === 'super_admin' && pendingDocs.length === 0 && (
                       <div className="px-4 py-3">
                         <p className="text-[11px] text-muted-foreground">No documents pending your approval</p>
                       </div>
