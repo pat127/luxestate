@@ -7,6 +7,7 @@ import AppImage from '@/components/ui/AppImage';
 
 import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
+import PinLocationMap from '@/components/ui/PinLocationMap';
 
 type PropertyType = 'All' | 'Residential' | 'Commercial';
 type ModalTab = 'basic' | 'dimensions' | 'features' | 'location' | 'media';
@@ -117,6 +118,22 @@ const statusColors: Record<string, string> = {
   Sold: 'text-red-400 bg-red-400/10',
 };
 
+const AGENTS_STORAGE_KEY = 'admin_agents';
+
+const seedAgentNames = ['CEO Admin', 'Sarah Mitchell', 'James Carter', 'Omar Hassan', 'Priya Sharma'];
+
+function loadAgentNames(): string[] {
+  if (typeof window === 'undefined') return seedAgentNames;
+  try {
+    const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
+    if (!stored) return seedAgentNames;
+    const agents = JSON.parse(stored);
+    return agents.filter((a: any) => a.status === 'Active').map((a: any) => a.name as string);
+  } catch {
+    return seedAgentNames;
+  }
+}
+
 function generateRefNumber() {
   return 'LUX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -140,6 +157,7 @@ export default function PropertiesPage() {
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [shareProperty, setShareProperty] = useState<Property | null>(null);
   const [copied, setCopied] = useState(false);
+  const [agentNames, setAgentNames] = useState<string[]>([]);
 
   const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
@@ -175,7 +193,7 @@ export default function PropertiesPage() {
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => { loadProperties(); }, [loadProperties]);
+  useEffect(() => { loadProperties(); setAgentNames(loadAgentNames()); }, [loadProperties]);
 
   const filtered = propertyList.filter((p) => {
     const matchType = activeType === 'All' || p.propCategory === activeType;
@@ -240,6 +258,7 @@ export default function PropertiesPage() {
     setEditingId(null);
     setFormData({ ...defaultFormData, referenceNumber: generateRefNumber() });
     setActiveTab('basic');
+    setAgentNames(loadAgentNames());
     setShowModal(true);
   };
 
@@ -286,8 +305,11 @@ export default function PropertiesPage() {
         agentEmail: data.agent_email || '',
         propCategory: data.prop_category || 'Residential',
       });
+      setAvailableAreas(getAreasForEmirate(data.emirate || 'Dubai'));
+      if (data.location_area) setAvailableCommunities(getCommunitiesForArea(data.location_area));
       setEditingId(id);
       setActiveTab('basic');
+      setAgentNames(loadAgentNames());
       setShowModal(true);
     }
   };
@@ -600,7 +622,14 @@ export default function PropertiesPage() {
                     </div>
                     <div>
                       <label className={labelCls}>Agent Name</label>
-                      <input className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })} />
+                      {agentNames.length > 0 ? (
+                        <select className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}>
+                          <option value="">— Select Agent —</option>
+                          {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
+                        </select>
+                      ) : (
+                        <input className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })} />
+                      )}
                     </div>
                     <div>
                       <label className={labelCls}>Agent Phone</label>
@@ -703,6 +732,25 @@ export default function PropertiesPage() {
                   <div className="col-span-2">
                     <label className={labelCls}>Full Address</label>
                     <input className={inputCls} value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} placeholder="Full property address" />
+                  </div>
+                  <div className="col-span-2">
+                    <PinLocationMap
+                      label="Pin Location on Map"
+                      value={{
+                        lat: parseFloat(formData.latitude) || 25.2048,
+                        lng: parseFloat(formData.longitude) || 55.2708,
+                        address: formData.fullAddress,
+                      }}
+                      onChange={(val) => setFormData({ ...formData, latitude: String(val.lat), longitude: String(val.lng), fullAddress: val.address || formData.fullAddress })}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Latitude</label>
+                    <input className={inputCls} value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} placeholder="e.g. 25.2048" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Longitude</label>
+                    <input className={inputCls} value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} placeholder="e.g. 55.2708" />
                   </div>
                 </div>
               )}

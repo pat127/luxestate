@@ -52,17 +52,26 @@ const emptyForm: LeadForm = {
 
 const AGENTS_STORAGE_KEY = 'admin_agents';
 
+const seedAgents = [
+  { id: 0, name: 'CEO Admin', role: 'CEO / Senior Agent', status: 'Active' },
+  { id: 1, name: 'Sarah Mitchell', role: 'Senior Agent', status: 'Active' },
+  { id: 2, name: 'James Carter', role: 'Agent', status: 'Active' },
+  { id: 3, name: 'Omar Hassan', role: 'Senior Agent', status: 'Active' },
+  { id: 4, name: 'Priya Sharma', role: 'Junior Agent', status: 'Active' },
+  { id: 5, name: 'Lucas Fontaine', role: 'Agent', status: 'Inactive' },
+];
+
 function loadAgentNames(): string[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
   try {
     const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
-    if (!stored) return [];
+    if (!stored) return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
     const agents = JSON.parse(stored);
     return agents
       .filter((a: any) => a.status === 'Active')
       .map((a: any) => a.name as string);
   } catch {
-    return [];
+    return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
   }
 }
 

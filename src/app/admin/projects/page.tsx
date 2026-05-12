@@ -6,6 +6,7 @@ import AppImage from '@/components/ui/AppImage';
 import { useRouter } from 'next/navigation';
 import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
+import PinLocationMap from '@/components/ui/PinLocationMap';
 
 interface Project {
   id: string;
@@ -505,6 +506,17 @@ function ProjectsPageInner() {
                   </div>
                   <div><label className={labelCls}>Sub-Community</label><input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} /></div>
                   <div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
+                  <div className="col-span-2">
+                    <PinLocationMap
+                      label="Pin Location on Map"
+                      value={{
+                        lat: parseFloat(latitude) || 25.0657,
+                        lng: parseFloat(longitude) || 55.1713,
+                        address: fullAddress,
+                      }}
+                      onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
+                    />
+                  </div>
                   <div><label className={labelCls}>Latitude</label><input className={inputCls} value={latitude} onChange={(e) => setLatitude(e.target.value)} /></div>
                   <div><label className={labelCls}>Longitude</label><input className={inputCls} value={longitude} onChange={(e) => setLongitude(e.target.value)} /></div>
                 </div>
