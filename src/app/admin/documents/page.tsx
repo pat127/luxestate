@@ -297,229 +297,195 @@ function generateRefNo(id: number, shortName: string) {
 // ─── Sophisticated Document Preview (PDF-style) ───────────────────────────────
 function DocumentPreviewContent({ doc, template }: { doc: FilledDocument; template?: TemplateDefinition }) {
   const f = doc.fields;
-  const refNo = `LX-DOC-${doc.id.toString().padStart(4, '0')}`;
+  const refNo = `LX/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
   const isNCNDA = doc.templateId === 'ncnda';
-  const isMOU = doc.templateId === 'mou';
+
+  const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
+  const party1Sub = isNCNDA
+    ? [f.party1_license ? `License No. ${f.party1_license}` : null, f.party1_orn ? `ORN ${f.party1_orn}` : null, f.party1_address || null].filter(Boolean).join('  ·  ')
+    : [f.buyer_passport ? `Passport / ID: ${f.buyer_passport}` : null, f.buyer_nationality || null].filter(Boolean).join('  ·  ');
+
+  const party2Name = f.party2_company || f.seller_name || '___________________________';
+  const party2Sub = isNCNDA
+    ? [f.party2_license ? `License No. ${f.party2_license}` : null, f.party2_orn ? `ORN ${f.party2_orn}` : null, f.party2_address || null].filter(Boolean).join('  ·  ')
+    : [f.seller_passport ? `Passport / ID: ${f.seller_passport}` : null].filter(Boolean).join('  ·  ');
+
+  const sig1 = f.party1_signatory || f.buyer_name || '';
+  const sig2 = f.party2_signatory || f.seller_name || '';
 
   return (
-    <div className="bg-white text-gray-900 font-serif" style={{ fontFamily: "'Times New Roman', Georgia, serif" }}>
-      {/* ── Letterhead ── */}
-      <div style={{ borderBottom: '3px solid #C9A84C', paddingBottom: '20px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          {/* Logo / Company */}
-          <div>
-            <div style={{ fontSize: '26px', fontWeight: '900', color: '#C9A84C', letterSpacing: '4px', fontFamily: 'Arial, sans-serif', lineHeight: 1 }}>
-              COVE ESTATES
-            </div>
-            <div style={{ fontSize: '9px', color: '#888', letterSpacing: '3px', textTransform: 'uppercase', marginTop: '4px', fontFamily: 'Arial, sans-serif' }}>
-              Luxury Real Estate · Dubai, UAE
-            </div>
-            <div style={{ fontSize: '9px', color: '#aaa', marginTop: '2px', fontFamily: 'Arial, sans-serif' }}>
-              License: {f.party1_license || '1432541'} · ORN: {f.party1_orn || '46855'}
-            </div>
-            <div style={{ fontSize: '9px', color: '#aaa', fontFamily: 'Arial, sans-serif' }}>
-              {f.party1_address || '802, Moosa Tower, Dubai, UAE'}
-            </div>
-          </div>
-          {/* Doc meta */}
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', fontFamily: 'Arial, sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>{doc.category}</div>
-            <div style={{ fontSize: '9px', color: '#888', fontFamily: 'Arial, sans-serif', marginTop: '4px' }}>Reference No: <strong>{refNo}</strong></div>
-            <div style={{ fontSize: '9px', color: '#888', fontFamily: 'Arial, sans-serif' }}>Date: {fmtDate(f.date || '')}</div>
-          </div>
+    <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', Arial, sans-serif", background: '#fff', color: '#1a1a1a' }}>
+
+      {/* ── Reference Strip ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e8e3d8', paddingBottom: '14px', marginBottom: '40px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 600 }}>
+          Cove Estates · Confidential
+        </div>
+        <div style={{ fontSize: '9px', letterSpacing: '1.5px', color: '#b0a080', fontWeight: 600 }}>
+          Ref: <span style={{ color: '#8a7040' }}>{refNo}</span>
         </div>
       </div>
 
       {/* ── Document Title ── */}
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 'bold', letterSpacing: '3px', textTransform: 'uppercase', color: '#1a1a1a', lineHeight: 1.6 }}>
-          {doc.templateName.toUpperCase()}
+      <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+        <div style={{ fontSize: '7px', letterSpacing: '4px', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '14px', fontWeight: 700 }}>
+          {doc.category}
         </div>
-        <div style={{ width: '60px', height: '2px', background: '#C9A84C', margin: '8px auto 0' }} />
+        <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '1px', color: '#0f0f0f', lineHeight: 1.3, textTransform: 'uppercase' }}>
+          {doc.templateName}
+        </div>
+        <div style={{ width: '48px', height: '2px', background: '#C9A84C', margin: '16px auto 0' }} />
       </div>
 
-      {/* ── Effective Date ── */}
-      <p style={{ fontSize: '11px', marginBottom: '16px', lineHeight: 1.8, color: '#333' }}>
-        This Agreement is made on <strong>{fmtDate(f.date || '')}</strong> (the &ldquo;Effective Date&rdquo;).
-      </p>
+      {/* ── Parties ── */}
+      <div style={{ marginBottom: '52px' }}>
+        <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '28px' }}>
+          Parties to this Agreement
+        </div>
 
-      {/* ── BY AND BETWEEN ── */}
-      {(isNCNDA || isMOU || doc.templateId === 'spa') && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
-            BY AND BETWEEN
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', gap: '0', alignItems: 'start' }}>
+          {/* Party 1 */}
+          <div style={{ padding: '20px 24px', background: '#faf9f6', border: '1px solid #ede8dc' }}>
+            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 700, marginBottom: '10px' }}>
+              First Party
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f0f0f', marginBottom: '6px', lineHeight: 1.3 }}>
+              {party1Name}
+            </div>
+            {party1Sub && (
+              <div style={{ fontSize: '10px', color: '#888', lineHeight: 1.7 }}>
+                {party1Sub}
+              </div>
+            )}
           </div>
-          {isNCNDA ? (
-            <>
-              <p style={{ fontSize: '11px', lineHeight: 1.9, marginBottom: '10px', color: '#333' }}>
-                {f.party1_company && <><strong>{f.party1_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party1_license ? <> with license <strong>{f.party1_license}</strong></> : null}{f.party1_orn ? <>, ORN no <strong>{f.party1_orn}</strong></> : null}{f.party1_address ? <> and office at <strong>{f.party1_address}</strong></> : null}{f.party1_initials ? <> (&ldquo;<strong>{f.party1_initials}</strong>&rdquo;)</> : null}. (First Party)</>}
-              </p>
-              <p style={{ fontSize: '11px', textAlign: 'center', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>— and —</p>
-              <p style={{ fontSize: '11px', lineHeight: 1.9, color: '#333' }}>
-                {f.party2_company && <><strong>{f.party2_company}</strong>, a company incorporated in Dubai, United Arab Emirates{f.party2_license ? <> with Trade license <strong>{f.party2_license}</strong></> : null}{f.party2_orn ? <>, ORN <strong>{f.party2_orn}</strong></> : null}{f.party2_address ? <> and office at <strong>{f.party2_address}</strong></> : null}{f.party2_initials ? <>, Dubai, UAE (&ldquo;<strong>{f.party2_initials}</strong>&rdquo;)</> : null}. (Second Party)</>}
-              </p>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: '11px', lineHeight: 1.9, marginBottom: '10px', color: '#333' }}>
-                <strong>Buyer:</strong> {f.buyer_name || '___________'}{f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}{f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}
-              </p>
-              <p style={{ fontSize: '11px', textAlign: 'center', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>— and —</p>
-              <p style={{ fontSize: '11px', lineHeight: 1.9, color: '#333' }}>
-                <strong>Seller:</strong> {f.seller_name || '___________'}{f.seller_passport ? ` (Passport/ID: ${f.seller_passport})` : ''}
-              </p>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* ── BACKGROUND (NCNDA specific) ── */}
-      {isNCNDA && f.property_description && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
-            BACKGROUND
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '28px' }}>
+            <div style={{ fontSize: '10px', color: '#C9A84C', fontWeight: 700 }}>&amp;</div>
           </div>
-          <p style={{ fontSize: '11px', lineHeight: 1.8, color: '#333' }}>{f.property_description}</p>
-        </div>
-      )}
 
-      {/* ── Property Details (non-NCNDA) ── */}
-      {!isNCNDA && (f.property_ref || f.property_address) && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
-            PROPERTY DETAILS
+          {/* Party 2 */}
+          <div style={{ padding: '20px 24px', background: '#faf9f6', border: '1px solid #ede8dc' }}>
+            <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#b0a080', fontWeight: 700, marginBottom: '10px' }}>
+              Second Party
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f0f0f', marginBottom: '6px', lineHeight: 1.3 }}>
+              {party2Name}
+            </div>
+            {party2Sub && (
+              <div style={{ fontSize: '10px', color: '#888', lineHeight: 1.7 }}>
+                {party2Sub}
+              </div>
+            )}
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {[
-                ['Property Reference', f.property_ref],
-                ['Property Address', f.property_address],
-                ['Property Type', f.property_type],
-                ['Plot / Unit No.', f.plot_no],
-                ['Area', f.area_sqft ? `${f.area_sqft} sq.ft` : undefined],
-              ].filter(([, v]) => v).map(([label, value]) => (
-                <tr key={label as string} style={{ borderBottom: '1px solid #f0ece4' }}>
-                  <td style={{ fontSize: '11px', color: '#666', padding: '6px 0', width: '45%' }}>{label}</td>
-                  <td style={{ fontSize: '11px', fontWeight: '600', color: '#1a1a1a', padding: '6px 0' }}>{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
-      )}
 
-      {/* ── Financial Details ── */}
-      {(f.agreed_price || f.sale_price || f.offer_price) && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
-            FINANCIAL TERMS
+        {f.date && (
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#999' }}>
+            Effective Date: <span style={{ color: '#555', fontWeight: 600 }}>{fmtDate(f.date)}</span>
+            {f.duration ? <span style={{ marginLeft: '16px' }}>Duration: <span style={{ color: '#555', fontWeight: 600 }}>{f.duration}</span></span> : null}
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {[
-                ['Agreed Sale Price', f.agreed_price || f.sale_price || f.offer_price, true],
-                ['Deposit Amount', f.deposit_amount, true],
-                ['DLD Transfer Fee', f.dld_fee, true],
-                ['Agency Fee', f.agency_fee, true],
-                ['Payment Method', f.payment_method],
-                ['Payment Plan', f.payment_plan],
-                ['Completion Date', f.completion_date ? fmtDate(f.completion_date) : undefined],
-                ['Transfer Date', f.transfer_date ? fmtDate(f.transfer_date) : undefined],
-                ['Handover Date', f.handover_date ? fmtDate(f.handover_date) : undefined],
-              ].filter(([, v]) => v).map(([label, value, isCurrency]) => (
-                <tr key={label as string} style={{ borderBottom: '1px solid #f0ece4' }}>
-                  <td style={{ fontSize: '11px', color: '#666', padding: '6px 0', width: '45%' }}>{label}</td>
-                  <td style={{ fontSize: '11px', fontWeight: '600', color: '#1a1a1a', padding: '6px 0' }}>
-                    {isCurrency && value ? fmtCurrency(value as string) : value as string}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ── Agreement Duration (NCNDA) ── */}
-      {isNCNDA && f.duration && (
-        <p style={{ fontSize: '11px', lineHeight: 1.8, marginBottom: '16px', color: '#333' }}>
-          This Agreement shall remain in effect for a period of <strong>{f.duration}</strong> from the Effective Date, unless earlier terminated by mutual written consent of both Parties. Governing law: <strong>{f.governing_law || 'Laws of the UAE'}</strong>.
-        </p>
-      )}
-
-      {/* ── Clauses / Terms ── */}
-      {doc.terms.length > 0 && (
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', borderBottom: '1px solid #e5e0d5', paddingBottom: '4px', marginBottom: '12px', fontFamily: 'Arial, sans-serif' }}>
-          {isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}
-        </div>
-        <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {doc.terms.map((term) => (
-            <li key={term.id} style={{ marginBottom: '10px', fontSize: '11px', lineHeight: 1.8, color: '#333' }}>
-              <span>{term.text}</span>
-            </li>
-          ))}
-        </ol>
+        )}
       </div>
-      )}
 
-      {/* ── Notes ── */}
-      {doc.notes && (
-        <div style={{ marginBottom: '20px', background: '#fafaf8', border: '1px solid #e5e0d5', padding: '12px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#C9A84C', marginBottom: '6px', fontFamily: 'Arial, sans-serif' }}>NOTES</div>
-          <p style={{ fontSize: '11px', color: '#555', lineHeight: 1.7 }}>{doc.notes}</p>
+      {/* ── Signature Zone ── */}
+      <div style={{ marginBottom: '40px' }}>
+        <div style={{ fontSize: '7px', letterSpacing: '3px', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 700, textAlign: 'center', marginBottom: '28px' }}>
+          Authorised Signatures
         </div>
-      )}
 
-      {/* ── Signature Blocks ── */}
-      <div style={{ marginTop: '36px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-        <div>
-          <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '12px' }}>
-            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', fontFamily: 'Arial, sans-serif', marginBottom: '8px' }}>
-              {isNCNDA ? 'First Party / Authorised Signatory' : 'Buyer / Authorised Signatory'}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          {/* Sig 1 */}
+          <div>
+            <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+              {sig1 ? (
+                <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
+                  {sig1}
+                </div>
+              ) : (
+                <div style={{ height: '32px' }} />
+              )}
             </div>
-            <div style={{ fontSize: '22px', fontStyle: 'italic', color: '#C9A84C', minHeight: '32px', fontFamily: "'Times New Roman', serif" }}>
-              {f.party1_signatory || f.buyer_name || ''}
+            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
+              {isNCNDA ? 'First Party' : 'Buyer'}
             </div>
-            <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
-              Name: <strong>{f.party1_signatory || f.buyer_name || '___________________'}</strong>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>
+              {sig1 || '___________________________'}
             </div>
-            {isNCNDA && <div style={{ fontSize: '10px', color: '#555' }}>Company: <strong>{f.party1_company || '___________________'}</strong></div>}
-            <div style={{ fontSize: '10px', color: '#555' }}>Date: {fmtDate(f.date || '')}</div>
+            {isNCNDA && f.party1_company && (
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party1_company}</div>
+            )}
+            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>
+              Date: {f.date ? fmtDate(f.date) : '_______________'}
+            </div>
+          </div>
+
+          {/* Sig 2 */}
+          <div>
+            <div style={{ minHeight: '56px', borderBottom: '1.5px solid #1a1a1a', marginBottom: '10px', display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+              {sig2 ? (
+                <div style={{ fontSize: '26px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
+                  {sig2}
+                </div>
+              ) : (
+                <div style={{ height: '32px' }} />
+              )}
+            </div>
+            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
+              {isNCNDA ? 'Second Party' : 'Seller'}
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#333' }}>
+              {sig2 || '___________________________'}
+            </div>
+            {isNCNDA && f.party2_company && (
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{f.party2_company}</div>
+            )}
+            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>
+              Date: _______________
+            </div>
           </div>
         </div>
-        <div>
-          <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '12px' }}>
-            <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '1.5px', fontFamily: 'Arial, sans-serif', marginBottom: '8px' }}>
-              {isNCNDA ? 'Second Party / Authorised Signatory' : 'Seller / Authorised Signatory'}
-            </div>
-            <div style={{ fontSize: '22px', fontStyle: 'italic', color: '#C9A84C', minHeight: '32px', fontFamily: "'Times New Roman', serif" }}>
-              {f.party2_signatory || f.seller_name || ''}
-            </div>
-            <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
-              Name: <strong>{f.party2_signatory || f.seller_name || '___________________'}</strong>
-            </div>
-            {isNCNDA && <div style={{ fontSize: '10px', color: '#555' }}>Company: <strong>{f.party2_company || '___________________'}</strong></div>}
-            <div style={{ fontSize: '10px', color: '#555' }}>Date: ___________________</div>
+      </div>
+
+      {/* ── Seal Area ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
+        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>
+            Official Seal — First Party
+          </div>
+          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
+          </div>
+        </div>
+        <div style={{ border: '1px dashed #d4c9a8', padding: '20px', textAlign: 'center', minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: '7px', letterSpacing: '2.5px', textTransform: 'uppercase', color: '#c0b080', fontWeight: 700, marginBottom: '8px' }}>
+            Official Seal — Second Party
+          </div>
+          <div style={{ width: '52px', height: '52px', border: '1px dashed #d4c9a8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '8px', color: '#d4c9a8', letterSpacing: '1px' }}>SEAL</div>
           </div>
         </div>
       </div>
 
       {/* ── CEO Approval Stamp ── */}
       {doc.status === 'Approved' && doc.ceoSignature && (
-        <div style={{ marginTop: '28px', border: '2px solid #22c55e', background: '#f0fdf4', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', color: '#16a34a', marginBottom: '6px', fontFamily: 'Arial, sans-serif' }}>
-            ✓ CEO APPROVED & E-SIGNED
+        <div style={{ border: '1.5px solid #22c55e', background: '#f0fdf4', padding: '20px', textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2.5px', color: '#16a34a', marginBottom: '8px' }}>
+            ✓ Approved &amp; Executed
           </div>
-          <div style={{ fontSize: '24px', fontStyle: 'italic', color: '#C9A84C', fontFamily: "'Times New Roman', serif" }}>{doc.ceoSignature}</div>
-          <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', fontFamily: 'Arial, sans-serif' }}>Approved on {doc.approvedAt}</div>
+          <div style={{ fontSize: '28px', fontStyle: 'italic', color: '#C9A84C', fontFamily: 'Georgia, serif' }}>{doc.ceoSignature}</div>
+          <div style={{ fontSize: '9px', color: '#888', marginTop: '6px', letterSpacing: '1px' }}>Authorised on {doc.approvedAt}</div>
         </div>
       )}
 
-      {/* ── Footer ── */}
-      <div style={{ marginTop: '36px', paddingTop: '12px', borderTop: '1px solid #e5e0d5', textAlign: 'center' }}>
-        <p style={{ fontSize: '9px', color: '#bbb', fontFamily: 'Arial, sans-serif' }}>
-          © Cove Estates {new Date().getFullYear()} · Confidential Document · {refNo} · This document is legally binding upon execution by all parties.
-        </p>
+      {/* ── Footer Rule ── */}
+      <div style={{ borderTop: '1px solid #e8e3d8', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+          Confidential · Not for Distribution
+        </div>
+        <div style={{ fontSize: '8px', color: '#c0b080', letterSpacing: '1px' }}>
+          {refNo}
+        </div>
       </div>
     </div>
   );
@@ -541,89 +507,120 @@ function DocumentPreview({ doc, template, onClose, onApprove, onPrint, onSendFor
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
-    const refNo = `LX-DOC-${doc.id.toString().padStart(4, '0')}`;
     const f = doc.fields;
     const isNCNDA = doc.templateId === 'ncnda';
-    const isMOU = doc.templateId === 'mou';
+    const refNo = `LX/${doc.shortName}/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${doc.id.toString().padStart(4, '0')}`;
+
+    const party1Name = f.party1_company || f.buyer_name || f.buyer_company || '___________________________';
+    const party1Sub = isNCNDA
+      ? [f.party1_license ? `License No. ${f.party1_license}` : null, f.party1_orn ? `ORN ${f.party1_orn}` : null, f.party1_address || null].filter(Boolean).join('  ·  ')
+      : [f.buyer_passport ? `Passport / ID: ${f.buyer_passport}` : null, f.buyer_nationality || null].filter(Boolean).join('  ·  ');
+    const party2Name = f.party2_company || f.seller_name || '___________________________';
+    const party2Sub = isNCNDA
+      ? [f.party2_license ? `License No. ${f.party2_license}` : null, f.party2_orn ? `ORN ${f.party2_orn}` : null, f.party2_address || null].filter(Boolean).join('  ·  ')
+      : [f.seller_passport ? `Passport / ID: ${f.seller_passport}` : null].filter(Boolean).join('  ·  ');
+    const sig1 = f.party1_signatory || f.buyer_name || '';
+    const sig2 = f.party2_signatory || f.seller_name || '';
+
     win.document.write(`<!DOCTYPE html><html><head><title>${doc.title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Times New Roman', Georgia, serif; color: #1a1a1a; background: #fff; }
-      .page { max-width: 800px; margin: 0 auto; padding: 60px 60px 80px; }
-      .letterhead { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #C9A84C; padding-bottom: 20px; margin-bottom: 24px; }
-      .logo { font-size: 26px; font-weight: 900; color: #C9A84C; letter-spacing: 4px; font-family: Arial, sans-serif; }
-      .doc-title { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 24px; }
-      .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #C9A84C; border-bottom: 1px solid #e5e0d5; padding-bottom: 4px; margin: 20px 0 12px; font-family: Arial, sans-serif; }
-      p { font-size: 11px; line-height: 1.8; margin-bottom: 12px; color: #333; }
-      table { width: 100%; border-collapse: collapse; }
-      td { font-size: 11px; padding: 6px 0; border-bottom: 1px solid #f0ece4; }
-      td:first-child { color: #666; width: 45%; }
-      td:last-child { font-weight: 600; }
-      .terms-list { list-style: none; }
-      .terms-list li { margin-bottom: 10px; font-size: 11px; line-height: 1.8; color: #333; }
-      .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
-      .sig-box { border-top: 2px solid #1a1a1a; padding-top: 12px; }
-      .sig-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; font-family: Arial, sans-serif; margin-bottom: 8px; }
-      .sig-name { font-size: 22px; font-style: italic; color: #C9A84C; min-height: 32px; }
-      .sig-detail { font-size: 10px; color: #555; margin-top: 2px; }
-      .approved { border: 2px solid #22c55e; background: #f0fdf4; padding: 16px; text-align: center; margin-top: 28px; }
-      .footer { text-align: center; margin-top: 36px; padding-top: 12px; border-top: 1px solid #e5e0d5; font-size: 9px; color: #bbb; font-family: Arial, sans-serif; }
+      body { font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; }
+      .page { max-width: 760px; margin: 0 auto; padding: 64px 64px 80px; }
+      .ref-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e8e3d8; padding-bottom: 14px; margin-bottom: 40px; }
+      .ref-label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #b0a080; font-weight: 600; }
+      .ref-no { font-size: 9px; letter-spacing: 1.5px; color: #8a7040; font-weight: 600; }
+      .title-block { text-align: center; margin-bottom: 48px; }
+      .category-label { font-size: 7px; letter-spacing: 4px; text-transform: uppercase; color: #C9A84C; margin-bottom: 14px; font-weight: 700; }
+      .doc-title { font-size: 20px; font-weight: 700; letter-spacing: 1px; color: #0f0f0f; text-transform: uppercase; line-height: 1.3; }
+      .gold-rule { width: 48px; height: 2px; background: #C9A84C; margin: 16px auto 0; }
+      .section-label { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #C9A84C; font-weight: 700; text-align: center; margin-bottom: 28px; }
+      .parties-grid { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: start; margin-bottom: 52px; }
+      .party-box { padding: 20px 24px; background: #faf9f6; border: 1px solid #ede8dc; }
+      .party-role { font-size: 7px; letter-spacing: 2.5px; text-transform: uppercase; color: #b0a080; font-weight: 700; margin-bottom: 10px; }
+      .party-name { font-size: 14px; font-weight: 700; color: #0f0f0f; margin-bottom: 6px; line-height: 1.3; }
+      .party-sub { font-size: 10px; color: #888; line-height: 1.7; }
+      .and-divider { display: flex; align-items: center; justify-content: center; padding-top: 28px; font-size: 10px; color: #C9A84C; font-weight: 700; }
+      .effective-date { text-align: center; margin-top: 20px; font-size: 10px; color: #999; }
+      .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; }
+      .sig-line { min-height: 56px; border-bottom: 1.5px solid #1a1a1a; margin-bottom: 10px; display: flex; align-items: flex-end; padding-bottom: 6px; }
+      .sig-cursive { font-size: 26px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; line-height: 1; }
+      .sig-role { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+      .sig-name { font-size: 11px; font-weight: 600; color: #333; }
+      .sig-company { font-size: 10px; color: #888; margin-top: 2px; }
+      .sig-date { font-size: 10px; color: #aaa; margin-top: 6px; }
+      .seal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; }
+      .seal-box { border: 1px dashed #d4c9a8; padding: 20px; text-align: center; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .seal-label { font-size: 7px; letter-spacing: 2.5px; text-transform: uppercase; color: #c0b080; font-weight: 700; margin-bottom: 8px; }
+      .seal-circle { width: 52px; height: 52px; border: 1px dashed #d4c9a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      .seal-text { font-size: 8px; color: #d4c9a8; letter-spacing: 1px; }
+      .approved-stamp { border: 1.5px solid #22c55e; background: #f0fdf4; padding: 20px; text-align: center; margin-bottom: 32px; }
+      .approved-label { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #16a34a; margin-bottom: 8px; }
+      .approved-sig { font-size: 28px; font-style: italic; color: #C9A84C; font-family: Georgia, serif; }
+      .approved-date { font-size: 9px; color: #888; margin-top: 6px; letter-spacing: 1px; }
+      .footer-rule { border-top: 1px solid #e8e3d8; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+      .footer-text { font-size: 8px; color: #c0b080; letter-spacing: 1.5px; text-transform: uppercase; }
       @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
     </style></head><body><div class="page">
-    <div class="letterhead">
-      <div>
-        <div class="logo">COVE ESTATES</div>
-        <div style="font-size:9px;color:#888;letter-spacing:3px;text-transform:uppercase;font-family:Arial,sans-serif;margin-top:4px">Luxury Real Estate · Dubai, UAE</div>
-        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_license ? `License: ${f.party1_license}` : ''}${f.party1_orn ? ` · ORN: ${f.party1_orn}` : ''}</div>
-        <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif">${f.party1_address || ''}</div>
+      <div class="ref-strip">
+        <div class="ref-label">Cove Estates · Confidential</div>
+        <div class="ref-no">Ref: ${refNo}</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;font-weight:bold;color:#333;font-family:Arial,sans-serif;text-transform:uppercase;letter-spacing:1px">${doc.category}</div>
-        <div style="font-size:9px;color:#888;font-family:Arial,sans-serif;margin-top:4px">Reference No: <strong>${refNo}</strong></div>
-        <div style="font-size:9px;color:#888;font-family:Arial,sans-serif">Date: ${fmtDate(f.date || '')}</div>
+      <div class="title-block">
+        <div class="category-label">${doc.category}</div>
+        <div class="doc-title">${doc.templateName.toUpperCase()}</div>
+        <div class="gold-rule"></div>
       </div>
-    </div>
-    <div class="doc-title">${doc.templateName.toUpperCase()}<div style="width:60px;height:2px;background:#C9A84C;margin:8px auto 0"></div></div>
-    <p>This Agreement is made on <strong>${fmtDate(f.date || '')}</strong> (the "Effective Date").</p>
-    ${(isNCNDA || isMOU) ? `<div class="section-title">BY AND BETWEEN</div>
-    ${isNCNDA ? `${f.party1_company ? `<p><strong>${f.party1_company}</strong>, a company incorporated in Dubai, UAE${f.party1_license ? ` with license <strong>${f.party1_license}</strong>` : ''}${f.party1_orn ? `, ORN no <strong>${f.party1_orn}</strong>` : ''}${f.party1_address ? ` and office at <strong>${f.party1_address}</strong>` : ''}${f.party1_initials ? ` ("<strong>${f.party1_initials}</strong>")` : ''}. (First Party)</p>` : ''}
-    <p style="text-align:center;font-style:italic;color:#888">— and —</p>
-    ${f.party2_company ? `<p><strong>${f.party2_company}</strong>, a company incorporated in Dubai, UAE${f.party2_license ? ` with Trade license <strong>${f.party2_license}</strong>` : ''}${f.party2_orn ? `, ORN <strong>${f.party2_orn}</strong>` : ''}${f.party2_address ? ` and office at <strong>${f.party2_address}</strong>` : ''}${f.party2_initials ? `, Dubai, UAE ("<strong>${f.party2_initials}</strong>")` : ''}. (Second Party)</p>` : ''}` :
-    `<p><strong>Buyer:</strong> ${f.buyer_name || ''}${f.buyer_passport ? ` (Passport/ID: ${f.buyer_passport})` : ''}${f.buyer_nationality ? ` — ${f.buyer_nationality}` : ''}</p>
-    <p style="text-align:center;font-style:italic;color:#888">— and —</p>
-    <p><strong>Seller:</strong> ${f.seller_name || ''}${f.seller_passport ? ` (Passport/ID: ${f.seller_passport})` : ''}</p>`}` : ''}
-    ${isNCNDA && f.property_description ? `<div class="section-title">BACKGROUND</div>
-    <p style="font-size:11px;line-height:1.8;color:#333">${f.property_description}</p>` : ''}
-    ${!isNCNDA && (f.property_ref || f.property_address) ? `<div class="section-title">PROPERTY DETAILS</div>
-    <table><tbody>
-      ${[['Property Reference', f.property_ref], ['Property Address', f.property_address], ['Property Type', f.property_type]].filter(([,v]) => v).map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('')}
-    </tbody></table>` : ''}
-    ${(f.agreed_price || f.sale_price || f.offer_price) ? `<div class="section-title">FINANCIAL TERMS</div>
-    <table><tbody>
-      ${[['Agreed Sale Price', fmtCurrency(f.agreed_price || f.sale_price || f.offer_price || '')], ['Deposit Amount', f.deposit_amount ? fmtCurrency(f.deposit_amount) : ''], ['Payment Method', f.payment_method], ['Completion Date', f.completion_date ? fmtDate(f.completion_date) : '']].filter(([,v]) => v).map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('')}
-    </tbody></table>` : ''}
-    ${doc.terms.length > 0 ? `<div class="section-title">${isNCNDA ? 'CLAUSES' : 'TERMS & CONDITIONS'}</div>
-    <ol class="terms-list">
-      ${doc.terms.map((t) => `<li><span>${t.text}</span></li>`).join('')}
-    </ol>` : ''}
-    <div class="sig-grid">
-      <div class="sig-box">
-        <div class="sig-label">${isNCNDA ? 'First Party / Authorised Signatory' : 'Buyer / Authorised Signatory'}</div>
-        <div class="sig-name">${f.party1_signatory || f.buyer_name || ''}</div>
-        <div class="sig-detail">Name: <strong>${f.party1_signatory || f.buyer_name || '___________________'}</strong></div>
-        ${isNCNDA ? `<div class="sig-detail">Company: <strong>${f.party1_company || '___________________'}</strong></div>` : ''}
-        <div class="sig-detail">Date: ${fmtDate(f.date || '')}</div>
+      <div class="section-label">Parties to this Agreement</div>
+      <div class="parties-grid">
+        <div class="party-box">
+          <div class="party-role">First Party</div>
+          <div class="party-name">${party1Name}</div>
+          ${party1Sub ? `<div class="party-sub">${party1Sub}</div>` : ''}
+        </div>
+        <div class="and-divider">&amp;</div>
+        <div class="party-box">
+          <div class="party-role">Second Party</div>
+          <div class="party-name">${party2Name}</div>
+          ${party2Sub ? `<div class="party-sub">${party2Sub}</div>` : ''}
+        </div>
       </div>
-      <div class="sig-box">
-        <div class="sig-label">${isNCNDA ? 'Second Party / Authorised Signatory' : 'Seller / Authorised Signatory'}</div>
-        <div class="sig-name">${f.party2_signatory || f.seller_name || ''}</div>
-        <div class="sig-detail">Name: <strong>${f.party2_signatory || f.seller_name || '___________________'}</strong></div>
-        ${isNCNDA ? `<div class="sig-detail">Company: <strong>${f.party2_company || '___________________'}</strong></div>` : ''}
-        <div class="sig-detail">Date: ___________________</div>
+      ${f.date ? `<div class="effective-date">Effective Date: <strong>${fmtDate(f.date)}</strong>${f.duration ? `&nbsp;&nbsp;·&nbsp;&nbsp;Duration: <strong>${f.duration}</strong>` : ''}</div>` : ''}
+      <div style="margin-top:52px">
+        <div class="section-label">Authorised Signatures</div>
+        <div class="sig-grid">
+          <div>
+            <div class="sig-line">${sig1 ? `<div class="sig-cursive">${sig1}</div>` : ''}</div>
+            <div class="sig-role">${isNCNDA ? 'First Party' : 'Buyer'}</div>
+            <div class="sig-name">${sig1 || '___________________________'}</div>
+            ${isNCNDA && f.party1_company ? `<div class="sig-company">${f.party1_company}</div>` : ''}
+            <div class="sig-date">Date: ${f.date ? fmtDate(f.date) : '_______________'}</div>
+          </div>
+          <div>
+            <div class="sig-line">${sig2 ? `<div class="sig-cursive">${sig2}</div>` : ''}</div>
+            <div class="sig-role">${isNCNDA ? 'Second Party' : 'Seller'}</div>
+            <div class="sig-name">${sig2 || '___________________________'}</div>
+            ${isNCNDA && f.party2_company ? `<div class="sig-company">${f.party2_company}</div>` : ''}
+            <div class="sig-date">Date: _______________</div>
+          </div>
+        </div>
+        <div class="seal-grid">
+          <div class="seal-box">
+            <div class="seal-label">Official Seal — First Party</div>
+            <div class="seal-circle"><div class="seal-text">SEAL</div></div>
+          </div>
+          <div class="seal-box">
+            <div class="seal-label">Official Seal — Second Party</div>
+            <div class="seal-circle"><div class="seal-text">SEAL</div></div>
+          </div>
+        </div>
       </div>
-    </div>
-    ${doc.ceoSignature ? `<div class="approved"><div style="font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#16a34a;margin-bottom:6px;font-family:Arial,sans-serif">✓ CEO APPROVED & E-SIGNED</div><div style="font-size:24px;font-style:italic;color:#C9A84C">${doc.ceoSignature}</div><div style="font-size:10px;color:#888;margin-top:4px;font-family:Arial,sans-serif">Approved on ${doc.approvedAt}</div></div>` : ''}
-    <div class="footer">© Cove Estates ${new Date().getFullYear()} · Confidential Document · ${refNo} · This document is legally binding upon execution by all parties.</div>
+      ${doc.ceoSignature ? `<div class="approved-stamp"><div class="approved-label">✓ Approved &amp; Executed</div><div class="approved-sig">${doc.ceoSignature}</div><div class="approved-date">Authorised on ${doc.approvedAt}</div></div>` : ''}
+      <div class="footer-rule">
+        <div class="footer-text">Confidential · Not for Distribution</div>
+        <div class="footer-text">${refNo}</div>
+      </div>
     </div><script>window.onload=function(){window.print();}<\/script></body></html>`);
     win.document.close();
   };
