@@ -118,22 +118,6 @@ const statusColors: Record<string, string> = {
   Sold: 'text-red-400 bg-red-400/10',
 };
 
-const AGENTS_STORAGE_KEY = 'admin_agents';
-
-const seedAgentNames = ['CEO Admin', 'Sarah Mitchell', 'James Carter', 'Omar Hassan', 'Priya Sharma'];
-
-function loadAgentNames(): string[] {
-  if (typeof window === 'undefined') return seedAgentNames;
-  try {
-    const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
-    if (!stored) return seedAgentNames;
-    const agents = JSON.parse(stored);
-    return agents.filter((a: any) => a.status === 'Active').map((a: any) => a.name as string);
-  } catch {
-    return seedAgentNames;
-  }
-}
-
 function generateRefNumber() {
   return 'LUX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -161,6 +145,15 @@ export default function PropertiesPage() {
 
   const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
+
+  const loadAgentNames = useCallback(async () => {
+    const { data } = await supabase
+      .from('agents')
+      .select('name')
+      .eq('agent_status', 'Active')
+      .order('name', { ascending: true });
+    if (data) setAgentNames(data.map((a: any) => a.name as string));
+  }, [supabase]);
 
   const loadProperties = useCallback(async () => {
     setLoading(true);
@@ -193,7 +186,7 @@ export default function PropertiesPage() {
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => { loadProperties(); setAgentNames(loadAgentNames()); }, [loadProperties]);
+  useEffect(() => { loadProperties(); loadAgentNames(); }, [loadProperties, loadAgentNames]);
 
   const filtered = propertyList.filter((p) => {
     const matchType = activeType === 'All' || p.propCategory === activeType;
@@ -258,7 +251,7 @@ export default function PropertiesPage() {
     setEditingId(null);
     setFormData({ ...defaultFormData, referenceNumber: generateRefNumber() });
     setActiveTab('basic');
-    setAgentNames(loadAgentNames());
+    loadAgentNames();
     setShowModal(true);
   };
 
@@ -309,7 +302,7 @@ export default function PropertiesPage() {
       if (data.location_area) setAvailableCommunities(getCommunitiesForArea(data.location_area));
       setEditingId(id);
       setActiveTab('basic');
-      setAgentNames(loadAgentNames());
+      loadAgentNames();
       setShowModal(true);
     }
   };

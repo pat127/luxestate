@@ -50,31 +50,6 @@ const emptyForm: LeadForm = {
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
 };
 
-const AGENTS_STORAGE_KEY = 'admin_agents';
-
-const seedAgents = [
-  { id: 0, name: 'CEO Admin', role: 'CEO / Senior Agent', status: 'Active' },
-  { id: 1, name: 'Sarah Mitchell', role: 'Senior Agent', status: 'Active' },
-  { id: 2, name: 'James Carter', role: 'Agent', status: 'Active' },
-  { id: 3, name: 'Omar Hassan', role: 'Senior Agent', status: 'Active' },
-  { id: 4, name: 'Priya Sharma', role: 'Junior Agent', status: 'Active' },
-  { id: 5, name: 'Lucas Fontaine', role: 'Agent', status: 'Inactive' },
-];
-
-function loadAgentNames(): string[] {
-  if (typeof window === 'undefined') return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
-  try {
-    const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
-    if (!stored) return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
-    const agents = JSON.parse(stored);
-    return agents
-      .filter((a: any) => a.status === 'Active')
-      .map((a: any) => a.name as string);
-  } catch {
-    return seedAgents.filter(a => a.status === 'Active').map(a => a.name);
-  }
-}
-
 export default function LeadsPage() {
   const supabase = createClient();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -89,6 +64,15 @@ export default function LeadsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [agentNames, setAgentNames] = useState<string[]>([]);
 
+  const loadAgentNames = useCallback(async () => {
+    const { data } = await supabase
+      .from('agents')
+      .select('name')
+      .eq('agent_status', 'Active')
+      .order('name', { ascending: true });
+    if (data) setAgentNames(data.map((a: any) => a.name as string));
+  }, []);
+
   const loadLeads = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -98,8 +82,8 @@ export default function LeadsPage() {
 
   useEffect(() => {
     loadLeads();
-    setAgentNames(loadAgentNames());
-  }, [loadLeads]);
+    loadAgentNames();
+  }, [loadLeads, loadAgentNames]);
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
 
@@ -136,14 +120,14 @@ export default function LeadsPage() {
   };
 
   const openNew = () => {
-    setAgentNames(loadAgentNames());
+    loadAgentNames();
     setEditLead(null);
     setForm(emptyForm);
     setShowModal(true);
   };
 
   const openEdit = (lead: Lead) => {
-    setAgentNames(loadAgentNames());
+    loadAgentNames();
     setEditLead(lead);
     setForm({
       name: lead.name || '', email: lead.email || '', phone: lead.phone || '', whatsapp: '',
