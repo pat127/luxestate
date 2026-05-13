@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { trackFilterSelection, trackSortSelection } from '@/lib/analytics';
 
 interface Property {
   id: number;
@@ -90,7 +91,10 @@ export default function ResidentialListings() {
           {filters.map((f) =>
           <button
             key={f}
-            onClick={() => setActiveFilter(f)}
+            onClick={() => {
+              setActiveFilter(f);
+              trackFilterSelection({ filterType: 'property_type', filterValue: f, page: 'residential' });
+            }}
             className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
             activeFilter === f ?
             'bg-primary text-primary-foreground border-primary' :
@@ -106,7 +110,10 @@ export default function ResidentialListings() {
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortKey)}
+            onChange={(e) => {
+              setSortBy(e.target.value as SortKey);
+              trackSortSelection({ sortValue: e.target.value, page: 'residential' });
+            }}
             className="bg-background border border-border text-foreground text-xs px-3 py-2 outline-none focus:border-primary transition-colors cursor-pointer">
 
             <option value="default">Sort: Default</option>

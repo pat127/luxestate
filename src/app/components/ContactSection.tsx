@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { ContactContent, DEFAULT_CONTACT } from '@/contexts/CMSContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { trackInquirySubmission } from '@/lib/analytics';
 
 interface Props {
   content?: ContactContent;
@@ -79,6 +80,11 @@ export default function ContactSection({ content }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveContactAsLead(form);
+    trackInquirySubmission({
+      formType: 'contact',
+      budget: form.budget,
+      source: 'contact_section',
+    });
     setSubmitted(true);
   };
 

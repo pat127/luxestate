@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { trackInquirySubmission } from '@/lib/analytics';
 
 export default function ProjectInquiry() {
   const supabase = createClient();
@@ -53,6 +54,12 @@ export default function ProjectInquiry() {
       budget: form.budget,
       interest: selectedProject ? selectedProject.name : form.project,
       notes: form.message,
+    });
+    trackInquirySubmission({
+      formType: 'project_inquiry',
+      propertyName: selectedProject ? selectedProject.name : form.project,
+      budget: form.budget,
+      source: 'projects_page',
     });
     setSubmitting(false);
     setSubmitted(true);

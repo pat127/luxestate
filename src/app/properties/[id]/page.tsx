@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { trackPropertyView, trackInquirySubmission } from '@/lib/analytics';
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
 function PropertyGallery({ images }: { images: string[] }) {
@@ -211,6 +212,12 @@ function EnquiryForm({ propertyName, reference, propertyId }: { propertyName: st
       interest: propertyName,
       notes: form.message,
     });
+    trackInquirySubmission({
+      formType: 'property_enquiry',
+      propertyId,
+      propertyName,
+      source: 'property_detail',
+    });
     setSubmitting(false);
     setSent(true);
   };
@@ -251,7 +258,17 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
     supabase.from('properties').select('*').eq('id', id).single().then(({ data, error }) => {
-      if (error || !data) { setNotFound(true); } else { setProperty(data); }
+      if (error || !data) { setNotFound(true); } else {
+        setProperty(data);
+        trackPropertyView({
+          propertyId: id,
+          propertyName: data.name || data.title || 'Unknown Property',
+          propertyType: data.property_type,
+          location: data.location_area || data.community,
+          price: data.price,
+          listingType: data.listing_type || data.availability,
+        });
+      }
       setLoading(false);
     });
   }, [id]);
