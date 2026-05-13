@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
@@ -32,6 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function AdminDashboard() {
   const [view, setView] = useState<'team' | 'ceo'>('team');
   const supabase = useMemo(() => createClient(), []);
+  const { currentUser, isAgentScoped } = useRole();
 
   const [properties, setProperties] = useState<DbProperty[]>([]);
   const [projects, setProjects] = useState<DbProject[]>([]);
@@ -42,11 +44,17 @@ export default function AdminDashboard() {
     async function fetchStats() {
       setLoading(true);
       try {
-        const [propsRes, projRes, leadsRes] = await Promise.all([
-          supabase.from('properties').select('id, prop_category, listing_type, availability, created_at'),
-          supabase.from('projects').select('id, status, created_at'),
-          supabase.from('leads').select('id, status, source, created_at'),
-        ]);
+        // Properties and projects: all agents can see all
+        const propsQuery = supabase.from('properties').select('id, prop_category, listing_type, availability, created_at');
+        const projQuery = supabase.from('projects').select('id, status, created_at');
+
+        // Leads: agents see only their own
+        let leadsQuery = supabase.from('leads').select('id, status, source, created_at');
+        if (isAgentScoped) {
+          leadsQuery = leadsQuery.eq('assigned_agent', currentUser.name);
+        }
+
+        const [propsRes, projRes, leadsRes] = await Promise.all([propsQuery, projQuery, leadsQuery]);
         setProperties(propsRes.data || []);
         setProjects(projRes.data || []);
         setLeads(leadsRes.data || []);
@@ -57,7 +65,7 @@ export default function AdminDashboard() {
       }
     }
     fetchStats();
-  }, [supabase]);
+  }, [supabase, isAgentScoped, currentUser.name]);
 
   // Computed stats
   const totalProperties = properties.length;

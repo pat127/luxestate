@@ -17,6 +17,12 @@ interface RoleContextType {
   setCurrentUser: (user: RoleUser) => void;
   can: (permission: Permission) => boolean;
   isRole: (...roles: UserRole[]) => boolean;
+  /** Returns true if the current user is an agent (own-records-only scope) */
+  isAgentScoped: boolean;
+  /** Returns true if the current user can see all records (not agent-scoped) */
+  canViewAll: boolean;
+  /** Returns true if the current user is the listing/assigned agent for a record */
+  isAssignedAgent: (recordAgentName: string | undefined | null) => boolean;
 }
 
 export type Permission =
@@ -44,9 +50,12 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_blog', 'view_settings',
   ],
   agent: [
+    // Agents see only their own records for: dashboard, contacts, leads, deals, calendar, tasks
+    // Properties and projects are visible to all agents (but owner/unit info restricted)
     'view_dashboard', 'view_contacts', 'view_leads',
     'view_properties', 'view_projects',
-    'view_deals', 'view_calendar', 'view_tasks', 'view_property_owners',
+    'view_deals', 'view_calendar', 'view_tasks',
+    // NOTE: No view_all_* permissions — agents are scoped to their own records
   ],
 };
 
@@ -72,8 +81,18 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return roles.includes(currentUser.role);
   };
 
+  const isAgentScoped = currentUser.role === 'agent';
+
+  const canViewAll = currentUser.role !== 'agent';
+
+  const isAssignedAgent = (recordAgentName: string | undefined | null): boolean => {
+    if (!isAgentScoped) return true; // non-agents always have access
+    if (!recordAgentName) return false;
+    return recordAgentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim();
+  };
+
   return (
-    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole }}>
+    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent }}>
       {children}
     </RoleContext.Provider>
   );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Deal {
   id: number;
@@ -115,6 +116,7 @@ function saveDeals(deals: Deal[]) {
 }
 
 export default function DealsPage() {
+  const { currentUser, isAgentScoped } = useRole();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [filterStage, setFilterStage] = useState('All');
   const [search, setSearch] = useState('');
@@ -131,7 +133,15 @@ export default function DealsPage() {
   const [crmProperties, setCrmProperties] = useState<{ ref: string; name: string }[]>(fallbackProperties);
 
   useEffect(() => {
-    setDeals(loadDeals());
+    const allDeals = loadDeals();
+    // Agents see only their own deals
+    if (isAgentScoped) {
+      setDeals(allDeals.filter(d => 
+        (d.agent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
+      ));
+    } else {
+      setDeals(allDeals);
+    }
 
     // Load real CRM leads
     try {
@@ -161,11 +171,22 @@ export default function DealsPage() {
         })));
       }
     } catch { /* use fallback */ }
-  }, []);
+  }, [isAgentScoped, currentUser.name]);
 
   const updateDeals = (updated: Deal[]) => {
-    setDeals(updated);
-    saveDeals(updated);
+    if (!isAgentScoped) {
+      setDeals(updated);
+      saveDeals(updated);
+    } else {
+      // Merge agent's deals back into full list
+      const all = loadDeals();
+      const others = all.filter(d =>
+        (d.agent || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim()
+      );
+      const merged = [...others, ...updated];
+      saveDeals(merged);
+      setDeals(updated);
+    }
   };
 
   const showSaved = () => {

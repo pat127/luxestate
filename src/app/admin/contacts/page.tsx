@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Contact {
   id: number;
@@ -80,6 +81,7 @@ const emptyForm: ContactForm = {
 };
 
 export default function ContactsPage() {
+  const { currentUser, isAgentScoped } = useRole();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -93,8 +95,16 @@ export default function ContactsPage() {
   const [convertConfirm, setConvertConfirm] = useState(false);
 
   useEffect(() => {
-    setContacts(loadContacts());
-  }, []);
+    const allContacts = loadContacts();
+    // Agents see only contacts assigned to them
+    if (isAgentScoped) {
+      setContacts(allContacts.filter(c => 
+        (c.assignedAgent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
+      ));
+    } else {
+      setContacts(allContacts);
+    }
+  }, [isAgentScoped, currentUser.name]);
 
   // Poll for new imports
   useEffect(() => {
@@ -105,19 +115,35 @@ export default function ContactsPage() {
           const existingIds = new Set(prev.map(c => c.id));
           const newImports = imported.filter(c => !existingIds.has(c.id));
           if (newImports.length === 0) return prev;
-          const updated = [...prev, ...newImports];
+          // For agents, only include imports assigned to them
+          const filtered = isAgentScoped
+            ? newImports.filter(c => (c.assignedAgent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim())
+            : newImports;
+          if (filtered.length === 0) return prev;
+          const updated = [...prev, ...filtered];
           localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
-          localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(updated));
+          if (!isAgentScoped) localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(updated));
           return updated;
         });
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAgentScoped, currentUser.name]);
 
   const updateContacts = (updated: Contact[]) => {
     setContacts(updated);
-    saveContacts(updated);
+    // Only persist full list for non-agents; agents work with filtered view
+    if (!isAgentScoped) {
+      saveContacts(updated);
+    } else {
+      // Merge agent's updated contacts back into full list
+      const all = loadContacts();
+      const agentIds = new Set(updated.map(c => c.id));
+      const others = all.filter(c => 
+        (c.assignedAgent || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim()
+      );
+      saveContacts([...others, ...updated]);
+    }
   };
 
   const types = ['All', 'Buyer', 'Investor', 'Seller', 'Tenant', 'Landlord'];

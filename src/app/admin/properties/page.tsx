@@ -8,6 +8,7 @@ import AppImage from '@/components/ui/AppImage';
 import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
 import PinLocationMap from '@/components/ui/PinLocationMap';
+import { useRole } from '@/contexts/RoleContext';
 
 type PropertyType = 'All' | 'Residential' | 'Commercial';
 type ModalTab = 'basic' | 'dimensions' | 'features' | 'location' | 'media';
@@ -125,6 +126,7 @@ function generateRefNumber() {
 export default function PropertiesPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { isAgentScoped, isAssignedAgent, canViewAll } = useRole();
 
   const [activeType, setActiveType] = useState<PropertyType>('All');
   const [search, setSearch] = useState('');
@@ -159,7 +161,7 @@ export default function PropertiesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('properties')
-      .select('id, title, reference_number, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, agent_name, published, featured, created_at')
+      .select('id, title, reference_number, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, agent_name, agent_phone, agent_email, published, featured, created_at')
       .order('created_at', { ascending: false });
     if (error) {
       console.error('Error loading properties:', error.message);
@@ -401,6 +403,14 @@ export default function PropertiesPage() {
         </button>
       </div>
 
+      {/* Agent scope notice */}
+      {isAgentScoped && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 text-xs text-primary">
+          <Icon name="InformationCircleIcon" size={14} />
+          <span>All properties are visible. Owner and contact details are restricted to the listing agent only.</span>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative max-w-sm flex-1">
@@ -474,6 +484,7 @@ export default function PropertiesPage() {
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
             {filtered.map((property) => {
               const img = firstImage(property.imageUrls);
+              const isListing = isAssignedAgent(property.agentName);
               return (
                 <div key={property.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(property.id) ? 'border-primary/40' : 'border-border'}`}>
                   <div className="relative h-44 overflow-hidden">
@@ -500,7 +511,7 @@ export default function PropertiesPage() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="grid grid-cols-3 gap-3 mb-3">
                       <div>
                         <p className="text-xs text-muted-foreground">Price</p>
                         <p className="text-sm font-semibold text-primary mt-0.5 truncate">{property.priceAed ? `AED ${property.priceAed}` : '—'}</p>
@@ -513,6 +524,20 @@ export default function PropertiesPage() {
                         <p className="text-xs text-muted-foreground">Area</p>
                         <p className="text-sm font-semibold text-foreground mt-0.5">{property.areaSqft ? `${property.areaSqft} sqft` : '—'}</p>
                       </div>
+                    </div>
+                    {/* Listing agent info — restricted to assigned agent or admins */}
+                    <div className="mb-3">
+                      <p className="text-xs text-muted-foreground">Listing Agent</p>
+                      <p className="text-xs font-medium text-foreground mt-0.5">{property.agentName || '—'}</p>
+                      {isListing ? (
+                        <p className="text-[10px] text-emerald-400 mt-0.5 flex items-center gap-1">
+                          <Icon name="CheckCircleIcon" size={10} />Your listing
+                        </p>
+                      ) : isAgentScoped ? (
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5 flex items-center gap-1">
+                          <Icon name="LockClosedIcon" size={10} />Owner details restricted
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
@@ -624,14 +649,24 @@ export default function PropertiesPage() {
                         <input className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })} />
                       )}
                     </div>
-                    <div>
-                      <label className={labelCls}>Agent Phone</label>
-                      <input className={inputCls} value={formData.agentPhone} onChange={(e) => setFormData({ ...formData, agentPhone: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Agent Email</label>
-                      <input className={inputCls} value={formData.agentEmail} onChange={(e) => setFormData({ ...formData, agentEmail: e.target.value })} />
-                    </div>
+                    {/* Owner/agent contact info — only visible to listing agent or admins */}
+                    {(!isAgentScoped || isAssignedAgent(formData.agentName)) ? (
+                      <>
+                        <div>
+                          <label className={labelCls}>Agent Phone</label>
+                          <input className={inputCls} value={formData.agentPhone} onChange={(e) => setFormData({ ...formData, agentPhone: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Agent Email</label>
+                          <input className={inputCls} value={formData.agentEmail} onChange={(e) => setFormData({ ...formData, agentEmail: e.target.value })} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
+                        <Icon name="LockClosedIcon" size={13} />
+                        <span>Owner contact details are only visible to the listing agent.</span>
+                      </div>
+                    )}
                     <div className="col-span-2">
                       <label className={labelCls}>Description</label>
                       <textarea className={inputCls} rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />

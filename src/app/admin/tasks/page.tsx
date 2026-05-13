@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Task {
   id: number;
@@ -110,7 +111,11 @@ function checkTaskReminders(tasks: Task[]) {
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks());
+  const { currentUser, isAgentScoped } = useRole();
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const all = loadTasks();
+    return all;
+  });
   const [filter, setFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -141,8 +146,23 @@ export default function TasksPage() {
 
   // Persist tasks to localStorage whenever they change
   useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+    // Only persist full list for non-agents
+    if (!isAgentScoped) {
+      saveTasks(tasks);
+    }
+  }, [tasks, isAgentScoped]);
+
+  // Load tasks filtered by agent scope
+  useEffect(() => {
+    const all = loadTasks();
+    if (isAgentScoped) {
+      setTasks(all.filter(t =>
+        (t.assignee || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
+      ));
+    } else {
+      setTasks(all);
+    }
+  }, [isAgentScoped, currentUser.name]);
 
   const filtered = tasks.filter((t) => {
     const matchFilter = filter === 'All' || t.status === filter;
@@ -173,10 +193,26 @@ export default function TasksPage() {
   const handleSave = () => {
     if (!form.title) return;
     if (editTask) {
-      setTasks(tasks.map(t => t.id === editTask.id ? { ...t, title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, category: form.category, dueDate: form.dueDate } : t));
+      const updated = tasks.map(t => t.id === editTask.id ? { ...t, title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, category: form.category, dueDate: form.dueDate } : t);
+      setTasks(updated);
+      if (isAgentScoped) {
+        // Merge back into full list
+        const all = loadTasks();
+        const others = all.filter(t => (t.assignee || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim());
+        saveTasks([...others, ...updated]);
+      } else {
+        saveTasks(updated);
+      }
     } else {
       const newTask: Task = { id: Date.now(), title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, due: form.dueDate || 'TBD', category: form.category, dueDate: form.dueDate };
-      setTasks([...tasks, newTask]);
+      const updated = [...tasks, newTask];
+      setTasks(updated);
+      if (isAgentScoped) {
+        const all = loadTasks();
+        saveTasks([...all, newTask]);
+      } else {
+        saveTasks(updated);
+      }
       // Notify on new high-priority task
       if (form.priority === 'High' && notifPermission === 'granted') {
         sendNotification(
@@ -189,11 +225,25 @@ export default function TasksPage() {
   };
 
   const handleDelete = (id: number) => {
-    setTasks(tasks.filter(t => t.id !== id));
+    const updated = tasks.filter(t => t.id !== id);
+    setTasks(updated);
+    if (isAgentScoped) {
+      const all = loadTasks();
+      saveTasks(all.filter(t => t.id !== id));
+    } else {
+      saveTasks(updated);
+    }
   };
 
   const toggleComplete = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status: t.status === 'Completed' ? 'Todo' : 'Completed' } : t));
+    const updated = tasks.map(t => t.id === id ? { ...t, status: t.status === 'Completed' ? 'Todo' : 'Completed' } : t);
+    setTasks(updated);
+    if (isAgentScoped) {
+      const all = loadTasks();
+      saveTasks(all.map(t => t.id === id ? { ...t, status: t.status === 'Completed' ? 'Todo' : 'Completed' } : t));
+    } else {
+      saveTasks(updated);
+    }
   };
 
   return (

@@ -143,10 +143,13 @@ function checkCalendarReminders(events: CalEvent[], currentMonth: number, curren
 }
 
 export default function CalendarPage() {
-  const { isRole } = useRole();
+  const { isRole, currentUser, isAgentScoped } = useRole();
   const canViewMarketing = isRole('super_admin', 'marketing');
 
-  const [events, setEvents] = useState<CalEvent[]>(initialEvents);
+  const [events, setEvents] = useState<CalEvent[]>(() => {
+    // Agents see only their own events (where their name appears in attendees or title)
+    return initialEvents;
+  });
   const [marketingEvents, setMarketingEvents] = useState<MarketingEvent[]>(() => loadMarketingEventsFromStorage(initialMarketingEvents));
   const [activeTab, setActiveTab] = useState<CalendarTab>('team');
   const [currentMonth, setCurrentMonth] = useState(4);
@@ -189,9 +192,22 @@ export default function CalendarPage() {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   // CEO view: events owned by CEO. Team view: events owned by team.
-  const visibleEvents = activeTab === 'ceo'
-    ? events.filter((e) => e.owner === 'ceo')
-    : events.filter((e) => e.owner === 'team');
+  // Agents: only see events where they are an attendee
+  const visibleEvents = (() => {
+    let base: CalEvent[];
+    if (activeTab === 'ceo') {
+      base = events.filter((e) => e.owner === 'ceo');
+    } else {
+      base = events.filter((e) => e.owner === 'team');
+    }
+    if (isAgentScoped) {
+      base = base.filter((e) =>
+        e.attendees.some(a => a.toLowerCase().includes(currentUser.name.split(' ')[0].toLowerCase())) ||
+        e.title.toLowerCase().includes(currentUser.name.split(' ')[0].toLowerCase())
+      );
+    }
+    return base;
+  })();
 
   const getEventsForDay = (day: number) => {
     if (activeTab === 'marketing') {

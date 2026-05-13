@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
 import PinLocationMap from '@/components/ui/PinLocationMap';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Project {
   id: string;
@@ -58,6 +59,7 @@ export default function ProjectsPage() {
 function ProjectsPageInner() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { isAgentScoped, canViewAll } = useRole();
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -306,6 +308,14 @@ function ProjectsPageInner() {
         </button>
       </div>
 
+      {/* Agent scope notice */}
+      {isAgentScoped && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 text-xs text-primary">
+          <Icon name="InformationCircleIcon" size={14} />
+          <span>All projects are visible. Unit pricing and inventory details are restricted to the assigned agent only.</span>
+        </div>
+      )}
+
       <div className="relative max-w-sm mb-5">
         <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input type="text" placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
@@ -378,15 +388,25 @@ function ProjectsPageInner() {
                       <div><p className="text-xs text-muted-foreground">Handover</p><p className="text-sm font-semibold text-foreground mt-0.5">{project.handoverDate || '—'}</p></div>
                       <div><p className="text-xs text-muted-foreground">Starting Price</p><p className="text-sm font-semibold text-primary mt-0.5 truncate">{project.startingPrice ? `AED ${project.startingPrice}` : '—'}</p></div>
                     </div>
+                    {/* Unit availability — restricted to admins only; agents see count but not breakdown */}
                     {project.totalUnits > 0 && (
                       <div className="mb-4">
-                        <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Units Sold</span>
-                          <span className="text-foreground font-semibold">{project.soldUnits}/{project.totalUnits} ({soldPct}%)</span>
-                        </div>
-                        <div className="h-1.5 bg-secondary overflow-hidden">
-                          <div className="h-full bg-primary transition-all duration-700" style={{ width: `${soldPct}%` }} />
-                        </div>
+                        {canViewAll ? (
+                          <>
+                            <div className="flex justify-between text-xs mb-1.5">
+                              <span className="text-muted-foreground">Units Sold</span>
+                              <span className="text-foreground font-semibold">{project.soldUnits}/{project.totalUnits} ({soldPct}%)</span>
+                            </div>
+                            <div className="h-1.5 bg-secondary overflow-hidden">
+                              <div className="h-full bg-primary transition-all duration-700" style={{ width: `${soldPct}%` }} />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Icon name="LockClosedIcon" size={12} />
+                            <span>Unit details restricted — {project.totalUnits} total units</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex gap-2">
@@ -445,43 +465,53 @@ function ProjectsPageInner() {
 
               {activeTab === 'units' && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className={labelCls}>Total Units</label><input className={inputCls} value={totalUnits} onChange={(e) => setTotalUnits(e.target.value)} placeholder="e.g. 240" /></div>
-                    <div><label className={labelCls}>Available Units</label><input className={inputCls} value={availableUnits} onChange={(e) => setAvailableUnits(e.target.value)} placeholder="e.g. 60" /></div>
-                    <div><label className={labelCls}>Min Bedrooms</label><input className={inputCls} value={minBedrooms} onChange={(e) => setMinBedrooms(e.target.value)} /></div>
-                    <div><label className={labelCls}>Max Bedrooms</label><input className={inputCls} value={maxBedrooms} onChange={(e) => setMaxBedrooms(e.target.value)} /></div>
-                    <div className="col-span-2"><label className={labelCls}>Size Range</label><input className={inputCls} value={sizeRange} onChange={(e) => setSizeRange(e.target.value)} placeholder="e.g. 650 - 3,200 sq ft" /></div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Property Types</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {PROPERTY_TYPES.map(t => (
-                        <button key={t} onClick={() => setSelectedPropertyTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className={`px-3 py-1.5 text-xs border transition-colors ${selectedPropertyTypes.includes(t) ? 'border-primary text-primary bg-primary/10' : 'border-[#333] text-[#aaa] hover:border-[#555]'}`}>{t}</button>
-                      ))}
+                  {isAgentScoped ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                      <Icon name="LockClosedIcon" size={28} className="text-muted-foreground/40" />
+                      <p className="text-sm font-semibold text-foreground">Unit Information Restricted</p>
+                      <p className="text-xs text-muted-foreground max-w-xs">Unit types, pricing, and inventory details are only accessible to the assigned agent for this project.</p>
                     </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Amenities</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {AMENITIES_LIST.map(a => (
-                        <button key={a} onClick={() => setSelectedAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])} className={`px-3 py-1.5 text-xs border transition-colors ${selectedAmenities.includes(a) ? 'border-primary text-primary bg-primary/10' : 'border-[#333] text-[#aaa] hover:border-[#555]'}`}>{a}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className={labelCls}>Unit Types</label>
-                      <button onClick={() => setUnitTypes([...unitTypes, { id: Date.now(), name: '', size: '', price: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Unit Type</button>
-                    </div>
-                    {unitTypes.map((u) => (
-                      <div key={u.id} className="grid grid-cols-4 gap-2 mb-2">
-                        <input className={inputCls} value={u.name} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, name: e.target.value } : x))} placeholder="Type" />
-                        <input className={inputCls} value={u.size} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, size: e.target.value } : x))} placeholder="Size" />
-                        <input className={inputCls} value={u.price} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, price: e.target.value } : x))} placeholder="Price" />
-                        <button onClick={() => setUnitTypes(unitTypes.filter(x => x.id !== u.id))} className="px-2 py-2 border border-red-400/20 text-red-400 hover:bg-red-400/5 transition-colors text-xs">✕</button>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><label className={labelCls}>Total Units</label><input className={inputCls} value={totalUnits} onChange={(e) => setTotalUnits(e.target.value)} placeholder="e.g. 240" /></div>
+                        <div><label className={labelCls}>Available Units</label><input className={inputCls} value={availableUnits} onChange={(e) => setAvailableUnits(e.target.value)} placeholder="e.g. 60" /></div>
+                        <div><label className={labelCls}>Min Bedrooms</label><input className={inputCls} value={minBedrooms} onChange={(e) => setMinBedrooms(e.target.value)} /></div>
+                        <div><label className={labelCls}>Max Bedrooms</label><input className={inputCls} value={maxBedrooms} onChange={(e) => setMaxBedrooms(e.target.value)} /></div>
+                        <div className="col-span-2"><label className={labelCls}>Size Range</label><input className={inputCls} value={sizeRange} onChange={(e) => setSizeRange(e.target.value)} placeholder="e.g. 650 - 3,200 sq ft" /></div>
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <label className={labelCls}>Property Types</label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {PROPERTY_TYPES.map(t => (
+                            <button key={t} onClick={() => setSelectedPropertyTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className={`px-3 py-1.5 text-xs border transition-colors ${selectedPropertyTypes.includes(t) ? 'border-primary text-primary bg-primary/10' : 'border-[#333] text-[#aaa] hover:border-[#555]'}`}>{t}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Amenities</label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {AMENITIES_LIST.map(a => (
+                            <button key={a} onClick={() => setSelectedAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])} className={`px-3 py-1.5 text-xs border transition-colors ${selectedAmenities.includes(a) ? 'border-primary text-primary bg-primary/10' : 'border-[#333] text-[#aaa] hover:border-[#555]'}`}>{a}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className={labelCls}>Unit Types</label>
+                          <button onClick={() => setUnitTypes([...unitTypes, { id: Date.now(), name: '', size: '', price: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Unit Type</button>
+                        </div>
+                        {unitTypes.map((u) => (
+                          <div key={u.id} className="grid grid-cols-4 gap-2 mb-2">
+                            <input className={inputCls} value={u.name} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, name: e.target.value } : x))} placeholder="Type" />
+                            <input className={inputCls} value={u.size} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, size: e.target.value } : x))} placeholder="Size" />
+                            <input className={inputCls} value={u.price} onChange={(e) => setUnitTypes(unitTypes.map(x => x.id === u.id ? { ...x, price: e.target.value } : x))} placeholder="Price" />
+                            <button onClick={() => setUnitTypes(unitTypes.filter(x => x.id !== u.id))} className="px-2 py-2 border border-red-400/20 text-red-400 hover:bg-red-400/5 transition-colors text-xs">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

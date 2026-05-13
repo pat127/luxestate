@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Lead {
   id: string;
@@ -52,6 +53,7 @@ const emptyForm: LeadForm = {
 
 export default function LeadsPage() {
   const supabase = createClient();
+  const { currentUser, isAgentScoped } = useRole();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -75,10 +77,15 @@ export default function LeadsPage() {
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
+    // Agents see only their own leads
+    if (isAgentScoped) {
+      query = query.eq('assigned_agent', currentUser.name);
+    }
+    const { data } = await query;
     if (data) setLeads(data);
     setLoading(false);
-  }, []);
+  }, [isAgentScoped, currentUser.name]);
 
   useEffect(() => {
     loadLeads();
