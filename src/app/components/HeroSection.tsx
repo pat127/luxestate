@@ -144,7 +144,7 @@ export default function HeroSection() {
             </h1>
           </div>
 
-          <p ref={subRef} className="text-foreground/70 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
+          <p ref={subRef} className="text-foreground/45 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
             {heroDescription}
           </p>
 
