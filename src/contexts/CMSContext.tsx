@@ -227,21 +227,21 @@ export const DEFAULT_ABOUT_CONTENT: AboutContent = {
   story_paragraph2: 'From our offices in Dubai Marina and DIFC, we serve a global clientele of private investors, family offices, and ultra-high-net-worth individuals seeking the finest residential and commercial properties in the UAE and internationally.',
   story_paragraph3: 'Our team of 24 specialists brings together expertise across residential sales, commercial investment, off-plan acquisitions, and international markets — offering clients a single, trusted point of contact for their entire real estate portfolio.',
   milestones: [
-    { year: '2006', event: 'Founded in Dubai Marina with a team of three specialists focused on ultra-prime residential.' },
-    { year: '2011', event: 'Expanded into commercial real estate and off-plan developments, partnering with Emaar and DAMAC.' },
-    { year: '2016', event: 'Launched international division, connecting UAE investors with prime opportunities in London, New York, and Paris.' },
-    { year: '2020', event: "Opened second office in DIFC, establishing presence in Dubai's financial district." },
-    { year: '2024', event: 'Rebranded as Cove Estates, reflecting our evolution into a full-service luxury real estate advisory.' },
-  ],
+  { year: '2006', event: 'Founded in Dubai Marina with a team of three specialists focused on ultra-prime residential.' },
+  { year: '2011', event: 'Expanded into commercial real estate and off-plan developments, partnering with Emaar and DAMAC.' },
+  { year: '2016', event: 'Launched international division, connecting UAE investors with prime opportunities in London, New York, and Paris.' },
+  { year: '2020', event: "Opened second office in DIFC, establishing presence in Dubai's financial district." },
+  { year: '2024', event: 'Rebranded as Cove Estates, reflecting our evolution into a full-service luxury real estate advisory.' }],
+
   values_eyebrow: 'What Guides Us',
   values_headline: 'Our Core Values',
   values_subtext: 'The principles that shape every client interaction, every listing, and every transaction we undertake.',
   values: [
-    { icon: 'ShieldCheckIcon', title: 'Uncompromising Integrity', description: 'Every transaction is conducted with full transparency. We represent your interests exclusively — no dual agency, no hidden incentives.' },
-    { icon: 'StarIcon', title: 'Curated Excellence', description: 'We list only properties that meet our exacting standards. Quality over volume — always. Our portfolio reflects the finest the market offers.' },
-    { icon: 'GlobeAltIcon', title: 'Global Perspective', description: 'With clients across 40+ countries, we bring international market intelligence to every local transaction and global reach to every listing.' },
-    { icon: 'UserGroupIcon', title: 'Relationship First', description: 'We build lifelong client relationships, not one-time transactions. Your portfolio growth and satisfaction are our long-term measure of success.' },
-  ],
+  { icon: 'ShieldCheckIcon', title: 'Uncompromising Integrity', description: 'Every transaction is conducted with full transparency. We represent your interests exclusively — no dual agency, no hidden incentives.' },
+  { icon: 'StarIcon', title: 'Curated Excellence', description: 'We list only properties that meet our exacting standards. Quality over volume — always. Our portfolio reflects the finest the market offers.' },
+  { icon: 'GlobeAltIcon', title: 'Global Perspective', description: 'With clients across 40+ countries, we bring international market intelligence to every local transaction and global reach to every listing.' },
+  { icon: 'UserGroupIcon', title: 'Relationship First', description: 'We build lifelong client relationships, not one-time transactions. Your portfolio growth and satisfaction are our long-term measure of success.' }],
+
   ceo_eyebrow: 'Leadership',
   ceo_section_headline: 'Meet Our CEO',
   ceo_section_subtext: 'Visionary leadership built on two decades of luxury real estate expertise.',
@@ -252,20 +252,20 @@ export const DEFAULT_ABOUT_CONTENT: AboutContent = {
     bio2: "Under his leadership, Cove Estates has grown into Dubai's most trusted luxury real estate advisory, facilitating over AED 8.2 billion in transactions and serving clients across 40+ countries. Alexander's philosophy centres on long-term relationships, absolute discretion, and delivering outcomes that exceed expectations.",
     image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1a79b8e72-1763295320816.png',
     alt: 'Professional portrait of Alexander Cove, founder of Cove Estates, in a tailored dark suit against a modern office backdrop',
-    linkedin: '#',
+    linkedin: '#'
   },
   ceo_stats: [
-    { value: '18+', label: 'Years Experience' },
-    { value: 'AED 8.2B+', label: 'Transactions Led' },
-    { value: '40+', label: 'Countries Served' },
-    { value: '1,400+', label: 'Properties Sold' },
-  ],
+  { value: '18+', label: 'Years Experience' },
+  { value: 'AED 8.2B+', label: 'Transactions Led' },
+  { value: '40+', label: 'Countries Served' },
+  { value: '1,400+', label: 'Properties Sold' }],
+
   hero_stats: [
-    { value: 'AED 8.2B+', label: 'Total Transaction Volume' },
-    { value: '1,400+', label: 'Properties Sold' },
-    { value: '40+', label: 'Countries Represented' },
-    { value: '18', label: 'Years of Excellence' },
-  ],
+  { value: 'AED 8.2B+', label: 'Total Transaction Volume' },
+  { value: '1,400+', label: 'Properties Sold' },
+  { value: '40+', label: 'Countries Represented' },
+  { value: '18', label: 'Years of Excellence' }]
+
 };
 
 // ─── Property Detail CMS Types ────────────────────────────────────────────────
@@ -433,7 +433,7 @@ const DEFAULT_BRANDING: BrandingConfig = {
   phone: '+971 50 886 2683',
   email: 'admin@coveestates.com',
   whatsapp: '+971508862683',
-  address: '8th Level, Moosa Tower 1, Dubai, UAE',
+  address: '8th Level, Moosa Tower 1, Dubai, UAE'
 };
 
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
@@ -477,7 +477,7 @@ export const DEFAULT_FEATURED_PROJECTS: FeaturedProjectsContent = {
   cta_text: 'View All Projects',
   cta_link: '/projects',
   projects: [
-  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1006417f3-1772199921046.png', alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
+  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: "https://img.rocket.new/generatedImages/rocket_gen_img_164eb4147-1772355208442.png", alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
   { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', completion: 'Q2 2027', price: 'AED 900K+', units: 320, sold: 65, image: 'https://images.unsplash.com/photo-1735561650147-27d4d3e1002c', alt: 'Twin towers rising over Dubai Marina waterfront, golden hour reflections on glass', tag: 'New Launch' },
   { id: 3, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', completion: 'Q3 2028', price: 'AED 1.8M+', units: 180, sold: 0, image: "https://img.rocket.new/generatedImages/rocket_gen_img_10e7e337d-1772064904447.png", alt: 'Luxury waterfront development along Dubai Creek, contemporary architecture', tag: 'Launching Soon' }]
 
@@ -510,7 +510,7 @@ export const DEFAULT_TESTIMONIALS: TestimonialsContent = {
   testimonials: [
   { name: 'Margaret Harrington', location: 'Greenwich, Connecticut', quote: "Cove Estates found us a property that wasn't on any public listing. The discretion and access they provide is unlike anything we've experienced in twenty years of property ownership.", role: 'Private Equity Principal', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1b32bbd93-1763299584368.png', imageAlt: 'Professional woman in elegant dark blazer, studio portrait' },
   { name: 'Thomas Blackwell', location: 'Upper East Side, New York', quote: 'The caliber of off-market opportunities they surfaced was extraordinary.', role: 'Investment Banker', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1bfef8bd5-1763295388609.png', imageAlt: 'Professional man in tailored dark suit, confident expression, studio portrait' },
-  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png', imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
+  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: "https://img.rocket.new/generatedImages/rocket_gen_img_11287cdb4-1772690426652.png", imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
   { name: 'James Whitfield', location: 'Palm Beach, Florida', quote: 'Truly exceptional service.', role: 'Family Office Director', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1651cfc0b-1763295052209.png', imageAlt: 'Professional man in dark jacket, confident posture, studio portrait' },
   { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1683642765567-3c6873f793e4", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
 
@@ -589,7 +589,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
 
   images: [
   { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_127d6dc96-1773156342470.png', alt: 'Luxury penthouse living room with floor-to-ceiling windows overlooking Palm Jumeirah and Arabian Gulf, white marble floors, bespoke furniture' },
-  { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_17d8ac43a-1766837430470.png', alt: 'Master bedroom suite with panoramic sea views, king bed, dark wood accents, and private terrace access' },
+  { src: "https://img.rocket.new/generatedImages/rocket_gen_img_1fd2affb4-1772229041034.png", alt: 'Master bedroom suite with panoramic sea views, king bed, dark wood accents, and private terrace access' },
   { src: 'https://images.unsplash.com/photo-1679265441414-d5ed0aed8a38', alt: 'Private rooftop infinity pool with Dubai Marina skyline backdrop at golden hour' },
   { src: 'https://img.rocket.new/generatedImages/rocket_gen_img_173dd8d64-1772641736960.png', alt: 'Gourmet kitchen with Italian marble countertops, integrated appliances, and island seating' },
   { src: 'https://images.unsplash.com/photo-1537726235470-8504e3beef77', alt: 'Dining area with dramatic chandelier, floor-to-ceiling windows, and sea views' },
@@ -601,7 +601,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15831eb38-1768374767097.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16f0638be-1763300671799.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -859,7 +859,7 @@ const CMSContext = createContext<CMSContextValue>({
   updatePropertyDetail: () => {},
   updateProjectDetail: () => {},
   saveAll: () => {},
-  loaded: false,
+  loaded: false
 });
 
 function mergeWithDefaults(stored: PageConfig): PageConfig {
@@ -922,9 +922,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
     } catch {
 
 
+
       // use defaults
     }setLoaded(true);}, []);
-
   const getPage = useCallback((key: PageKey): PageConfig => {
     return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];
   }, [pages]);
@@ -959,9 +959,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
     } catch {
 
 
+
       // storage unavailable
-    }}, [propertyDetail, projectDetail]);
-  return (
+    }}, [propertyDetail, projectDetail]);return (
     <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
       {children}
     </CMSContext.Provider>);

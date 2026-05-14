@@ -25,7 +25,7 @@ export default function InternationalHero() {
     <section className="relative min-h-[75vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
         <AppImage
-          src="https://images.unsplash.com/photo-1683041133665-41f7ff45b982"
+          src="https://images.unsplash.com/photo-1690219292358-88f9a3cdbfb8"
           alt="Dramatic aerial cityscape of a global metropolis at dusk, glittering skyline reflected in water, cinematic golden hour lighting"
           fill
           priority

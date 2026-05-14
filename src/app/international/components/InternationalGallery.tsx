@@ -40,7 +40,7 @@ const fallbackProjects: InternationalProject[] = [
   sold: 62,
   completion: 'Q3 2027',
   price: 'From $8,500,000',
-  image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1d19a2364-1775545512506.png',
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1cfccc682-1772199981583.png",
   alt: 'Dramatic architectural rendering of luxury tower, dark glass and steel, Hudson Yards skyline, cinematic dusk lighting',
   featured: true,
   published: true,
