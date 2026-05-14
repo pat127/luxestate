@@ -601,7 +601,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16f0638be-1763300671799.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_142c87a4d-1772197747821.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -923,9 +923,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
 
 
 
+
       // use defaults
-    }setLoaded(true);}, []);
-  const getPage = useCallback((key: PageKey): PageConfig => {
+    }setLoaded(true);}, []);const getPage = useCallback((key: PageKey): PageConfig => {
     return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];
   }, [pages]);
 
@@ -960,11 +960,11 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
 
 
 
+
       // storage unavailable
-    }}, [propertyDetail, projectDetail]);return (
-    <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
+    }}, [propertyDetail, projectDetail]);return <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
       {children}
-    </CMSContext.Provider>);
+    </CMSContext.Provider>;
 
 }
 

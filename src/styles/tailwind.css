@@ -312,13 +312,15 @@ input[type="range"]::-moz-range-thumb {
 
 /* Overlay gradient for cinematic hero */
 .hero-overlay {
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 10, 10, 0.3) 0%,
-    rgba(10, 10, 10, 0.15) 40%,
-    rgba(10, 10, 10, 0.6) 80%,
-    rgba(10, 10, 10, 0.95) 100%
-  );
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(10, 10, 10, 0.3) 0%,
+      rgba(10, 10, 10, 0.15) 40%,
+      rgba(10, 10, 10, 0.6) 80%,
+      rgba(10, 10, 10, 0.95) 100%
+    ),
+    rgba(0, 0, 0, 0.3);
 }
 
 /* Gold accent line */
