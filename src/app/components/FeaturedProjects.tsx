@@ -34,8 +34,8 @@ function ProjectCard({ project, priority = false, wide = false }: {
 }) {
   const { convertPrice } = useCurrency();
   return (
-    <Link href={`/projects/${project.id}`} className="project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500">
-      <div className={`relative overflow-hidden ${wide ? 'h-72 md:h-80' : 'h-64 md:h-80'}`}>
+    <Link href={`/projects/${project.id}`} className="project-card-3d relative overflow-hidden block bg-card border border-border group cursor-pointer hover:border-primary/30 transition-all duration-500 h-full">
+      <div className="relative overflow-hidden h-full min-h-[260px]">
         {project.image ? (
           <AppImage src={project.image} alt={project.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
         ) : (
@@ -177,21 +177,12 @@ export default function FeaturedProjects({ content }: Props) {
             </div>
           )}
           {projects.length >= 3 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <ProjectCard project={projects[0]} priority wide />
-              </div>
-              <div className="md:col-span-1 flex flex-col gap-4">
-                {projects[1] && <ProjectCard project={projects[1]} />}
-                {projects[2] && <ProjectCard project={projects[2]} />}
-              </div>
-              {projects.length > 3 && (
-                <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {projects.slice(3).map((project) => (
-                    <ProjectCard key={project.id} project={project} wide />
-                  ))}
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto">
+              {projects[0] && <div className="md:col-span-2 md:row-span-2"><ProjectCard project={projects[0]} priority wide /></div>}
+              {projects[1] && <div className="md:col-span-1 md:row-span-1"><ProjectCard project={projects[1]} /></div>}
+              {projects[2] && <div className="md:col-span-1 md:row-span-1"><ProjectCard project={projects[2]} /></div>}
+              {projects[3] && <div className="md:col-span-1 md:row-span-1"><ProjectCard project={projects[3]} /></div>}
+              {projects[4] && <div className="md:col-span-2 md:row-span-1"><ProjectCard project={projects[4]} wide /></div>}
             </div>
           )}
         </div>
