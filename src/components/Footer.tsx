@@ -6,6 +6,7 @@ import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useCurrency, Currency } from '@/contexts/CurrencyContext';
 import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
+import { useCMS } from '@/contexts/CMSContext';
 
 const socialLinks = [
   { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/coveestates' },
@@ -109,6 +110,7 @@ function LanguageSelector() {
 
 export default function Footer() {
   const { t } = useLanguage();
+  const cms = useCMS();
 
   const companyLinks = [
     { label: t('footer.company_about'), href: '/about' },
@@ -148,7 +150,7 @@ export default function Footer() {
           {/* Brand Column - full width on mobile */}
           <div className="col-span-2 lg:col-span-2 flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <AppLogo size={48} />
+              <AppLogo size={48} src={cms?.branding?.logo_url || '/assets/images/app_logo.png'} />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               {t('footer.tagline')}
