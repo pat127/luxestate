@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import Image from 'next/image';
 
 interface AppImageProps {
@@ -47,6 +47,15 @@ const AppImage = memo(function AppImage({
     const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+
+    // Sync imageSrc when src prop changes (e.g. CMS loads logo URL from localStorage after mount)
+    useEffect(() => {
+        if (src && src !== imageSrc) {
+            setImageSrc(src);
+            setHasError(false);
+            setIsLoading(true);
+        }
+    }, [src]);
 
     // Auto-detect external URLs — skip Next.js optimization for external CDNs
     const isExternal = typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'));
