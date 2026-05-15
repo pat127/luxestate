@@ -89,7 +89,6 @@ export default function FeaturedProjects({ content }: Props) {
       .eq('published', true)
       .eq('featured', true)
       .order('created_at', { ascending: false })
-      .limit(3)
       .then(({ data }) => {
         if (data) {
           setAllProjects(data.map((p: any) => {
@@ -176,13 +175,20 @@ export default function FeaturedProjects({ content }: Props) {
               <ProjectCard project={projects[1]} wide />
             </div>
           )}
-          {projects.length >= 3 && (
+          {projects.length === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {projects[0] && <div className="md:col-span-2"><ProjectCard project={projects[0]} priority wide /></div>}
               <div className="md:col-span-1 flex flex-col gap-4">
                 {projects[1] && <ProjectCard project={projects[1]} />}
                 {projects[2] && <ProjectCard project={projects[2]} />}
               </div>
+            </div>
+          )}
+          {projects.length > 3 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {projects.map((project, index) => (
+                <ProjectCard key={project.id} project={project} priority={index === 0} wide />
+              ))}
             </div>
           )}
         </div>
