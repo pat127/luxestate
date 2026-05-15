@@ -164,7 +164,26 @@ export default function PropertiesPage() {
       .select('name')
       .eq('agent_status', 'Active')
       .order('name', { ascending: true });
-    if (data) setAgentNames(data.map((a: any) => a.name as string));
+    const dbNames: string[] = data ? data.map((a: any) => a.name as string) : [];
+
+    // Also pull names from Users (localStorage) for super_admin/admin roles
+    // so the CEO's actual name (as edited in Users page) appears in the dropdown
+    let extraNames: string[] = [];
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('admin_users') : null;
+      if (stored) {
+        const users: Array<{ name: string; role: string; status: string }> = JSON.parse(stored);
+        extraNames = users
+          .filter((u) => (u.role === 'super_admin' || u.role === 'admin') && u.status === 'Active')
+          .map((u) => u.name);
+      }
+    } catch {
+      // ignore
+    }
+
+    // Merge: extra names first (they override DB names for same email/person), deduplicate
+    const merged = Array.from(new Set([...extraNames, ...dbNames])).sort((a, b) => a.localeCompare(b));
+    setAgentNames(merged);
   }, [supabase]);
 
   const loadProperties = useCallback(async () => {
@@ -654,14 +673,6 @@ export default function PropertiesPage() {
                       </select>
                     </div>
                     <div>
-                      <label className={labelCls}>Unit No</label>
-                      <input className={inputCls} value={formData.unitNo} onChange={(e) => setFormData({ ...formData, unitNo: e.target.value })} placeholder="e.g. 2401" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Floor</label>
-                      <input className={inputCls} value={formData.floor} onChange={(e) => setFormData({ ...formData, floor: e.target.value })} placeholder="e.g. 24" />
-                    </div>
-                    <div>
                       <label className={labelCls}>Property Type</label>
                       <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
                         {['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex', 'Office', 'Retail', 'Warehouse', 'Land'].map(t => <option key={t}>{t}</option>)}
@@ -730,24 +741,41 @@ export default function PropertiesPage() {
                     <div className="col-span-2 pt-2 border-t border-[#2a3040]">
                       <p className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Owner Details</p>
                     </div>
-                    <div>
-                      <label className={labelCls}>Owner Name</label>
-                      <input className={inputCls} value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} placeholder="e.g. Mohammed Al Rashid" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Owner Contact</label>
-                      <input className={inputCls} value={formData.ownerContact} onChange={(e) => setFormData({ ...formData, ownerContact: e.target.value })} placeholder="e.g. +971 50 123 4567" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>Owner Email</label>
-                      <input className={inputCls} value={formData.ownerEmail} onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })} placeholder="e.g. owner@email.com" />
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-[10px] text-[#666] flex items-center gap-1.5">
-                        <Icon name="InformationCircleIcon" size={11} />
-                        Owner details are automatically saved to Contacts when the property is saved.
-                      </p>
-                    </div>
+                    {(!isAgentScoped || isAssignedAgent(formData.agentName)) ? (
+                      <>
+                        <div>
+                          <label className={labelCls}>Unit No</label>
+                          <input className={inputCls} value={formData.unitNo} onChange={(e) => setFormData({ ...formData, unitNo: e.target.value })} placeholder="e.g. 2401" />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Floor</label>
+                          <input className={inputCls} value={formData.floor} onChange={(e) => setFormData({ ...formData, floor: e.target.value })} placeholder="e.g. 24" />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Owner Name</label>
+                          <input className={inputCls} value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} placeholder="e.g. Mohammed Al Rashid" />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Owner Contact</label>
+                          <input className={inputCls} value={formData.ownerContact} onChange={(e) => setFormData({ ...formData, ownerContact: e.target.value })} placeholder="e.g. +971 50 123 4567" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className={labelCls}>Owner Email</label>
+                          <input className={inputCls} value={formData.ownerEmail} onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })} placeholder="e.g. owner@email.com" />
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-[#666] flex items-center gap-1.5">
+                            <Icon name="InformationCircleIcon" size={11} />
+                            Owner details are automatically saved to Contacts when the property is saved.
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
+                        <Icon name="LockClosedIcon" size={13} />
+                        <span>Unit No, Floor, and Owner details are restricted to the listing agent and admins only.</span>
+                      </div>
+                    )}
                     <div className="col-span-2">
                       <label className={labelCls}>Description</label>
                       <textarea className={inputCls} rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />
