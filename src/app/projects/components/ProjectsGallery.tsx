@@ -70,7 +70,7 @@ export default function ProjectsGallery() {
               location: p.location_area || '',
               completion: p.handover_date || '',
               units: p.total_units || 0,
-              priceFrom: p.starting_price ? `AED ${p.starting_price}+` : '',
+              priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '',
               status: p.status || 'Active',
               statusColor: getStatusColor(p.status),
               sold: p.sold_units || 0,
@@ -166,20 +166,8 @@ export default function ProjectsGallery() {
                   </div>
                   {project.priceFrom && <span className="text-primary font-bold text-sm text-right">{project.priceFrom}</span>}
                 </div>
-                {project.description && <p className="text-muted-foreground text-xs leading-relaxed mb-4 line-clamp-2">{project.description}</p>}
-                {project.units > 0 && (
-                  <div className="mb-4">
-                    <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      <span>{project.sold} of {project.units} Reserved</span>
-                      <span className="text-primary font-bold">{Math.round((project.sold / project.units) * 100)}% Sold</span>
-                    </div>
-                    <div className="h-1 bg-border overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-700" style={{ width: `${Math.round((project.sold / project.units) * 100)}%` }} />
-                    </div>
-                  </div>
-                )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-                  <span className="flex items-center gap-1.5"><Icon name="BuildingOffice2Icon" size={11} className="text-primary" />{project.developer}</span>
+                  <span className="text-primary font-bold text-base">{project.developer}</span>
                   {project.completion && <span className="flex items-center gap-1.5"><Icon name="CalendarIcon" size={11} className="text-primary" />{project.completion}</span>}
                   <span className="flex items-center gap-1.5 text-primary font-bold">View Project <Icon name="ArrowRightIcon" size={11} /></span>
                 </div>

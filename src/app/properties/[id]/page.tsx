@@ -351,9 +351,9 @@ export default function PropertyDetailPage() {
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-3xl md:text-4xl font-black text-primary tracking-tight">
-                {property.price_aed ? `AED ${property.price_aed}` : 'Price on Request'}
+                {property.price_aed ? `AED ${Number(property.price_aed).toLocaleString()}` : 'Price on Request'}
               </p>
-              {property.price_per_sqft && <p className="text-muted-foreground text-xs mt-1">AED {property.price_per_sqft} / sqft</p>}
+              {property.price_per_sqft && <p className="text-muted-foreground text-xs mt-1">AED {Number(property.price_per_sqft).toLocaleString()} / sqft</p>}
               <p className="text-muted-foreground text-[10px] uppercase tracking-widest mt-0.5">Ref: {reference}</p>
             </div>
           </div>

@@ -61,7 +61,7 @@ function mapProject(p: any) {
     completion: p.handover_date || '',
     units: p.total_units || 0,
     floors: p.floors || '',
-    priceFrom: p.starting_price ? `AED ${p.starting_price}+` : '',
+    priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '',
     priceTo: '',
     status: p.status || '',
     sold: p.sold_units || 0,
@@ -301,7 +301,7 @@ export default function ProjectDetailPage() {
           setSimilar(simData.map((p: any) => {
             const imgs = Array.isArray(p.images) ? p.images : [];
             const img = imgs[0]?.url || imgs[0]?.src || '';
-            return { id: p.id, name: p.name || '', location: p.location_area || '', image: img, alt: p.name || '', completion: p.handover_date || '', priceFrom: p.starting_price ? `AED ${p.starting_price}+` : '', units: p.total_units || 0, href: `/projects/${p.id}` };
+            return { id: p.id, name: p.name || '', location: p.location_area || '', image: img, alt: p.name || '', completion: p.handover_date || '', priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '', units: p.total_units || 0, href: `/projects/${p.id}` };
           }));
         }
       });

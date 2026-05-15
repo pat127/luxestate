@@ -87,7 +87,7 @@ export default function FeaturedProperties({ content }: Props) {
               id: p.id,
               name: p.title,
               location: p.location_area || '',
-              price: p.price_aed ? `AED ${p.price_aed}` : 'Price on Request',
+              price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : 'Price on Request',
               beds: parseInt(p.bedrooms) || 0,
               baths: parseInt(p.bathrooms) || 0,
               sqft: p.area_sqft || '',

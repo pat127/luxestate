@@ -52,8 +52,11 @@ function ProjectCard({ project, priority = false, wide = false }: {
           <div className="flex justify-between items-end mb-3">
             <div>
               <h3 className="text-white font-bold text-lg leading-tight">{project.name}</h3>
-              <p className="text-white/70 text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-                <Icon name="MapPinIcon" size={11} className="text-primary" />{project.location} · {project.developer}
+              <p className="text-primary font-bold text-base mt-1">
+                {project.developer}
+              </p>
+              <p className="text-white/70 text-xs tracking-widest uppercase mt-0.5 flex items-center gap-1">
+                <Icon name="MapPinIcon" size={11} className="text-primary" />{project.location}
               </p>
             </div>
             <div className="text-right">
@@ -62,17 +65,8 @@ function ProjectCard({ project, priority = false, wide = false }: {
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs text-white/60 border-t border-white/10 pt-3">
-            {project.units > 0 && <span className="flex items-center gap-1.5"><Icon name="BuildingOffice2Icon" size={11} className="text-primary" />{project.units} Units</span>}
             {project.completion && <span className="flex items-center gap-1.5"><Icon name="CalendarIcon" size={11} className="text-primary" />{project.completion}</span>}
-            {project.sold > 0 && (
-              <div className="flex-1 flex items-center gap-2">
-                <div className="flex-1 h-1 bg-white/10 overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${project.sold}%` }} />
-                </div>
-                <span className="text-primary font-semibold">{project.sold}% Sold</span>
-              </div>
-            )}
-            {project.sold === 0 && <span className="text-primary font-semibold">Register Interest</span>}
+            <span className="text-primary font-semibold">Register Interest</span>
           </div>
         </div>
       </div>
@@ -110,7 +104,7 @@ export default function FeaturedProjects({ content }: Props) {
               location: p.location_area || '',
               type: p.project_type || 'Off-Plan',
               completion: p.handover_date || '',
-              price: p.starting_price ? `AED ${p.starting_price}+` : 'Price on Request',
+              price: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : 'Price on Request',
               units: p.total_units || 0,
               sold: soldPct,
               image: img,
