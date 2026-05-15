@@ -1637,14 +1637,12 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <SectionHeader title="Social Media Links" description="Configure social media profiles and links" />
             <div className="space-y-4">
-              {[
-                { label: 'Instagram', placeholder: 'https://instagram.com/coveestates' },
-                { label: 'LinkedIn', placeholder: 'https://linkedin.com/company/coveestates' },
-                { label: 'Facebook', placeholder: 'https://facebook.com/coveestates' },
-                { label: 'Twitter / X', placeholder: 'https://twitter.com/coveestates' },
-                { label: 'YouTube', placeholder: 'https://youtube.com/@coveestates' },
-                { label: 'TikTok', placeholder: 'https://tiktok.com/@coveestates' },
-              ].map((s) => <InputField key={s.label} label={s.label} placeholder={s.placeholder} />)}
+              <InputField label="Instagram" value={branding.social_instagram ?? ''} onChange={(v) => setBranding({ ...branding, social_instagram: v })} placeholder="https://instagram.com/coveestates" />
+              <InputField label="LinkedIn" value={branding.social_linkedin ?? ''} onChange={(v) => setBranding({ ...branding, social_linkedin: v })} placeholder="https://linkedin.com/company/coveestates" />
+              <InputField label="Facebook" value={branding.social_facebook ?? ''} onChange={(v) => setBranding({ ...branding, social_facebook: v })} placeholder="https://facebook.com/coveestates" />
+              <InputField label="Twitter / X" value={branding.social_twitter ?? ''} onChange={(v) => setBranding({ ...branding, social_twitter: v })} placeholder="https://twitter.com/coveestates" />
+              <InputField label="YouTube" value={branding.social_youtube ?? ''} onChange={(v) => setBranding({ ...branding, social_youtube: v })} placeholder="https://youtube.com/@coveestates" />
+              <InputField label="TikTok" value={branding.social_tiktok ?? ''} onChange={(v) => setBranding({ ...branding, social_tiktok: v })} placeholder="https://tiktok.com/@coveestates" />
             </div>
           </div>
         )}

@@ -414,6 +414,12 @@ export interface BrandingConfig {
   email?: string;
   whatsapp?: string;
   address?: string;
+  social_instagram?: string;
+  social_linkedin?: string;
+  social_facebook?: string;
+  social_twitter?: string;
+  social_youtube?: string;
+  social_tiktok?: string;
 }
 
 export interface CMSData {
@@ -434,7 +440,13 @@ const DEFAULT_BRANDING: BrandingConfig = {
   phone: '+971 50 886 2683',
   email: 'admin@coveestates.com',
   whatsapp: '+971508862683',
-  address: '8th Level, Moosa Tower 1, Dubai, UAE'
+  address: '8th Level, Moosa Tower 1, Dubai, UAE',
+  social_instagram: '',
+  social_linkedin: '',
+  social_facebook: '',
+  social_twitter: '',
+  social_youtube: '',
+  social_tiktok: '',
 };
 
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
