@@ -251,7 +251,7 @@
 /* Hero text scale */
 .text-hero {
   font-size: clamp(2.38rem, 5.95vw, 6.375rem);
-  line-height: 0.92;
+  line-height: 1.05;
   letter-spacing: -0.04em;
   font-weight: 800;
 }
