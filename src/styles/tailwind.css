@@ -114,6 +114,7 @@
   animation: goldShimmer 6s linear infinite;
   display: inline-block;
   will-change: background-position;
+  padding-bottom: 0.15em;
 }
 
 .cinematic-in {
