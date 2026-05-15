@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { PropertyDetailContent } from '@/contexts/CMSContext';
+import { createClient } from '@/lib/supabase/client';
 
 export function GallerySection({ images }: { images: PropertyDetailContent['images'] }) {
   const [active, setActive] = useState(0);
@@ -176,28 +177,26 @@ export function AgentCard({ agent, propertyName, reference }: { agent: PropertyD
 export function EnquiryForm({ propertyName, reference }: { propertyName: string; reference: string }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: `I'm interested in ${propertyName} (Ref: ${reference}). Please contact me.` });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Save lead to CRM
+    setSending(true);
     try {
-      const stored = localStorage.getItem('admin_leads');
-      const leads = stored ? JSON.parse(stored) : [];
-      const newLead = {
-        id: Date.now(),
+      const supabase = createClient();
+      await supabase.from('leads').insert({
         name: form.name,
         email: form.email,
-        phone: form.phone,
+        phone: form.phone || null,
         source: 'Website',
         status: 'New',
-        budget: '',
         interest: propertyName,
-        date: 'Just now',
-        notes: form.message,
-      };
-      leads.push(newLead);
-      localStorage.setItem('admin_leads', JSON.stringify(leads));
-    } catch { /* ignore */ }
+        notes: form.message || null,
+      });
+    } catch {
+      // silent fail
+    }
+    setSending(false);
     setSent(true);
   };
 
@@ -220,8 +219,8 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
       </div>
       <input type="tel" placeholder="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-secondary border border-border px-4 py-3 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors" />
       <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full bg-secondary border border-border px-4 py-3 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none" />
-      <button type="submit" className="w-full py-3.5 bg-primary text-primary-foreground text-xs font-black uppercase tracking-[0.25em] hover:bg-accent transition-colors flex items-center justify-center gap-2 group">
-        Send Enquiry
+      <button type="submit" disabled={sending} className="w-full py-3.5 bg-primary text-primary-foreground text-xs font-black uppercase tracking-[0.25em] hover:bg-accent transition-colors flex items-center justify-center gap-2 group disabled:opacity-60">
+        {sending ? 'Sending...' : 'Send Enquiry'}
         <Icon name="ArrowRightIcon" size={14} className="transition-transform group-hover:translate-x-1" />
       </button>
     </form>

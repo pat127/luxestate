@@ -5,43 +5,10 @@ import Icon from '@/components/ui/AppIcon';
 import { ContactContent, DEFAULT_CONTACT } from '@/contexts/CMSContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { trackInquirySubmission } from '@/lib/analytics';
+import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   content?: ContactContent;
-}
-
-const LEADS_STORAGE_KEY = 'admin_leads';
-
-function saveContactAsLead(form: {
-  name: string;
-  email: string;
-  phone: string;
-  budget: string;
-  propertyType: string;
-  message: string;
-}) {
-  if (typeof window === 'undefined') return;
-  try {
-    const existing = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || '[]');
-    const newLead = {
-      id: Date.now(),
-      name: form.name,
-      email: form.email,
-      phone: form.phone || '',
-      source: 'Website',
-      status: 'New',
-      budget: form.budget || '',
-      interest: form.propertyType || '',
-      date: 'Just now',
-      assignedAgent: '',
-      nationality: '',
-      notes: form.message || '',
-      followUpDate: '',
-    };
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify([newLead, ...existing]));
-  } catch {
-    // silent fail
-  }
 }
 
 export default function ContactSection({ content }: Props) {
@@ -58,6 +25,7 @@ export default function ContactSection({ content }: Props) {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -77,14 +45,30 @@ export default function ContactSection({ content }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveContactAsLead(form);
+    setSubmitting(true);
+    try {
+      const supabase = createClient();
+      await supabase.from('leads').insert({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        source: 'Website',
+        status: 'New',
+        budget: form.budget || null,
+        interest: form.propertyType || null,
+        notes: form.message || null,
+      });
+    } catch {
+      // silent fail — form still shows success to user
+    }
     trackInquirySubmission({
       formType: 'contact',
       budget: form.budget,
       source: 'contact_section',
     });
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -190,8 +174,8 @@ export default function ContactSection({ content }: Props) {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.your_vision')}</label>
                   <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground resize-none" placeholder={t('contact.vision_placeholder')} />
                 </div>
-                <button type="submit" className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group min-h-[52px]">
-                  {t('contact.submit')}
+                <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group min-h-[52px] disabled:opacity-60">
+                  {submitting ? 'Sending...' : t('contact.submit')}
                   <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
                 <p className="text-muted-foreground text-[10px] text-center leading-relaxed">
