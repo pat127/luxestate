@@ -82,7 +82,7 @@ export default function ProjectsHero() {
             {page.cta_primary_text && <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">{page.cta_primary_text}</Link>}
             {page.cta_secondary_text && <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">{page.cta_secondary_text}</Link>}
           </div>
-          {dynamicStats.length > 0 && (
+          {page.sections?.stats_section !== false && dynamicStats.length > 0 && (
             <div className="flex flex-wrap gap-6 pt-2">
               {dynamicStats.map((stat) => (
                 <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">

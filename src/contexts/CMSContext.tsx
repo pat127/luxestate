@@ -786,7 +786,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   cta_secondary_link: '/#contact',
   meta_title: 'Off-Plan Projects Dubai — Cove Estates',
   meta_description: 'Exclusive off-plan and new development projects in Dubai from leading developers.',
-  sections: { projects_gallery: true, project_timeline: true, project_inquiry: true }
+  sections: { projects_gallery: true, project_timeline: true, project_inquiry: true, stats_section: true }
 },
 {
   key: 'about',

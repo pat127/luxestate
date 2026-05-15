@@ -74,6 +74,7 @@ export default function ResidentialHero() {
               </Link>
             )}
           </div>
+          {page.sections?.market_stats !== false && (
           <div className="flex flex-wrap gap-6 pt-2">
             {[
               { icon: 'HomeIcon', label: '120+ Active Listings' },
@@ -86,6 +87,7 @@ export default function ResidentialHero() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </section>

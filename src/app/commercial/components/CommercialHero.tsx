@@ -73,6 +73,7 @@ export default function CommercialHero() {
               </Link>
             )}
           </div>
+          {page.sections?.commercial_stats !== false && (
           <div className="flex flex-wrap gap-6 pt-2">
             {[
               { icon: 'BuildingOfficeIcon', label: '45+ Commercial Assets' },
@@ -85,6 +86,7 @@ export default function CommercialHero() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </section>
