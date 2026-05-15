@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { trackInquirySubmission } from '@/lib/analytics';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 export default function ProjectInquiry() {
   const supabase = createClient();
@@ -54,6 +55,15 @@ export default function ProjectInquiry() {
       budget: form.budget,
       interest: selectedProject ? selectedProject.name : form.project,
       notes: form.message,
+    });
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      budget: form.budget || undefined,
+      message: form.message || undefined,
+      formType: 'project_inquiry',
+      projectName: selectedProject ? selectedProject.name : form.project || undefined,
     });
     trackInquirySubmission({
       formType: 'project_inquiry',

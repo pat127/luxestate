@@ -6,6 +6,7 @@ import { ContactContent, DEFAULT_CONTACT } from '@/contexts/CMSContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { trackInquirySubmission } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 interface Props {
   content?: ContactContent;
@@ -63,6 +64,15 @@ export default function ContactSection({ content }: Props) {
     } catch {
       // silent fail — form still shows success to user
     }
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      budget: form.budget || undefined,
+      propertyType: form.propertyType || undefined,
+      message: form.message || undefined,
+      formType: 'contact',
+    });
     trackInquirySubmission({
       formType: 'contact',
       budget: form.budget,

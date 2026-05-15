@@ -5,6 +5,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { PropertyDetailContent } from '@/contexts/CMSContext';
 import { createClient } from '@/lib/supabase/client';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 export function GallerySection({ images }: { images: PropertyDetailContent['images'] }) {
   const [active, setActive] = useState(0);
@@ -196,6 +197,15 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
     } catch {
       // silent fail
     }
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      message: form.message || undefined,
+      formType: 'property_inquiry',
+      projectName: propertyName,
+      reference: reference,
+    });
     setSending(false);
     setSent(true);
   };
