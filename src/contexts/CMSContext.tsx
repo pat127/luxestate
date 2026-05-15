@@ -915,7 +915,7 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
           });
           setPages(mergedPages);
         }
-        if (data.branding) setBranding(data.branding);
+        if (data.branding) setBranding({ ...DEFAULT_BRANDING, ...data.branding });
         if (data.propertyDetail) setPropertyDetail({ ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail });
         if (data.projectDetail) setProjectDetail({ ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail });
         if (data.lastSaved) setLastSaved(data.lastSaved);
