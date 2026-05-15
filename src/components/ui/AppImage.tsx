@@ -100,7 +100,7 @@ const AppImage = memo(function AppImage({
         }
 
         return baseProps;
-    }, [imageSrc, alt, imageClassName, quality, unoptimized, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
+    }, [imageSrc, alt, imageClassName, quality, shouldUnoptimize, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
 
     if (fill) {
         return (
