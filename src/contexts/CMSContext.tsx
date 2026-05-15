@@ -430,6 +430,7 @@ const DEFAULT_BRANDING: BrandingConfig = {
   primary_color: '#C9A84C',
   accent_color: '#B8963E',
   font_family: 'Plus Jakarta Sans',
+  logo_url: '/assets/images/app_logo.png',
   phone: '+971 50 886 2683',
   email: 'admin@coveestates.com',
   whatsapp: '+971508862683',
