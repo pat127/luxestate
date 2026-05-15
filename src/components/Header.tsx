@@ -151,8 +151,8 @@ export default function Header() {
             />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Desktop Nav - centered */}
+          <nav className="hidden md:flex items-center justify-center gap-1 flex-1 mx-8">
             {NAV_KEYS?.map((link) => (
               <Link
                 key={link?.href}
@@ -171,11 +171,8 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* CTA + Currency/Language + Hamburger */}
+          {/* CTA + Hamburger */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Currency + Language selectors - desktop only */}
-            <CurrencyLanguageSelector />
-
             {/* WhatsApp - desktop only */}
             <a
               href="https://wa.me/971508862683"

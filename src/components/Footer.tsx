@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useCurrency, Currency } from '@/contexts/CurrencyContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
 
 const socialLinks = [
   { icon: 'GlobeAltIcon' as const, label: 'Instagram', href: 'https://instagram.com/coveestates' },
@@ -65,6 +65,40 @@ function CurrencySelector() {
               className={`w-full text-left px-4 py-2.5 text-xs font-medium tracking-wide hover:bg-primary/10 hover:text-primary transition-colors duration-200 ${currency === opt.value ? 'text-primary bg-primary/5' : 'text-muted-foreground'}`}
             >
               {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LanguageSelector() {
+  const { language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const currentLang = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] border border-border px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-all duration-300"
+        aria-label="Select language"
+      >
+        <Icon name="GlobeAltIcon" size={13} className="text-primary" />
+        {currentLang.code.toUpperCase()}
+        <Icon name="ChevronDownIcon" size={12} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute bottom-full mb-2 right-0 bg-card border border-border shadow-xl z-50 min-w-[160px]">
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => { setLanguage(l.code as Language); setOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-xs font-medium tracking-wide hover:bg-primary/10 hover:text-primary transition-colors duration-200 flex items-center justify-between gap-3 ${language === l.code ? 'text-primary bg-primary/5' : 'text-muted-foreground'}`}
+            >
+              <span className="uppercase tracking-[0.15em]">{l.label}</span>
+              <span className="font-normal normal-case tracking-normal text-muted-foreground">{l.nativeLabel}</span>
             </button>
           ))}
         </div>
@@ -181,6 +215,7 @@ export default function Footer() {
               ))}
             </nav>
             <CurrencySelector />
+            <LanguageSelector />
           </div>
         </div>
       </div>
