@@ -70,6 +70,11 @@ interface PropertyFormData {
   agentPhone: string;
   agentEmail: string;
   propCategory: string;
+  unitNo: string;
+  floor: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerContact: string;
 }
 
 const defaultFormData: PropertyFormData = {
@@ -111,6 +116,11 @@ const defaultFormData: PropertyFormData = {
   agentPhone: '',
   agentEmail: '',
   propCategory: 'Residential',
+  unitNo: '',
+  floor: '',
+  ownerName: '',
+  ownerEmail: '',
+  ownerContact: '',
 };
 
 const statusColors: Record<string, string> = {
@@ -299,6 +309,11 @@ export default function PropertiesPage() {
         agentPhone: data.agent_phone || '',
         agentEmail: data.agent_email || '',
         propCategory: data.prop_category || 'Residential',
+        unitNo: data.unit_no || '',
+        floor: data.floor || '',
+        ownerName: data.owner_name || '',
+        ownerEmail: data.owner_email || '',
+        ownerContact: data.owner_contact || '',
       });
       setAvailableAreas(getAreasForEmirate(data.emirate || 'Dubai'));
       if (data.location_area) setAvailableCommunities(getCommunitiesForArea(data.location_area));
@@ -358,6 +373,11 @@ export default function PropertiesPage() {
       agent_phone: formData.agentPhone,
       agent_email: formData.agentEmail,
       prop_category: formData.propCategory,
+      unit_no: formData.unitNo,
+      floor: formData.floor,
+      owner_name: formData.ownerName,
+      owner_email: formData.ownerEmail,
+      owner_contact: formData.ownerContact,
     };
 
     let error: any = null;
@@ -367,6 +387,37 @@ export default function PropertiesPage() {
     } else {
       const result = await supabase.from('properties').insert(payload);
       error = result.error;
+    }
+
+    if (!error && formData.ownerName) {
+      // Auto-save owner to contacts (localStorage)
+      try {
+        const CONTACTS_KEY = 'admin_contacts';
+        const existing: any[] = JSON.parse(localStorage.getItem(CONTACTS_KEY) || '[]');
+        const ownerExists = existing.some(
+          (c) => c.name === formData.ownerName && (c.phone === formData.ownerContact || c.email === formData.ownerEmail)
+        );
+        if (!ownerExists) {
+          const newContact = {
+            id: Date.now(),
+            name: formData.ownerName,
+            email: formData.ownerEmail || '',
+            phone: formData.ownerContact || '',
+            type: 'Seller',
+            status: 'Active',
+            lastContact: 'Just now',
+            deals: 0,
+            nationality: '',
+            assignedAgent: formData.agentName || '',
+            source: 'Property Listing',
+            notes: `Owner of property: ${formData.title}${formData.referenceNumber ? ` (${formData.referenceNumber})` : ''}`,
+          };
+          existing.push(newContact);
+          localStorage.setItem(CONTACTS_KEY, JSON.stringify(existing));
+        }
+      } catch {
+        // silently ignore contact save errors
+      }
     }
 
     setSaving(false);
@@ -603,6 +654,14 @@ export default function PropertiesPage() {
                       </select>
                     </div>
                     <div>
+                      <label className={labelCls}>Unit No</label>
+                      <input className={inputCls} value={formData.unitNo} onChange={(e) => setFormData({ ...formData, unitNo: e.target.value })} placeholder="e.g. 2401" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Floor</label>
+                      <input className={inputCls} value={formData.floor} onChange={(e) => setFormData({ ...formData, floor: e.target.value })} placeholder="e.g. 24" />
+                    </div>
+                    <div>
                       <label className={labelCls}>Property Type</label>
                       <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
                         {['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex', 'Office', 'Retail', 'Warehouse', 'Land'].map(t => <option key={t}>{t}</option>)}
@@ -667,6 +726,28 @@ export default function PropertiesPage() {
                         <span>Owner contact details are only visible to the listing agent.</span>
                       </div>
                     )}
+                    {/* Owner Details */}
+                    <div className="col-span-2 pt-2 border-t border-[#2a3040]">
+                      <p className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Owner Details</p>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Owner Name</label>
+                      <input className={inputCls} value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} placeholder="e.g. Mohammed Al Rashid" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Owner Contact</label>
+                      <input className={inputCls} value={formData.ownerContact} onChange={(e) => setFormData({ ...formData, ownerContact: e.target.value })} placeholder="e.g. +971 50 123 4567" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Owner Email</label>
+                      <input className={inputCls} value={formData.ownerEmail} onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })} placeholder="e.g. owner@email.com" />
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-[#666] flex items-center gap-1.5">
+                        <Icon name="InformationCircleIcon" size={11} />
+                        Owner details are automatically saved to Contacts when the property is saved.
+                      </p>
+                    </div>
                     <div className="col-span-2">
                       <label className={labelCls}>Description</label>
                       <textarea className={inputCls} rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />
