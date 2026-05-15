@@ -164,12 +164,27 @@ export default function FeaturedProjects({ content }: Props) {
           <p className="text-muted-foreground text-xs mt-1">Add projects in the admin panel to display them here.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-          {projects[0] && <div className="md:col-span-2"><ProjectCard project={projects[0]} priority wide /></div>}
-          <div className="md:col-span-1 flex flex-col gap-4">
-            {projects[1] && <ProjectCard project={projects[1]} />}
-            {projects[2] && <ProjectCard project={projects[2]} />}
-          </div>
+        <div className="animate-on-scroll">
+          {projects.length === 1 && (
+            <div className="grid grid-cols-1 gap-4">
+              <ProjectCard project={projects[0]} priority wide />
+            </div>
+          )}
+          {projects.length === 2 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ProjectCard project={projects[0]} priority wide />
+              <ProjectCard project={projects[1]} wide />
+            </div>
+          )}
+          {projects.length >= 3 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {projects[0] && <div className="md:col-span-2"><ProjectCard project={projects[0]} priority wide /></div>}
+              <div className="md:col-span-1 flex flex-col gap-4">
+                {projects[1] && <ProjectCard project={projects[1]} />}
+                {projects[2] && <ProjectCard project={projects[2]} />}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>
