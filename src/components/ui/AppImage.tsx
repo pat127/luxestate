@@ -44,18 +44,15 @@ const AppImage = memo(function AppImage({
     unoptimized = false,
     ...props
 }: AppImageProps) {
-    const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
-    const [isLoading, setIsLoading] = useState(true);
+    // Use null as initial state to avoid SSR/client mismatch when src comes from localStorage/CMS
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
 
-    // Sync imageSrc when src prop changes (e.g. CMS loads logo URL from localStorage after mount)
+    // Set the image src only on the client to prevent hydration mismatch
     useEffect(() => {
-        if (src && src !== imageSrc) {
-            setImageSrc(src);
-            setHasError(false);
-            setIsLoading(true);
-        }
-    }, [src]);
+        setImageSrc(src || fallbackSrc);
+        setHasError(false);
+    }, [src, fallbackSrc]);
 
     // Auto-detect external URLs — skip Next.js optimization for external CDNs
     const isExternal = typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'));
@@ -66,24 +63,21 @@ const AppImage = memo(function AppImage({
             setImageSrc(fallbackSrc);
             setHasError(true);
         }
-        setIsLoading(false);
     }, [hasError, imageSrc, fallbackSrc]);
 
     const handleLoad = useCallback(() => {
-        setIsLoading(false);
         setHasError(false);
     }, []);
 
     const imageClassName = useMemo(() => {
         const classes = [className];
-        if (isLoading) classes.push('bg-gray-900/20');
         if (onClick) classes.push('cursor-pointer hover:opacity-90 transition-opacity duration-200');
         return classes.filter(Boolean).join(' ');
-    }, [className, isLoading, onClick]);
+    }, [className, onClick]);
 
     const imageProps = useMemo(() => {
         const baseProps: any = {
-            src: imageSrc,
+            src: imageSrc || fallbackSrc,
             alt,
             className: imageClassName,
             quality,
@@ -109,7 +103,21 @@ const AppImage = memo(function AppImage({
         }
 
         return baseProps;
-    }, [imageSrc, alt, imageClassName, quality, shouldUnoptimize, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
+    }, [imageSrc, fallbackSrc, alt, imageClassName, quality, shouldUnoptimize, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
+
+    // Render nothing until client-side hydration is complete to avoid mismatch
+    if (!imageSrc) {
+        const placeholderClass = [className, 'bg-gray-900/20'].filter(Boolean).join(' ');
+        if (fill) {
+            return <div className={placeholderClass} style={{ position: 'absolute', inset: 0 }} />;
+        }
+        return (
+            <div
+                className={placeholderClass}
+                style={{ width: width || 400, height: height || 300, display: 'block' }}
+            />
+        );
+    }
 
     if (fill) {
         return (
