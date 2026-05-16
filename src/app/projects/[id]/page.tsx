@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface ProjectImage { src: string; alt: string; }
@@ -239,6 +240,15 @@ function EnquiryForm({ projectName, reference, unitTypes, projectId }: { project
       source: 'Website', status: 'New',
       interest: form.unitType ? `${projectName} — ${form.unitType}` : projectName,
       notes: form.message,
+    });
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      message: form.message || undefined,
+      formType: 'project_inquiry',
+      projectName: form.unitType ? `${projectName} — ${form.unitType}` : projectName,
+      reference,
     });
     setSubmitting(false);
     setSent(true);

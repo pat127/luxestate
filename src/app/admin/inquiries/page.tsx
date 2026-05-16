@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
@@ -58,7 +58,7 @@ function formatTime(iso: string) {
 }
 
 export default function InquiriesPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);

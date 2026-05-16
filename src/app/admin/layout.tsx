@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
@@ -81,7 +81,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
   const pathname = usePathname();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchPendingDocs = useCallback(async () => {
     if (currentUser.role !== 'super_admin') return;
