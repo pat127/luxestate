@@ -7,6 +7,7 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { Suspense } from 'react';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -185,13 +186,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
-        <CMSProvider>
-          <CurrencyProvider defaultCurrency="AED">
-            <LanguageProvider>
-              {children}
-            </LanguageProvider>
-          </CurrencyProvider>
-        </CMSProvider>
+        <AuthProvider>
+          <CMSProvider>
+            <CurrencyProvider defaultCurrency="AED">
+              <LanguageProvider>
+                {children}
+              </LanguageProvider>
+            </CurrencyProvider>
+          </CMSProvider>
+        </AuthProvider>
       </body>
     </html>
   );
