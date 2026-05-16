@@ -876,7 +876,15 @@ const CMSContext = createContext<CMSContextValue>({
 });
 
 function mergeWithDefaults(stored: PageConfig): PageConfig {
-  if (stored.key !== 'home') return stored;
+  if (stored.key !== 'home') {
+    // Merge sections: default page sections provide fallback values,
+    // but stored values (including false) always take priority
+    const defaultPage = DEFAULT_PAGES.find((p) => p.key === stored.key);
+    const mergedSections = defaultPage
+      ? { ...defaultPage.sections, ...stored.sections }
+      : stored.sections;
+    return { ...stored, sections: mergedSections };
+  }
   // Deep merge: stored values take priority, only fill in completely missing keys
   return {
     ...stored,
@@ -905,43 +913,59 @@ function mergeWithDefaults(stored: PageConfig): PageConfig {
   };
 }
 
-export function CMSProvider({ children }: {children: React.ReactNode;}) {
-  const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
-  const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
-  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(DEFAULT_PROPERTY_DETAIL);
-  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(DEFAULT_PROJECT_DETAIL);
-  const [lastSaved, setLastSaved] = useState<string | undefined>();
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(CMS_STORAGE_KEY);
-      if (stored) {
-        const data: CMSData = JSON.parse(stored);
-        if (data.pages?.length) {
-          // Merge stored pages with defaults: stored pages take priority
-          const mergedPages = DEFAULT_PAGES.map((defaultPage) => {
+function loadInitialCMSData(): {
+  pages: PageConfig[];
+  branding: BrandingConfig;
+  propertyDetail: PropertyDetailContent;
+  projectDetail: ProjectDetailContent;
+  lastSaved: string | undefined;
+} {
+  try {
+    const stored = localStorage.getItem(CMS_STORAGE_KEY);
+    if (stored) {
+      const data: CMSData = JSON.parse(stored);
+      const pages = data.pages?.length
+        ? DEFAULT_PAGES.map((defaultPage) => {
             const storedPage = data.pages.find((p) => p.key === defaultPage.key);
             if (!storedPage) return defaultPage;
             return mergeWithDefaults(storedPage);
-          });
-          setPages(mergedPages);
-        }
-        if (data.branding) setBranding({ ...DEFAULT_BRANDING, ...data.branding });
-        if (data.propertyDetail) setPropertyDetail({ ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail });
-        if (data.projectDetail) setProjectDetail({ ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail });
-        if (data.lastSaved) setLastSaved(data.lastSaved);
-      }
-    } catch {
+          })
+        : DEFAULT_PAGES;
+      return {
+        pages,
+        branding: data.branding ? { ...DEFAULT_BRANDING, ...data.branding } : DEFAULT_BRANDING,
+        propertyDetail: data.propertyDetail ? { ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail } : DEFAULT_PROPERTY_DETAIL,
+        projectDetail: data.projectDetail ? { ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail } : DEFAULT_PROJECT_DETAIL,
+        lastSaved: data.lastSaved,
+      };
+    }
+  } catch {
+    // use defaults
+  }
+  return {
+    pages: DEFAULT_PAGES,
+    branding: DEFAULT_BRANDING,
+    propertyDetail: DEFAULT_PROPERTY_DETAIL,
+    projectDetail: DEFAULT_PROJECT_DETAIL,
+    lastSaved: undefined,
+  };
+}
 
+const _cmsInitCache: { data: ReturnType<typeof loadInitialCMSData> | null } = { data: null };
+function getCachedInitialData() {
+  if (!_cmsInitCache.data) _cmsInitCache.data = loadInitialCMSData();
+  return _cmsInitCache.data;
+}
 
+export function CMSProvider({ children }: {children: React.ReactNode;}) {
+  const [pages, setPages] = useState<PageConfig[]>(() => getCachedInitialData().pages);
+  const [branding, setBranding] = useState<BrandingConfig>(() => getCachedInitialData().branding);
+  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(() => getCachedInitialData().propertyDetail);
+  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(() => getCachedInitialData().projectDetail);
+  const [lastSaved, setLastSaved] = useState<string | undefined>(() => getCachedInitialData().lastSaved);
+  const [loaded] = useState(true);
 
-
-
-
-
-      // use defaults
-    }setLoaded(true);}, []);const getPage = useCallback((key: PageKey): PageConfig => {return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];}, [pages]);
+  const getPage = useCallback((key: PageKey): PageConfig => {return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];}, [pages]);
   const updatePage = useCallback((updated: PageConfig) => {
     setPages((prev) => prev.map((p) => p.key === updated.key ? updated : p));
   }, []);
