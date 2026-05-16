@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const allCrmLinks = [
   { label: 'Dashboard', href: '/admin', icon: 'Squares2X2Icon', permission: 'view_dashboard' as Permission },
+  { label: 'Agent Portal', href: '/admin/dashboard', icon: 'UserCircleIcon', permission: 'view_dashboard' as Permission },
   { label: 'Contacts', href: '/admin/contacts', icon: 'UsersIcon', permission: 'view_contacts' as Permission },
   { label: 'Leads', href: '/admin/leads', icon: 'UserPlusIcon', permission: 'view_leads' as Permission },
   { label: 'Inquiries', href: '/admin/inquiries', icon: 'InboxIcon', permission: 'view_leads' as Permission },
