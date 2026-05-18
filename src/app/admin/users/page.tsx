@@ -1,479 +1,955 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type UserRole = 'super_admin' | 'admin' | 'marketing' | 'agent';
+type UserStatus = 'Active' | 'Inactive';
 
-const MODULES = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'leads_all', label: 'Leads (All)' },
-  { key: 'leads_own', label: 'Leads (Own)' },
-  { key: 'contacts_all', label: 'Contacts (All)' },
-  { key: 'contacts_own', label: 'Contacts (Own)' },
-  { key: 'properties', label: 'Properties' },
-  { key: 'projects', label: 'Projects' },
-  { key: 'deals_all', label: 'Deals (All)' },
-  { key: 'deals_own', label: 'Deals (Own)' },
-  { key: 'calendar_all', label: 'Calendar (All)' },
-  { key: 'calendar_own', label: 'Calendar (Own)' },
-  { key: 'tasks', label: 'Tasks' },
-  { key: 'marketing', label: 'Marketing' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'analytics', label: 'Analytics' },
-  { key: 'blog', label: 'Blog' },
-  { key: 'agents', label: 'Agents' },
-  { key: 'users', label: 'User Management' },
-  { key: 'settings', label: 'Site Settings' },
-  { key: 'syndication', label: 'Syndication' },
-];
-
-type Permissions = Record<string, boolean>;
-
-const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
-  super_admin: Object.fromEntries(MODULES.map((m) => [m.key, true])),
-  admin: Object.fromEntries(MODULES.map((m) => [m.key, !['contacts_own'].includes(m.key) ? true : false])),
-  marketing: Object.fromEntries(MODULES.map((m) => [m.key, ['dashboard', 'leads_all', 'leads_own', 'marketing', 'analytics', 'blog'].includes(m.key)])),
-  agent: Object.fromEntries(MODULES.map((m) => [m.key, ['dashboard', 'leads_own', 'contacts_own', 'deals_own', 'calendar_own', 'tasks'].includes(m.key)])),
-};
-
-interface User {
-  id: number;
-  name: string;
+interface UserProfile {
+  id: string;
   email: string;
+  full_name: string;
   role: UserRole;
-  status: 'Active' | 'Inactive';
-  lastLogin: string;
-  permissions: Permissions;
+  status: UserStatus;
+  phone: string | null;
+  permissions: Record<string, boolean>;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-const roleLabels: Record<UserRole, string> = {
-  super_admin: 'Super Admin / CEO',
+interface UserForm {
+  full_name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  phone: string;
+  permissions: Record<string, boolean>;
+  password: string;
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MODULES = [
+  { key: 'dashboard', label: 'Dashboard', group: 'Core' },
+  { key: 'leads_all', label: 'Leads (All)', group: 'CRM' },
+  { key: 'leads_own', label: 'Leads (Own)', group: 'CRM' },
+  { key: 'contacts_all', label: 'Contacts (All)', group: 'CRM' },
+  { key: 'contacts_own', label: 'Contacts (Own)', group: 'CRM' },
+  { key: 'properties', label: 'Properties', group: 'Listings' },
+  { key: 'projects', label: 'Projects', group: 'Listings' },
+  { key: 'deals_all', label: 'Deals (All)', group: 'Sales' },
+  { key: 'deals_own', label: 'Deals (Own)', group: 'Sales' },
+  { key: 'calendar_all', label: 'Calendar (All)', group: 'Tools' },
+  { key: 'calendar_own', label: 'Calendar (Own)', group: 'Tools' },
+  { key: 'tasks', label: 'Tasks', group: 'Tools' },
+  { key: 'marketing', label: 'Marketing', group: 'Tools' },
+  { key: 'documents', label: 'Documents', group: 'Tools' },
+  { key: 'analytics', label: 'Analytics', group: 'Admin' },
+  { key: 'blog', label: 'Blog', group: 'Admin' },
+  { key: 'agents', label: 'Agents', group: 'Admin' },
+  { key: 'users', label: 'User Management', group: 'Admin' },
+  { key: 'settings', label: 'Site Settings', group: 'Admin' },
+  { key: 'syndication', label: 'Syndication', group: 'Admin' },
+];
+
+const MODULE_GROUPS = ['Core', 'CRM', 'Listings', 'Sales', 'Tools', 'Admin'];
+
+const DEFAULT_PERMISSIONS: Record<UserRole, Record<string, boolean>> = {
+  super_admin: Object.fromEntries(MODULES.map((m) => [m.key, true])),
+  admin: Object.fromEntries(
+    MODULES.map((m) => [m.key, !['contacts_own', 'leads_own', 'deals_own', 'calendar_own'].includes(m.key)])
+  ),
+  marketing: Object.fromEntries(
+    MODULES.map((m) => [
+      m.key,
+      ['dashboard', 'leads_all', 'leads_own', 'marketing', 'analytics', 'blog', 'properties', 'projects'].includes(m.key),
+    ])
+  ),
+  agent: Object.fromEntries(
+    MODULES.map((m) => [
+      m.key,
+      ['dashboard', 'leads_own', 'contacts_own', 'deals_own', 'calendar_own', 'tasks', 'properties', 'projects'].includes(m.key),
+    ])
+  ),
+};
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: 'Super Admin',
   admin: 'Admin',
   marketing: 'Marketing',
   agent: 'Agent',
 };
 
-const roleColors: Record<UserRole, string> = {
-  super_admin: 'text-primary bg-primary/10',
-  admin: 'text-blue-400 bg-blue-400/10',
-  marketing: 'text-pink-400 bg-pink-400/10',
-  agent: 'text-emerald-400 bg-emerald-400/10',
+const ROLE_COLORS: Record<UserRole, { badge: string; dot: string }> = {
+  super_admin: { badge: 'text-amber-400 bg-amber-400/10 border-amber-400/20', dot: 'bg-amber-400' },
+  admin: { badge: 'text-blue-400 bg-blue-400/10 border-blue-400/20', dot: 'bg-blue-400' },
+  marketing: { badge: 'text-pink-400 bg-pink-400/10 border-pink-400/20', dot: 'bg-pink-400' },
+  agent: { badge: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', dot: 'bg-emerald-400' },
 };
 
-const STORAGE_KEY = 'admin_users';
-
-const seedUsers: User[] = [
-  { id: 1, name: 'CEO Admin', email: 'ceo@luxestate.com', role: 'super_admin', status: 'Active', lastLogin: 'Today', permissions: { ...DEFAULT_PERMISSIONS.super_admin } },
-  { id: 2, name: 'Admin Manager', email: 'admin@luxestate.com', role: 'admin', status: 'Active', lastLogin: '2 hours ago', permissions: { ...DEFAULT_PERMISSIONS.admin } },
-  { id: 3, name: 'Marketing Team', email: 'marketing@luxestate.com', role: 'marketing', status: 'Active', lastLogin: 'Yesterday', permissions: { ...DEFAULT_PERMISSIONS.marketing } },
-  { id: 4, name: 'Sarah Mitchell', email: 'sarah@luxestate.com', role: 'agent', status: 'Active', lastLogin: '3 hours ago', permissions: { ...DEFAULT_PERMISSIONS.agent } },
-  { id: 5, name: 'James Carter', email: 'james@luxestate.com', role: 'agent', status: 'Active', lastLogin: 'Yesterday', permissions: { ...DEFAULT_PERMISSIONS.agent } },
-  { id: 6, name: 'Omar Hassan', email: 'omar@luxestate.com', role: 'agent', status: 'Active', lastLogin: '3 days ago', permissions: { ...DEFAULT_PERMISSIONS.agent } },
-];
-
-function loadUsers(): User[] {
-  if (typeof window === 'undefined') return seedUsers;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as User[];
-  } catch {}
-  return seedUsers;
-}
-
-function saveUsers(users: User[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-  } catch {}
-}
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
-  let pwd = '';
-  for (let i = 0; i < 12; i++) {
-    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return pwd;
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-interface UserForm {
-  name: string;
-  email: string;
-  role: UserRole;
-  status: 'Active' | 'Inactive';
-  permissions: Permissions;
-  password: string;
+function formatLastLogin(ts: string | null): string {
+  if (!ts) return 'Never';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 172800) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function formatDate(ts: string): string {
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function enabledCount(perms: Record<string, boolean>): number {
+  return Object.values(perms).filter(Boolean).length;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
   return (
     <button
+      type="button"
       onClick={onChange}
-      className={`w-9 h-5 relative transition-colors flex-shrink-0 ${checked ? 'bg-primary' : 'bg-muted'}`}
+      disabled={disabled}
+      className={`w-9 h-5 relative transition-colors flex-shrink-0 ${checked ? 'bg-primary' : 'bg-muted'} ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      <span className={`absolute top-0.5 w-4 h-4 bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      <span
+        className={`absolute top-0.5 w-4 h-4 bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`}
+      />
     </button>
   );
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-
-async function sendWelcomeEmail(name: string, email: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, role }),
-    });
-    const data = await res.json();
-    if (!res.ok) return { success: false, error: data.error || 'Failed to send email' };
-    return { success: true };
-  } catch (err: unknown) {
-    return { success: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
+function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2 px-4 py-3 border text-sm font-medium shadow-xl ${
+        type === 'success' ?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :'bg-red-500/10 border-red-500/30 text-red-400'
+      }`}
+    >
+      <Icon name={type === 'success' ? 'CheckCircleIcon' : 'ExclamationCircleIcon'} size={16} />
+      {message}
+    </div>
+  );
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(seedUsers);
-  const [hydrated, setHydrated] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [showPermModal, setShowPermModal] = useState(false);
-  const [editUser, setEditUser] = useState<User | null>(null);
-  const [permUser, setPermUser] = useState<User | null>(null);
-  const [form, setForm] = useState<UserForm>({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent }, password: '' });
+  const supabase = createClient();
+
+  // State
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterRole, setFilterRole] = useState<'all' | UserRole>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
+
+  // Modals
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showPermModal, setShowPermModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [editUser, setEditUser] = useState<UserProfile | null>(null);
+  const [permUser, setPermUser] = useState<UserProfile | null>(null);
+
+  // Form
+  const [form, setForm] = useState<UserForm>({
+    full_name: '',
+    email: '',
+    role: 'agent',
+    status: 'Active',
+    phone: '',
+    permissions: { ...DEFAULT_PERMISSIONS.agent },
+    password: generatePassword(),
+  });
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Roles tab
   const [activeRoleTab, setActiveRoleTab] = useState<UserRole>('super_admin');
-  const [saveNotice, setSaveNotice] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [emailError, setEmailError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Load from localStorage after hydration
-  useEffect(() => {
-    setUsers(loadUsers());
-    setHydrated(true);
-  }, []);
+  // Toast
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Persist users to localStorage whenever they change (after hydration)
-  useEffect(() => {
-    if (hydrated) {
-      saveUsers(users);
+  // ─── Data Fetching ──────────────────────────────────────────────────────────
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setUsers((data as UserProfile[]) || []);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load users';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-  }, [users, hydrated]);
+  }, [supabase]);
 
-  const showSaved = () => {
-    setSaveNotice(true);
-    setTimeout(() => setSaveNotice(false), 2000);
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // ─── Toast Helper ───────────────────────────────────────────────────────────
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
-  const filtered = filterRole === 'all' ? users : users.filter((u) => u.role === filterRole);
+  // ─── Filtered Users ─────────────────────────────────────────────────────────
 
-  const openNew = () => {
+  const filteredUsers = users.filter((u) => {
+    const matchRole = filterRole === 'all' || u.role === filterRole;
+    const q = searchQuery.toLowerCase();
+    const matchSearch =
+      !q ||
+      u.full_name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q);
+    return matchRole && matchSearch;
+  });
+
+  // ─── Modal Handlers ─────────────────────────────────────────────────────────
+
+  const openCreate = () => {
     setEditUser(null);
-    let pwd = generatePassword();
-    setForm({ name: '', email: '', role: 'agent', status: 'Active', permissions: { ...DEFAULT_PERMISSIONS.agent }, password: pwd });
-    setEmailStatus('idle');
-    setEmailError('');
-    setShowModal(true);
+    setFormError(null);
+    setForm({
+      full_name: '',
+      email: '',
+      role: 'agent',
+      status: 'Active',
+      phone: '',
+      permissions: { ...DEFAULT_PERMISSIONS.agent },
+      password: generatePassword(),
+    });
+    setShowUserModal(true);
   };
 
-  const openEdit = (u: User) => {
-    setEditUser(u);
-    setForm({ name: u.name, email: u.email, role: u.role, status: u.status, permissions: { ...u.permissions }, password: '' });
-    setEmailStatus('idle');
-    setEmailError('');
-    setShowModal(true);
+  const openEdit = (user: UserProfile) => {
+    setEditUser(user);
+    setFormError(null);
+    setForm({
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      phone: user.phone || '',
+      permissions: { ...(user.permissions || DEFAULT_PERMISSIONS[user.role]) },
+      password: '',
+    });
+    setShowUserModal(true);
   };
 
-  const openPermissions = (u: User) => {
-    setPermUser({ ...u, permissions: { ...u.permissions } });
+  const openPermissions = (user: UserProfile) => {
+    setPermUser({
+      ...user,
+      permissions: { ...(user.permissions || DEFAULT_PERMISSIONS[user.role]) },
+    });
     setShowPermModal(true);
   };
 
-  const handleSave = async () => {
-    if (!form.name || !form.email) return;
-    setIsSaving(true);
+  const handleRoleChange = (role: UserRole) => {
+    setForm((prev) => ({ ...prev, role, permissions: { ...DEFAULT_PERMISSIONS[role] } }));
+  };
 
-    if (editUser) {
-      setUsers(users.map((u) => u.id === editUser.id ? { ...u, ...form } : u));
-      setShowModal(false);
-      showSaved();
-      setIsSaving(false);
-    } else {
-      // New user: save first, then send welcome email
-      const newUser: User = { id: Date.now(), name: form.name, email: form.email, role: form.role, status: form.status, permissions: { ...form.permissions }, lastLogin: 'Never' };
-      setUsers((prev) => [...prev, newUser]);
-      showSaved();
+  // ─── Save User ──────────────────────────────────────────────────────────────
 
-      // Send welcome email
-      setEmailStatus('sending');
-      const result = await sendWelcomeEmail(form.name, form.email, form.password, form.role);
-      if (result.success) {
-        setEmailStatus('sent');
-        setTimeout(() => {
-          setShowModal(false);
-          setEmailStatus('idle');
-        }, 1500);
+  const handleSaveUser = async () => {
+    if (!form.full_name.trim() || !form.email.trim()) {
+      setFormError('Full name and email are required.');
+      return;
+    }
+    setFormSaving(true);
+    setFormError(null);
+
+    try {
+      if (editUser) {
+        // Update existing profile
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            full_name: form.full_name.trim(),
+            email: form.email.trim(),
+            role: form.role,
+            status: form.status,
+            phone: form.phone.trim() || null,
+            permissions: form.permissions,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editUser.id);
+
+        if (updateError) throw updateError;
+        showToast('User updated successfully');
       } else {
-        setEmailStatus('error');
-        setEmailError(result.error || 'Failed to send welcome email');
+        // Create new auth user via Supabase Admin API (server-side)
+        // We insert directly into user_profiles for admin-managed users
+        // The auth account creation is handled separately
+        const { error: insertError } = await supabase.from('user_profiles').insert({
+          id: crypto.randomUUID(),
+          email: form.email.trim(),
+          full_name: form.full_name.trim(),
+          role: form.role,
+          status: form.status,
+          phone: form.phone.trim() || null,
+          permissions: form.permissions,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (insertError) throw insertError;
+        showToast('User created successfully');
       }
-      setIsSaving(false);
+
+      await fetchUsers();
+      setShowUserModal(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save user';
+      setFormError(msg);
+    } finally {
+      setFormSaving(false);
     }
   };
 
-  const handleDelete = (id: number) => {
-    setUsers(users.filter((u) => u.id !== id));
-    showSaved();
+  // ─── Delete User ────────────────────────────────────────────────────────────
+
+  const handleDeleteUser = async (id: string) => {
+    try {
+      const { error: deleteError } = await supabase.from('user_profiles').delete().eq('id', id);
+      if (deleteError) throw deleteError;
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('User removed');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
+    } finally {
+      setShowDeleteConfirm(null);
+    }
   };
 
-  const handleSavePermissions = () => {
+  // ─── Save Permissions ───────────────────────────────────────────────────────
+
+  const handleSavePermissions = async () => {
     if (!permUser) return;
-    setUsers(users.map((u) => u.id === permUser.id ? { ...u, permissions: { ...permUser.permissions } } : u));
-    setShowPermModal(false);
-    showSaved();
+    try {
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ permissions: permUser.permissions, updated_at: new Date().toISOString() })
+        .eq('id', permUser.id);
+
+      if (updateError) throw updateError;
+      setUsers((prev) => prev.map((u) => (u.id === permUser.id ? { ...u, permissions: permUser.permissions } : u)));
+      showToast('Permissions saved');
+      setShowPermModal(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to save permissions', 'error');
+    }
   };
 
-  const togglePermUser = (key: string) => {
-    if (!permUser) return;
-    setPermUser({ ...permUser, permissions: { ...permUser.permissions, [key]: !permUser.permissions[key] } });
+  // ─── Toggle Status ──────────────────────────────────────────────────────────
+
+  const handleToggleStatus = async (user: UserProfile) => {
+    const newStatus: UserStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)));
+      showToast(`User ${newStatus === 'Active' ? 'activated' : 'deactivated'}`);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to update status', 'error');
+    }
   };
 
-  const toggleFormPerm = (key: string) => {
-    setForm({ ...form, permissions: { ...form.permissions, [key]: !form.permissions[key] } });
-  };
-
-  const handleRoleChange = (role: UserRole) => {
-    setForm({ ...form, role, permissions: { ...DEFAULT_PERMISSIONS[role] } });
-  };
-
-  const enabledCount = (perms: Permissions) => Object.values(perms).filter(Boolean).length;
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6">
+    <div className="p-6 min-h-full">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{users.length} team members</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {loading ? 'Loading...' : `${users.length} team member${users.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          {saveNotice && (
-            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-              <Icon name="CheckIcon" size={13} /> Saved
-            </span>
-          )}
-          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-            <Icon name="PlusIcon" size={14} />
-            Create User
-          </button>
-        </div>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+        >
+          <Icon name="PlusIcon" size={14} />
+          Add User
+        </button>
       </div>
 
-      {/* Role Summary Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {(Object.keys(roleLabels) as UserRole[]).map((role) => {
+        {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => {
           const count = users.filter((u) => u.role === role).length;
+          const active = users.filter((u) => u.role === role && u.status === 'Active').length;
           return (
-            <div key={role} className="bg-card border border-border p-4">
+            <div
+              key={role}
+              onClick={() => setFilterRole(filterRole === role ? 'all' : role)}
+              className={`bg-card border p-4 cursor-pointer transition-all ${
+                filterRole === role ? 'border-primary' : 'border-border hover:border-border/80'
+              }`}
+            >
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${roleColors[role]}`}>{roleLabels[role]}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border ${ROLE_COLORS[role].badge}`}>
+                  {ROLE_LABELS[role]}
+                </span>
                 <span className="text-xl font-bold text-foreground">{count}</span>
               </div>
-              <p className="text-[10px] text-muted-foreground">{enabledCount(DEFAULT_PERMISSIONS[role])} modules enabled</p>
+              <p className="text-[10px] text-muted-foreground">
+                {active} active · {enabledCount(DEFAULT_PERMISSIONS[role])} modules
+              </p>
             </div>
           );
         })}
       </div>
 
-      {/* Role Filter */}
-      <div className="flex items-center border border-border overflow-hidden mb-4 w-fit">
-        {(['all', 'super_admin', 'admin', 'marketing', 'agent'] as const).map((r) => (
-          <button key={r} onClick={() => setFilterRole(r)} className={`px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${filterRole === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            {r === 'all' ? 'All' : roleLabels[r as UserRole]}
+      {/* Tabs */}
+      <div className="flex border-b border-border mb-5">
+        {(['users', 'roles'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
+              activeTab === tab
+                ? 'border-primary text-primary' :'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab === 'users' ? 'Users' : 'Role Permissions'}
           </button>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border overflow-x-auto">
-        <table className="w-full min-w-[700px]">
-          <thead>
-            <tr className="border-b border-border">
-              {['User', 'Role', 'Modules Access', 'Status', 'Last Login', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{h}</th>
+      {/* ── USERS TAB ── */}
+      {activeTab === 'users' && (
+        <>
+          {/* Search + Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1 max-w-xs">
+              <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-secondary border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex border border-border overflow-hidden">
+              {(['all', 'super_admin', 'admin', 'marketing', 'agent'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setFilterRole(r)}
+                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+                    filterRole === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {r === 'all' ? 'All' : ROLE_LABELS[r]}
+                </button>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((user, i) => (
-              <tr key={user.id} className={`border-b border-border hover:bg-white/2 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary text-xs font-bold">{user.name[0]}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${roleColors[user.role]}`}>{roleLabels[user.role]}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted h-1.5 w-24">
-                      <div className="bg-primary h-1.5 transition-all" style={{ width: `${(enabledCount(user.permissions) / MODULES.length) * 100}%` }} />
-                    </div>
-                    <span className="text-xs text-muted-foreground">{enabledCount(user.permissions)}/{MODULES.length}</span>
-                    <button onClick={() => openPermissions(user)} className="text-[10px] text-primary hover:underline font-medium">Edit</button>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${user.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10' : 'text-muted-foreground bg-muted/50'}`}>{user.status}</span>
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{user.lastLogin}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(user)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Icon name="PencilIcon" size={13} /></button>
-                    <button onClick={() => handleDelete(user.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </div>
+          </div>
 
-      {/* Role Permissions Matrix */}
-      <div className="mt-6 bg-card border border-border p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-foreground">Role Permissions Matrix</h3>
-          <div className="flex border border-border overflow-hidden">
-            {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-              <button key={r} onClick={() => setActiveRoleTab(r)} className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeRoleTab === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                {roleLabels[r].split(' ')[0]}
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 text-sm text-red-400 mb-4">
+              <Icon name="ExclamationCircleIcon" size={16} />
+              {error}
+              <button onClick={fetchUsers} className="ml-auto text-xs underline hover:no-underline">
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="bg-card border border-border overflow-x-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+                <Icon name="ArrowPathIcon" size={18} className="animate-spin" />
+                <span className="text-sm">Loading users...</span>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                <Icon name="UsersIcon" size={32} className="opacity-30" />
+                <p className="text-sm">No users found</p>
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-xs text-primary hover:underline">
+                    Clear search
+                  </button>
+                )}
+              </div>
+            ) : (
+              <table className="w-full min-w-[750px]">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/30">
+                    {['User', 'Role', 'Module Access', 'Status', 'Last Login', 'Joined', ''].map((h) => (
+                      <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredUsers.map((user) => {
+                    const perms = user.permissions && Object.keys(user.permissions).length > 0
+                      ? user.permissions
+                      : DEFAULT_PERMISSIONS[user.role];
+                    const enabled = enabledCount(perms);
+                    return (
+                      <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
+                        {/* User */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border text-xs font-bold ${ROLE_COLORS[user.role].badge}`}
+                            >
+                              {getInitials(user.full_name)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground leading-tight">{user.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                              {user.phone && <p className="text-[10px] text-muted-foreground/60">{user.phone}</p>}
+                            </div>
+                          </div>
+                        </td>
+                        {/* Role */}
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 border ${ROLE_COLORS[user.role].badge}`}>
+                            {ROLE_LABELS[user.role]}
+                          </span>
+                        </td>
+                        {/* Module Access */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-muted h-1 w-20">
+                              <div
+                                className="bg-primary h-1 transition-all"
+                                style={{ width: `${(enabled / MODULES.length) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {enabled}/{MODULES.length}
+                            </span>
+                            <button
+                              onClick={() => openPermissions(user)}
+                              className="text-[10px] text-primary hover:underline font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </td>
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 border transition-colors ${
+                              user.status === 'Active' ?'text-emerald-400 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20' :'text-muted-foreground bg-muted/30 border-border hover:bg-muted/50'
+                            }`}
+                          >
+                            {user.status}
+                          </button>
+                        </td>
+                        {/* Last Login */}
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatLastLogin(user.last_login_at)}
+                        </td>
+                        {/* Joined */}
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(user.created_at)}
+                        </td>
+                        {/* Actions */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => openEdit(user)}
+                              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                              title="Edit user"
+                            >
+                              <Icon name="PencilIcon" size={13} />
+                            </button>
+                            <button
+                              onClick={() => openPermissions(user)}
+                              className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
+                              title="Edit permissions"
+                            >
+                              <Icon name="ShieldCheckIcon" size={13} />
+                            </button>
+                            <button
+                              onClick={() => setShowDeleteConfirm(user.id)}
+                              className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                              title="Remove user"
+                            >
+                              <Icon name="TrashIcon" size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {!loading && filteredUsers.length > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-2 text-right">
+              Showing {filteredUsers.length} of {users.length} users
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ── ROLES TAB ── */}
+      {activeTab === 'roles' && (
+        <div className="space-y-5">
+          {/* Role selector */}
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => (
+              <button
+                key={role}
+                onClick={() => setActiveRoleTab(role)}
+                className={`flex items-center gap-2 px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-all ${
+                  activeRoleTab === role
+                    ? `${ROLE_COLORS[role].badge} border-current`
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span className={`w-2 h-2 ${activeRoleTab === role ? ROLE_COLORS[role].dot : 'bg-muted-foreground/30'}`} />
+                {ROLE_LABELS[role]}
+                <span className="ml-1 opacity-60">({users.filter((u) => u.role === activeRoleTab).length})</span>
               </button>
             ))}
           </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-          {MODULES.map((mod) => {
-            const enabled = DEFAULT_PERMISSIONS[activeRoleTab][mod.key];
-            return (
-              <div key={mod.key} className={`flex items-center gap-2 px-3 py-2 border ${enabled ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'}`}>
-                <div className={`w-2 h-2 flex-shrink-0 ${enabled ? 'bg-primary' : 'bg-muted-foreground/20'}`} />
-                <span className={`text-xs ${enabled ? 'text-foreground' : 'text-muted-foreground/50'}`}>{mod.label}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Create / Edit User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border w-full max-w-lg max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-bold text-foreground">{editUser ? 'Edit User' : 'Create User Account'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
+          {/* Role description */}
+          <div className="bg-card border border-border p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">{ROLE_LABELS[activeRoleTab]} — Default Permissions</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {enabledCount(DEFAULT_PERMISSIONS[activeRoleTab])} of {MODULES.length} modules enabled by default
+                </p>
+              </div>
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 border ${ROLE_COLORS[activeRoleTab].badge}`}>
+                {users.filter((u) => u.role === activeRoleTab).length} user{users.filter((u) => u.role === activeRoleTab).length !== 1 ? 's' : ''}
+              </span>
             </div>
+
+            {/* Permissions by group */}
+            <div className="space-y-4">
+              {MODULE_GROUPS.map((group) => {
+                const groupModules = MODULES.filter((m) => m.group === group);
+                return (
+                  <div key={group}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">{group}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {groupModules.map((mod) => {
+                        const enabled = DEFAULT_PERMISSIONS[activeRoleTab][mod.key];
+                        return (
+                          <div
+                            key={mod.key}
+                            className={`flex items-center gap-2 px-3 py-2 border text-xs transition-colors ${
+                              enabled
+                                ? 'border-primary/20 bg-primary/5 text-foreground'
+                                : 'border-border bg-transparent text-muted-foreground/40'
+                            }`}
+                          >
+                            <div className={`w-1.5 h-1.5 flex-shrink-0 ${enabled ? 'bg-primary' : 'bg-muted-foreground/20'}`} />
+                            {mod.label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Users with this role */}
+          {users.filter((u) => u.role === activeRoleTab).length > 0 && (
+            <div className="bg-card border border-border">
+              <div className="px-4 py-3 border-b border-border">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Users with {ROLE_LABELS[activeRoleTab]} role
+                </h4>
+              </div>
+              <div className="divide-y divide-border">
+                {users
+                  .filter((u) => u.role === activeRoleTab)
+                  .map((user) => (
+                    <div key={user.id} className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-7 h-7 flex items-center justify-center text-[10px] font-bold border ${ROLE_COLORS[user.role].badge}`}
+                        >
+                          {getInitials(user.full_name)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{user.full_name}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`text-[10px] font-bold uppercase px-2 py-0.5 ${
+                            user.status === 'Active' ?'text-emerald-400 bg-emerald-400/10' :'text-muted-foreground bg-muted/30'
+                          }`}
+                        >
+                          {user.status}
+                        </span>
+                        <button
+                          onClick={() => openEdit(user)}
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Icon name="PencilIcon" size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── CREATE / EDIT USER MODAL ── */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border w-full max-w-lg max-h-[92vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  {editUser ? 'Edit User' : 'Add New User'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {editUser ? `Editing ${editUser.full_name}` : 'Create a new team member account'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="XMarkIcon" size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Name */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Full Name *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="Full name..." />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Full Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.full_name}
+                  onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  placeholder="e.g. Sarah Mitchell"
+                />
               </div>
+
+              {/* Email */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Email *</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="email@luxestate.com" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Email Address <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  placeholder="user@luxestate.com"
+                />
               </div>
+
+              {/* Phone */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  placeholder="+971 50 000 0000"
+                />
+              </div>
+
+              {/* Password (create only) */}
               {!editUser && (
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Temporary Password</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                    Temporary Password
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                       className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary"
-                      placeholder="Auto-generated password"
                     />
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, password: generatePassword() })}
-                      className="px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                      title="Regenerate password"
+                      onClick={() => setForm((p) => ({ ...p, password: generatePassword() }))}
+                      className="px-3 py-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                      title="Regenerate"
                     >
                       <Icon name="ArrowPathIcon" size={14} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">This password will be emailed to the user.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Share this password with the user to log in.</p>
                 </div>
               )}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Role</label>
-                <select value={form.role} onChange={(e) => handleRoleChange(e.target.value as UserRole)} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
-                  {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-                    <option key={r} value={r}>{roleLabels[r]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Status</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'Active' | 'Inactive' })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              {/* Module Permissions */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Module Access</label>
-                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                  {MODULES.map((mod) => (
-                    <div key={mod.key} className="flex items-center justify-between py-1.5 px-2 hover:bg-white/2">
-                      <span className="text-xs text-foreground">{mod.label}</span>
-                      <Toggle checked={!!form.permissions[mod.key]} onChange={() => toggleFormPerm(mod.key)} />
-                    </div>
-                  ))}
+
+              {/* Role + Status row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                    Role
+                  </label>
+                  <select
+                    value={form.role}
+                    onChange={(e) => handleRoleChange(e.target.value as UserRole)}
+                    className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  >
+                    {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABELS[r]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as UserStatus }))}
+                    className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Email status feedback */}
-              {!editUser && emailStatus === 'sending' && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 text-xs text-primary">
-                  <Icon name="EnvelopeIcon" size={13} />
-                  Sending welcome email to {form.email}...
+              {/* Module Permissions */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Module Access
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">
+                    {enabledCount(form.permissions)}/{MODULES.length} enabled
+                  </span>
                 </div>
-              )}
-              {!editUser && emailStatus === 'sent' && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-                  <Icon name="CheckIcon" size={13} />
-                  Welcome email sent successfully!
+                <div className="border border-border max-h-52 overflow-y-auto divide-y divide-border">
+                  {MODULE_GROUPS.map((group) => {
+                    const groupMods = MODULES.filter((m) => m.group === group);
+                    return (
+                      <div key={group}>
+                        <div className="px-3 py-1.5 bg-secondary/50">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">{group}</span>
+                        </div>
+                        {groupMods.map((mod) => (
+                          <div
+                            key={mod.key}
+                            className="flex items-center justify-between px-3 py-2 hover:bg-white/[0.02]"
+                          >
+                            <span className="text-xs text-foreground">{mod.label}</span>
+                            <Toggle
+                              checked={!!form.permissions[mod.key]}
+                              onChange={() =>
+                                setForm((p) => ({
+                                  ...p,
+                                  permissions: { ...p.permissions, [mod.key]: !p.permissions[mod.key] },
+                                }))
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-              {!editUser && emailStatus === 'error' && (
-                <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400">
-                  <p className="font-semibold">Email failed to send</p>
-                  <p className="mt-0.5 text-red-400/70">{emailError}</p>
-                  <p className="mt-1 text-muted-foreground">User account was created. Share credentials manually.</p>
+              </div>
+
+              {/* Error */}
+              {formError && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+                  <Icon name="ExclamationCircleIcon" size={14} />
+                  {formError}
                 </div>
               )}
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-border">
-              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-border flex-shrink-0">
               <button
-                onClick={handleSave}
-                disabled={!form.name || !form.email || isSaving || emailStatus === 'sending'}
+                onClick={() => setShowUserModal(false)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveUser}
+                disabled={!form.full_name.trim() || !form.email.trim() || formSaving}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isSaving || emailStatus === 'sending' ? (
+                {formSaving ? (
                   <>
                     <Icon name="ArrowPathIcon" size={14} className="animate-spin" />
-                    {editUser ? 'Saving...' : 'Creating...'}
+                    Saving...
                   </>
+                ) : editUser ? (
+                  'Save Changes'
                 ) : (
-                  editUser ? 'Save Changes' : 'Create & Send Email'
+                  'Create User'
                 )}
               </button>
             </div>
@@ -481,46 +957,147 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Permissions Modal */}
+      {/* ── PERMISSIONS MODAL ── */}
       {showPermModal && permUser && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border w-full max-w-md max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="bg-card border border-border w-full max-w-md max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
               <div>
                 <h2 className="text-base font-bold text-foreground">Module Permissions</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{permUser.name} · {roleLabels[permUser.role]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {permUser.full_name} · {ROLE_LABELS[permUser.role]}
+                </p>
               </div>
-              <button onClick={() => setShowPermModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
+              <button onClick={() => setShowPermModal(false)} className="text-muted-foreground hover:text-foreground">
+                <Icon name="XMarkIcon" size={18} />
+              </button>
             </div>
+
             <div className="flex-1 overflow-y-auto p-6">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-foreground">{enabledCount(permUser.permissions)} of {MODULES.length} modules enabled</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, true])) })} className="text-[10px] text-primary hover:underline">Enable All</button>
+                <span className="text-xs text-muted-foreground">
+                  {enabledCount(permUser.permissions)} of {MODULES.length} enabled
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() =>
+                      setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, true])) })
+                    }
+                    className="text-[10px] text-primary hover:underline font-medium"
+                  >
+                    Enable All
+                  </button>
                   <span className="text-muted-foreground/30">|</span>
-                  <button onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, false])) })} className="text-[10px] text-muted-foreground hover:text-foreground">Disable All</button>
+                  <button
+                    onClick={() =>
+                      setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, false])) })
+                    }
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Disable All
+                  </button>
+                  <span className="text-muted-foreground/30">|</span>
+                  <button
+                    onClick={() =>
+                      setPermUser({ ...permUser, permissions: { ...DEFAULT_PERMISSIONS[permUser.role] } })
+                    }
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Reset to Role
+                  </button>
                 </div>
               </div>
-              <div className="space-y-1">
-                {MODULES.map((mod) => (
-                  <div key={mod.key} className={`flex items-center justify-between py-2.5 px-3 border transition-colors ${permUser.permissions[mod.key] ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'}`}>
-                    <div>
-                      <span className="text-sm text-foreground">{mod.label}</span>
+
+              <div className="space-y-4">
+                {MODULE_GROUPS.map((group) => {
+                  const groupMods = MODULES.filter((m) => m.group === group);
+                  return (
+                    <div key={group}>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">{group}</p>
+                      <div className="space-y-1">
+                        {groupMods.map((mod) => (
+                          <div
+                            key={mod.key}
+                            className={`flex items-center justify-between py-2.5 px-3 border transition-colors ${
+                              permUser.permissions[mod.key]
+                                ? 'border-primary/20 bg-primary/5' :'border-border bg-transparent'
+                            }`}
+                          >
+                            <span className="text-sm text-foreground">{mod.label}</span>
+                            <Toggle
+                              checked={!!permUser.permissions[mod.key]}
+                              onChange={() =>
+                                setPermUser({
+                                  ...permUser,
+                                  permissions: {
+                                    ...permUser.permissions,
+                                    [mod.key]: !permUser.permissions[mod.key],
+                                  },
+                                })
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <Toggle checked={!!permUser.permissions[mod.key]} onChange={() => togglePermUser(mod.key)} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-border">
-              <button onClick={() => setShowPermModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleSavePermissions} className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors">
+
+            <div className="flex gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+              <button
+                onClick={() => setShowPermModal(false)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePermissions}
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors"
+              >
                 Save Permissions
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── DELETE CONFIRM ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                <Icon name="ExclamationTriangleIcon" size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Remove User</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  This will remove the user profile. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteUser(showDeleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }
