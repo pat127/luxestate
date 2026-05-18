@@ -152,7 +152,11 @@ export default function UsersPage() {
       .from('user_profiles')
       .select('id, full_name, email, role, status, phone, permissions, last_login_at, created_at')
       .order('created_at', { ascending: false });
-    if (!error && data) {
+    if (error) {
+      console.error('fetchUsers error:', error);
+      setSaveError(error.message || 'Failed to load users.');
+    } else if (data) {
+      setSaveError('');
       setUsers(data.map((u: any) => ({
         ...u,
         permissions: u.permissions && Object.keys(u.permissions).length > 0
