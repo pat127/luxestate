@@ -106,8 +106,6 @@ async function createUserViaAdminAPI(
   anonKey: string
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
-    // Use Supabase Admin API via edge function or direct signup
-    // We use signUp which creates the user; admin can also use service role via edge function
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-admin-user`, {
       method: 'POST',
       headers: {
@@ -116,14 +114,13 @@ async function createUserViaAdminAPI(
       },
       body: JSON.stringify({ name, email, password, role, permissions, phone }),
     });
-    if (res.ok) {
-      const data = await res.json();
+    const data = await res.json();
+    if (res.ok && data.success) {
       return { success: true, userId: data.userId };
     }
-    // Fallback: direct signup
-    return { success: false, error: 'Edge function unavailable' };
-  } catch {
-    return { success: false, error: 'Network error' };
+    return { success: false, error: data.error || `HTTP ${res.status}` };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error' };
   }
 }
 
@@ -236,58 +233,77 @@ export default function UsersPage() {
       setShowModal(false);
       showSaved('User updated');
     } else {
-      // Create new user via Supabase Auth Admin API (edge function) or direct signup
+      // Step 1: Try edge function (requires SUPABASE_SERVICE_ROLE_KEY secret)
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-      const result = await createUserViaAdminAPI(
+      const edgeResult = await createUserViaAdminAPI(
         form.full_name, form.email, form.password, form.role,
         form.permissions, form.phone, anonKey
       );
 
-      if (!result.success) {
-        // Fallback: use signUp directly (user will get confirmation email)
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-          options: {
-            data: {
-              full_name: form.full_name,
-              role: form.role,
-              permissions: form.permissions,
-            },
-          },
-        });
+      if (edgeResult.success && edgeResult.userId) {
+        // Edge function succeeded — profile already upserted by edge function
+        await fetchUsers();
+        setShowModal(false);
+        showSaved('User created successfully');
+        setIsSaving(false);
+        return;
+      }
 
-        if (signUpError) {
-          showErr(signUpError.message || 'Failed to create user.');
+      // Step 2: Fallback — use signUp + manual profile insert
+      // Note: signUp may return user=null if email confirmation is required.
+      // We handle both confirmed and unconfirmed cases.
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.full_name,
+            role: form.role,
+            permissions: form.permissions,
+          },
+        },
+      });
+
+      if (signUpError) {
+        showErr(signUpError.message || 'Failed to create user.');
+        setIsSaving(false);
+        return;
+      }
+
+      // signUpData.user is non-null for auto-confirmed users,
+      // null when email confirmation is pending.
+      const authUserId = signUpData.user?.id;
+
+      if (authUserId) {
+        // User confirmed immediately — upsert profile
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            id: authUserId,
+            email: form.email,
+            full_name: form.full_name,
+            role: form.role,
+            status: form.status,
+            phone: form.phone || null,
+            permissions: form.permissions,
+          }, { onConflict: 'id' });
+
+        if (profileError) {
+          showErr('User auth created but profile setup failed: ' + profileError.message);
           setIsSaving(false);
           return;
         }
 
-        // If user profile not auto-created by trigger, insert manually
-        if (signUpData.user) {
-          const { error: profileError } = await supabase
-            .from('user_profiles')
-            .upsert({
-              id: signUpData.user.id,
-              email: form.email,
-              full_name: form.full_name,
-              role: form.role,
-              status: form.status,
-              phone: form.phone || null,
-              permissions: form.permissions,
-            }, { onConflict: 'id' });
-
-          if (profileError) {
-            showErr('User created but profile setup failed: ' + profileError.message);
-            setIsSaving(false);
-            return;
-          }
-        }
+        await fetchUsers();
+        setShowModal(false);
+        showSaved('User created successfully');
+      } else {
+        // Email confirmation required — user exists in auth but not yet confirmed.
+        // Profile will be created by trigger when they confirm.
+        // Show a clear message to the admin.
+        setShowModal(false);
+        showSaved('Invite sent — user must confirm their email to activate');
       }
-
-      await fetchUsers();
-      setShowModal(false);
-      showSaved('User created & credentials sent');
     }
     setIsSaving(false);
   };
