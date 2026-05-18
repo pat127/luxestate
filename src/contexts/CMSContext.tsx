@@ -958,22 +958,12 @@ function getCachedInitialData() {
 }
 
 export function CMSProvider({ children }: {children: React.ReactNode;}) {
-  const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
-  const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
-  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(DEFAULT_PROPERTY_DETAIL);
-  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(DEFAULT_PROJECT_DETAIL);
-  const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const data = getCachedInitialData();
-    setPages(data.pages);
-    setBranding(data.branding);
-    setPropertyDetail(data.propertyDetail);
-    setProjectDetail(data.projectDetail);
-    setLastSaved(data.lastSaved);
-    setLoaded(true);
-  }, []);
+  const [pages, setPages] = useState<PageConfig[]>(() => getCachedInitialData().pages);
+  const [branding, setBranding] = useState<BrandingConfig>(() => getCachedInitialData().branding);
+  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(() => getCachedInitialData().propertyDetail);
+  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(() => getCachedInitialData().projectDetail);
+  const [lastSaved, setLastSaved] = useState<string | undefined>(() => getCachedInitialData().lastSaved);
+  const [loaded] = useState(true);
 
   const getPage = useCallback((key: PageKey): PageConfig => {return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];}, [pages]);
   const updatePage = useCallback((updated: PageConfig) => {

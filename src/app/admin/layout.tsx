@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { RoleProvider, useRole, mockUsersList, type UserRole, type Permission } from '@/contexts/RoleContext';
 import { createClient } from '@/lib/supabase/client';
@@ -79,38 +79,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
-  const [authUser, setAuthUser] = useState<{ email: string; full_name: string; role: UserRole } | null>(null);
-  const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
   const supabase = useMemo(() => createClient(), []);
-
-  // Load authenticated user profile
-  useEffect(() => {
-    const loadAuthUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('full_name, role, email')
-        .eq('id', user.id)
-        .single();
-      if (profile) {
-        setAuthUser({ email: profile.email, full_name: profile.full_name, role: profile.role as UserRole });
-        // Sync role context with real auth user
-        const roleUser = mockUsersList.find((u) => u.role === profile.role) || mockUsersList[0];
-        setCurrentUser({ ...roleUser, name: profile.full_name, email: profile.email });
-      }
-    };
-    loadAuthUser();
-  }, [supabase, setCurrentUser]);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await supabase.auth.signOut();
-    router.replace('/admin/login');
-  };
 
   const fetchPendingDocs = useCallback(async () => {
     if (currentUser.role !== 'super_admin') return;
@@ -229,13 +200,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <Icon name="ArrowTopRightOnSquareIcon" size={14} />
             {!collapsed && <span>View Website</span>}
           </Link>
-          <button
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full disabled:opacity-50"
-          >
+          <button className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full">
             <Icon name="ArrowRightOnRectangleIcon" size={14} />
-            {!collapsed && <span>{signingOut ? 'Signing out...' : 'Sign Out'}</span>}
+            {!collapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
@@ -320,7 +287,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Role switcher / user info */}
+            {/* Role switcher */}
             <div className="relative">
               <button
                 onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
@@ -330,9 +297,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   <span className="text-primary text-xs font-bold">{currentUser.avatar}</span>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold text-foreground leading-none">
-                    {authUser?.full_name || currentUser.name}
-                  </p>
+                  <p className="text-xs font-semibold text-foreground leading-none">{currentUser.name}</p>
                   <p className={`text-[10px] mt-0.5 font-medium ${roleBadgeColors[currentUser.role]}`}>{roleLabels[currentUser.role]}</p>
                 </div>
                 <Icon name="ChevronDownIcon" size={12} className="text-muted-foreground" />
@@ -359,16 +324,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       {currentUser.id === u.id && <Icon name="CheckIcon" size={12} className="text-primary ml-auto" />}
                     </button>
                   ))}
-                  <div className="border-t border-border p-2">
-                    <button
-                      onClick={handleSignOut}
-                      disabled={signingOut}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
-                    >
-                      <Icon name="ArrowRightOnRectangleIcon" size={13} />
-                      {signingOut ? 'Signing out...' : 'Sign Out'}
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
