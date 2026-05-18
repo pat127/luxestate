@@ -1,7 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type UserRole = 'super_admin' | 'admin' | 'marketing' | 'agent';
 
@@ -27,8 +26,7 @@ interface RoleContextType {
 }
 
 export type Permission =
-  | 'view_dashboard' | 'view_contacts' | 'view_all_contacts' | 'view_leads' | 'view_all_leads' |'view_properties'| 'view_projects' | 'view_agents' | 'view_deals' | 'view_all_deals' |'view_calendar'| 'view_all_calendars' | 'view_tasks' | 'view_all_tasks' |'view_marketing' | 'view_documents' | 'view_syndication' | 'view_bulk_import'
-  | 'view_analytics'| 'view_settings' | 'view_users' | 'view_blog' | 'manage_users' |'view_property_owners';
+  | 'view_dashboard' |'view_contacts' |'view_all_contacts' |'view_leads' |'view_all_leads' |'view_properties' |'view_projects' |'view_agents' |'view_deals' |'view_all_deals' |'view_calendar' |'view_all_calendars' |'view_tasks' |'view_all_tasks' |'view_marketing' |'view_documents' |'view_syndication' |'view_bulk_import' |'view_analytics' |'view_settings' |'view_users' |'view_blog' |'manage_users' |'view_property_owners';
 
 const rolePermissions: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -52,55 +50,28 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_blog', 'view_settings',
   ],
   agent: [
+    // Agents see only their own records for: dashboard, contacts, leads, deals, calendar, tasks
+    // Properties and projects are visible to all agents (but owner/unit info restricted)
     'view_dashboard', 'view_contacts', 'view_leads',
     'view_properties', 'view_projects',
     'view_deals', 'view_calendar', 'view_tasks',
+    // NOTE: No view_all_* permissions — agents are scoped to their own records
   ],
 };
 
-const defaultUser: RoleUser = {
-  id: '',
-  name: 'Loading…',
-  email: '',
-  role: 'agent',
-  avatar: '?',
-};
+const mockUsers: RoleUser[] = [
+  { id: '1', name: 'CEO Admin', email: 'ceo@luxestate.com', role: 'super_admin', avatar: 'C' },
+  { id: '2', name: 'Admin Manager', email: 'admin@luxestate.com', role: 'admin', avatar: 'A' },
+  { id: '3', name: 'Marketing Team', email: 'marketing@luxestate.com', role: 'marketing', avatar: 'M' },
+  { id: '4', name: 'Sarah Mitchell', email: 'sarah@luxestate.com', role: 'agent', avatar: 'S' },
+];
 
-export const mockUsersList: RoleUser[] = [];
+export const mockUsersList = mockUsers;
 
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { user, profile, loading: authLoading } = useAuth();
-  const [currentUser, setCurrentUser] = useState<RoleUser>(defaultUser);
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (user && profile) {
-      const role = (profile.role as UserRole) || 'agent';
-      setCurrentUser({
-        id: user.id,
-        name: profile.full_name || profile.agent_name || user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        role,
-        avatar: (profile.full_name || user.email || 'U').charAt(0).toUpperCase(),
-      });
-    } else if (user) {
-      // Profile not yet loaded — derive from auth metadata
-      const meta = user.user_metadata || {};
-      const role = (meta.role as UserRole) || 'agent';
-      setCurrentUser({
-        id: user.id,
-        name: meta.full_name || user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        role,
-        avatar: (meta.full_name || user.email || 'U').charAt(0).toUpperCase(),
-      });
-    } else {
-      setCurrentUser(defaultUser);
-    }
-  }, [user, profile, authLoading]);
+  const [currentUser, setCurrentUser] = useState<RoleUser>(mockUsers[0]);
 
   const can = (permission: Permission): boolean => {
     return rolePermissions[currentUser.role]?.includes(permission) ?? false;
@@ -111,13 +82,13 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   };
 
   const isAgentScoped = currentUser.role === 'agent';
+
   const canViewAll = currentUser.role !== 'agent';
 
   const isAssignedAgent = (recordAgentName: string | undefined | null): boolean => {
-    if (!isAgentScoped) return true;
+    if (!isAgentScoped) return true; // non-agents always have access
     if (!recordAgentName) return false;
-    const agentName = profile?.agent_name || currentUser.name;
-    return recordAgentName.toLowerCase().trim() === agentName.toLowerCase().trim();
+    return recordAgentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim();
   };
 
   return (
