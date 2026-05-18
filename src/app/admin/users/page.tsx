@@ -293,12 +293,16 @@ export default function UsersPage() {
       setFormError('Full name and email are required.');
       return;
     }
+    if (!editUser && !form.password.trim()) {
+      setFormError('Password is required for new users.');
+      return;
+    }
     setFormSaving(true);
     setFormError(null);
 
     try {
       if (editUser) {
-        // Update existing profile
+        // Update existing profile directly via Supabase client
         const { error: updateError } = await supabase
           .from('user_profiles')
           .update({
@@ -315,22 +319,23 @@ export default function UsersPage() {
         if (updateError) throw updateError;
         showToast('User updated successfully');
       } else {
-        // Create new auth user via Supabase Admin API (server-side)
-        // We insert directly into user_profiles for admin-managed users
-        // The auth account creation is handled separately
-        const { error: insertError } = await supabase.from('user_profiles').insert({
-          id: crypto.randomUUID(),
-          email: form.email.trim(),
-          full_name: form.full_name.trim(),
-          role: form.role,
-          status: form.status,
-          phone: form.phone.trim() || null,
-          permissions: form.permissions,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+        // Create new user via server-side API route (uses service role key)
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: form.email.trim(),
+            password: form.password.trim(),
+            full_name: form.full_name.trim(),
+            role: form.role,
+            status: form.status,
+            phone: form.phone.trim() || null,
+            permissions: form.permissions,
+          }),
         });
 
-        if (insertError) throw insertError;
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to create user');
         showToast('User created successfully');
       }
 
@@ -348,8 +353,10 @@ export default function UsersPage() {
 
   const handleDeleteUser = async (id: string) => {
     try {
-      const { error: deleteError } = await supabase.from('user_profiles').delete().eq('id', id);
-      if (deleteError) throw deleteError;
+      // Use server-side API route to delete both auth user and profile
+      const res = await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to delete user');
       setUsers((prev) => prev.filter((u) => u.id !== id));
       showToast('User removed');
     } catch (err: unknown) {
