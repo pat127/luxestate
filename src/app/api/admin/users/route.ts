@@ -92,6 +92,29 @@ export async function POST(req: NextRequest) {
       .eq('id', userId)
       .single();
 
+    // 4. Send welcome email with credentials (non-blocking)
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({
+          type: 'welcome',
+          to: email,
+          full_name,
+          email,
+          password,
+          user_id: userId,
+        }),
+      });
+    } catch (emailErr) {
+      console.warn('Welcome email failed (non-blocking):', emailErr);
+    }
+
     return NextResponse.json({ user: profile }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';

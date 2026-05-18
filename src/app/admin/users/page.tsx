@@ -98,6 +98,13 @@ function generatePassword(): string {
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
+function generateUserId(): string {
+  const prefix = 'USR';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const suffix = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `${prefix}-${suffix}`;
+}
+
 function formatLastLogin(ts: string | null): string {
   if (!ts) return 'Never';
   const d = new Date(ts);
@@ -193,6 +200,26 @@ export default function UsersPage() {
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Resend Credentials ─────────────────────────────────────────────────────
+
+  const handleResendCredentials = async (user: UserProfile) => {
+    const newPassword = generatePassword();
+    try {
+      // Reset the user's password via admin API
+      const adminClient_url = '/api/admin/users/reset-password';
+      const res = await fetch(adminClient_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, email: user.email, full_name: user.full_name, password: newPassword }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to resend credentials');
+      showToast(`New credentials sent to ${user.email}`);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to resend credentials', 'error');
+    }
+  };
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -534,7 +561,7 @@ export default function UsersPage() {
               <table className="w-full min-w-[750px]">
                 <thead>
                   <tr className="border-b border-border bg-secondary/30">
-                    {['User', 'Role', 'Module Access', 'Status', 'Last Login', 'Joined', ''].map((h) => (
+                    {['User', 'User ID', 'Role', 'Module Access', 'Status', 'Last Login', 'Joined', ''].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {h}
                       </th>
@@ -563,6 +590,12 @@ export default function UsersPage() {
                               {user.phone && <p className="text-[10px] text-muted-foreground/60">{user.phone}</p>}
                             </div>
                           </div>
+                        </td>
+                        {/* User ID */}
+                        <td className="px-4 py-3">
+                          <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-2 py-1 border border-border select-all" title="Click to copy">
+                            {user.id.slice(0, 8).toUpperCase()}
+                          </span>
                         </td>
                         {/* Role */}
                         <td className="px-4 py-3">
@@ -625,6 +658,13 @@ export default function UsersPage() {
                               title="Edit permissions"
                             >
                               <Icon name="ShieldCheckIcon" size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleResendCredentials(user)}
+                              className="p-1.5 text-muted-foreground hover:text-amber-400 transition-colors"
+                              title="Resend credentials"
+                            >
+                              <Icon name="EnvelopeIcon" size={13} />
                             </button>
                             <button
                               onClick={() => setShowDeleteConfirm(user.id)}
@@ -853,7 +893,9 @@ export default function UsersPage() {
                       <Icon name="ArrowPathIcon" size={14} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Share this password with the user to log in.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    A welcome email with these credentials will be sent to the user automatically.
+                  </p>
                 </div>
               )}
 

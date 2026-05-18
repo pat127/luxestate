@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { RoleProvider, useRole, mockUsersList, type UserRole, type Permission } from '@/contexts/RoleContext';
 import { createClient } from '@/lib/supabase/client';
@@ -80,6 +80,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
   const pathname = usePathname();
+  const router = useRouter();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
   const supabase = useMemo(() => createClient(), []);
 
@@ -111,6 +112,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   });
 
   const totalNotifications = currentUser.role === 'super_admin' ? pendingDocs.length : 0;
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -200,7 +206,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <Icon name="ArrowTopRightOnSquareIcon" size={14} />
             {!collapsed && <span>View Website</span>}
           </Link>
-          <button className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full"
+          >
             <Icon name="ArrowRightOnRectangleIcon" size={14} />
             {!collapsed && <span>Sign Out</span>}
           </button>
