@@ -94,36 +94,6 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-
-async function createUserViaAdminAPI(
-  name: string,
-  email: string,
-  password: string,
-  role: UserRole,
-  permissions: Permissions,
-  phone: string,
-  anonKey: string
-): Promise<{ success: boolean; userId?: string; error?: string }> {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-admin-user`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
-      },
-      body: JSON.stringify({ name, email, password, role, permissions, phone }),
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      return { success: true, userId: data.userId };
-    }
-    return { success: false, error: data.error || `HTTP ${res.status}` };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
-}
-
 export default function UsersPage() {
   const supabase = createClient();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -145,37 +115,43 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setSaveError('');
     const { data, error } = await supabase
       .from('user_profiles')
       .select('id, full_name, email, role, status, phone, permissions, last_login_at, created_at')
       .order('created_at', { ascending: false });
+
     if (error) {
       console.error('fetchUsers error:', error);
-      setSaveError(error.message || 'Failed to load users.');
+      setSaveError('Failed to load users: ' + error.message);
     } else if (data) {
-      setSaveError('');
-      setUsers(data.map((u: any) => ({
-        ...u,
-        permissions: u.permissions && Object.keys(u.permissions).length > 0
-          ? u.permissions
-          : { ...DEFAULT_PERMISSIONS[u.role as UserRole] || DEFAULT_PERMISSIONS.agent },
-      })));
+      setUsers(
+        data.map((u: any) => ({
+          ...u,
+          permissions:
+            u.permissions && Object.keys(u.permissions).length > 0
+              ? u.permissions
+              : { ...DEFAULT_PERMISSIONS[(u.role as UserRole) || 'agent'] },
+        }))
+      );
     }
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const showSaved = (msg = 'Saved') => {
     setSaveNotice(msg);
     setSaveError('');
-    setTimeout(() => setSaveNotice(''), 2500);
+    setTimeout(() => setSaveNotice(''), 3000);
   };
 
   const showErr = (msg: string) => {
     setSaveError(msg);
     setSaveNotice('');
-    setTimeout(() => setSaveError(''), 4000);
+    setTimeout(() => setSaveError(''), 6000);
   };
 
   const filtered = filterRole === 'all' ? users : users.filter((u) => u.role === filterRole);
@@ -206,12 +182,15 @@ export default function UsersPage() {
   };
 
   const handleSave = async () => {
-    if (!form.full_name || !form.email) return;
+    if (!form.full_name.trim() || !form.email.trim()) {
+      showErr('Full name and email are required.');
+      return;
+    }
     setIsSaving(true);
     setSaveError('');
 
     if (editUser) {
-      // Update existing user profile
+      // Update existing user profile only (no auth changes needed)
       const { error } = await supabase
         .from('user_profiles')
         .update({
@@ -225,96 +204,60 @@ export default function UsersPage() {
         .eq('id', editUser.id);
 
       if (error) {
-        showErr(error.message || 'Failed to update user.');
+        showErr('Failed to update user: ' + error.message);
         setIsSaving(false);
         return;
       }
       await fetchUsers();
       setShowModal(false);
-      showSaved('User updated');
+      showSaved('User updated successfully');
     } else {
-      // Step 1: Try edge function (requires SUPABASE_SERVICE_ROLE_KEY secret)
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-      const edgeResult = await createUserViaAdminAPI(
-        form.full_name, form.email, form.password, form.role,
-        form.permissions, form.phone, anonKey
-      );
-
-      if (edgeResult.success && edgeResult.userId) {
-        // Edge function succeeded — profile already upserted by edge function
-        await fetchUsers();
-        setShowModal(false);
-        showSaved('User created successfully');
+      // Create new user via Next.js API route (uses service role key server-side)
+      if (!form.password.trim()) {
+        showErr('Password is required.');
         setIsSaving(false);
         return;
       }
 
-      // Step 2: Fallback — use signUp + manual profile insert
-      // Note: signUp may return user=null if email confirmation is required.
-      // We handle both confirmed and unconfirmed cases.
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.full_name,
-            role: form.role,
-            permissions: form.permissions,
-          },
-        },
-      });
-
-      if (signUpError) {
-        showErr(signUpError.message || 'Failed to create user.');
-        setIsSaving(false);
-        return;
-      }
-
-      // signUpData.user is non-null for auto-confirmed users,
-      // null when email confirmation is pending.
-      const authUserId = signUpData.user?.id;
-
-      if (authUserId) {
-        // User confirmed immediately — upsert profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .upsert({
-            id: authUserId,
+      try {
+        const res = await fetch('/api/admin/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.full_name,
             email: form.email,
-            full_name: form.full_name,
+            password: form.password,
             role: form.role,
-            status: form.status,
-            phone: form.phone || null,
             permissions: form.permissions,
-          }, { onConflict: 'id' });
+            phone: form.phone,
+            status: form.status,
+          }),
+        });
 
-        if (profileError) {
-          showErr('User auth created but profile setup failed: ' + profileError.message);
+        const result = await res.json();
+
+        if (!res.ok || !result.success) {
+          showErr(result.error || `Failed to create user (HTTP ${res.status})`);
           setIsSaving(false);
           return;
         }
 
+        // Success — refresh the list
         await fetchUsers();
         setShowModal(false);
         showSaved('User created successfully');
-      } else {
-        // Email confirmation required — user exists in auth but not yet confirmed.
-        // Profile will be created by trigger when they confirm.
-        // Show a clear message to the admin.
-        setShowModal(false);
-        showSaved('Invite sent — user must confirm their email to activate');
+      } catch (err) {
+        showErr(err instanceof Error ? err.message : 'Network error — please try again');
       }
     }
+
     setIsSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('user_profiles')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('user_profiles').delete().eq('id', id);
     if (error) {
-      showErr(error.message || 'Failed to delete user.');
+      showErr('Failed to delete user: ' + error.message);
       return;
     }
     setDeleteConfirm(null);
@@ -328,7 +271,10 @@ export default function UsersPage() {
       .from('user_profiles')
       .update({ permissions: permUser.permissions, updated_at: new Date().toISOString() })
       .eq('id', permUser.id);
-    if (error) { showErr(error.message); return; }
+    if (error) {
+      showErr(error.message);
+      return;
+    }
     await fetchUsers();
     setShowPermModal(false);
     showSaved('Permissions updated');
@@ -377,11 +323,14 @@ export default function UsersPage() {
             </span>
           )}
           {saveError && (
-            <span className="text-xs text-red-400 font-medium flex items-center gap-1">
+            <span className="text-xs text-red-400 font-medium flex items-center gap-1 max-w-xs truncate">
               <Icon name="ExclamationTriangleIcon" size={13} /> {saveError}
             </span>
           )}
-          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          >
             <Icon name="PlusIcon" size={14} />
             Create User
           </button>
@@ -395,10 +344,14 @@ export default function UsersPage() {
           return (
             <div key={role} className="bg-card border border-border p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${roleColors[role]}`}>{roleLabels[role]}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${roleColors[role]}`}>
+                  {roleLabels[role]}
+                </span>
                 <span className="text-xl font-bold text-foreground">{count}</span>
               </div>
-              <p className="text-[10px] text-muted-foreground">{enabledCount(DEFAULT_PERMISSIONS[role])} modules enabled</p>
+              <p className="text-[10px] text-muted-foreground">
+                {enabledCount(DEFAULT_PERMISSIONS[role])} modules enabled
+              </p>
             </div>
           );
         })}
@@ -407,7 +360,13 @@ export default function UsersPage() {
       {/* Role Filter */}
       <div className="flex items-center border border-border overflow-hidden mb-4 w-fit">
         {(['all', 'super_admin', 'admin', 'marketing', 'agent'] as const).map((r) => (
-          <button key={r} onClick={() => setFilterRole(r)} className={`px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${filterRole === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+          <button
+            key={r}
+            onClick={() => setFilterRole(r)}
+            className={`px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              filterRole === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             {r === 'all' ? 'All' : roleLabels[r as UserRole]}
           </button>
         ))}
@@ -424,7 +383,9 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b border-border">
                 {['User', 'Role', 'Modules Access', 'Status', 'Last Login', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -432,47 +393,75 @@ export default function UsersPage() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    No users found.
+                    {saveError ? (
+                      <span className="text-red-400">{saveError}</span>
+                    ) : (
+                      'No users found.'
+                    )}
                   </td>
                 </tr>
-              ) : filtered.map((user, i) => (
-                <tr key={user.id} className={`border-b border-border hover:bg-white/2 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary text-xs font-bold">{user.full_name?.[0] || '?'}</span>
+              ) : (
+                filtered.map((user, i) => (
+                  <tr
+                    key={user.id}
+                    className={`border-b border-border hover:bg-white/2 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary text-xs font-bold">{user.full_name?.[0]?.toUpperCase() || '?'}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{user.full_name}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                          {user.phone && <p className="text-[10px] text-muted-foreground/60">{user.phone}</p>}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{user.full_name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                        {user.phone && <p className="text-[10px] text-muted-foreground/60">{user.phone}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${roleColors[user.role]}`}>
+                        {roleLabels[user.role]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-muted h-1.5 w-24">
+                          <div
+                            className="bg-primary h-1.5 transition-all"
+                            style={{ width: `${(enabledCount(user.permissions) / MODULES.length) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {enabledCount(user.permissions)}/{MODULES.length}
+                        </span>
+                        <button onClick={() => openPermissions(user)} className="text-[10px] text-primary hover:underline font-medium">
+                          Edit
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${roleColors[user.role]}`}>{roleLabels[user.role]}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-muted h-1.5 w-24">
-                        <div className="bg-primary h-1.5 transition-all" style={{ width: `${(enabledCount(user.permissions) / MODULES.length) * 100}%` }} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${
+                          user.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10' : 'text-muted-foreground bg-muted/50'
+                        }`}
+                      >
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{formatLastLogin(user.last_login_at)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <button onClick={() => openEdit(user)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                          <Icon name="PencilIcon" size={13} />
+                        </button>
+                        <button onClick={() => setDeleteConfirm(user.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors">
+                          <Icon name="TrashIcon" size={13} />
+                        </button>
                       </div>
-                      <span className="text-xs text-muted-foreground">{enabledCount(user.permissions)}/{MODULES.length}</span>
-                      <button onClick={() => openPermissions(user)} className="text-[10px] text-primary hover:underline font-medium">Edit</button>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${user.status === 'Active' ? 'text-emerald-400 bg-emerald-400/10' : 'text-muted-foreground bg-muted/50'}`}>{user.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{formatLastLogin(user.last_login_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button onClick={() => openEdit(user)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Icon name="PencilIcon" size={13} /></button>
-                      <button onClick={() => setDeleteConfirm(user.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}
@@ -484,7 +473,13 @@ export default function UsersPage() {
           <h3 className="text-sm font-bold text-foreground">Role Permissions Matrix</h3>
           <div className="flex border border-border overflow-hidden">
             {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-              <button key={r} onClick={() => setActiveRoleTab(r)} className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeRoleTab === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button
+                key={r}
+                onClick={() => setActiveRoleTab(r)}
+                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                  activeRoleTab === r ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
                 {roleLabels[r].split(' ')[0]}
               </button>
             ))}
@@ -494,7 +489,10 @@ export default function UsersPage() {
           {MODULES.map((mod) => {
             const enabled = DEFAULT_PERMISSIONS[activeRoleTab][mod.key];
             return (
-              <div key={mod.key} className={`flex items-center gap-2 px-3 py-2 border ${enabled ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'}`}>
+              <div
+                key={mod.key}
+                className={`flex items-center gap-2 px-3 py-2 border ${enabled ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'}`}
+              >
                 <div className={`w-2 h-2 flex-shrink-0 ${enabled ? 'bg-primary' : 'bg-muted-foreground/20'}`} />
                 <span className={`text-xs ${enabled ? 'text-foreground' : 'text-muted-foreground/50'}`}>{mod.label}</span>
               </div>
@@ -509,11 +507,21 @@ export default function UsersPage() {
           <div className="bg-card border border-border w-full max-w-sm p-6">
             <h3 className="text-base font-bold text-foreground mb-2">Remove User</h3>
             <p className="text-sm text-muted-foreground mb-5">
-              This will remove the user profile. The auth account will remain unless deleted from Supabase dashboard.
+              This will remove the user profile from the system.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Remove</button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+              >
+                Remove
+              </button>
             </div>
           </div>
         </div>
@@ -524,25 +532,56 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-border w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-bold text-foreground">{editUser ? 'Edit User' : 'Create User Account'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
+              <h2 className="text-base font-bold text-foreground">
+                {editUser ? 'Edit User' : 'Create User Account'}
+              </h2>
+              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground">
+                <Icon name="XMarkIcon" size={18} />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Full Name *</label>
-                <input type="text" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="Full name..." />
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  placeholder="Full name..."
+                />
               </div>
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Email *</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!!editUser} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary disabled:opacity-50" placeholder="email@luxestate.com" />
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  disabled={!!editUser}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary disabled:opacity-50"
+                  placeholder="email@luxestate.com"
+                />
               </div>
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Phone</label>
-                <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="+971 50 000 0000" />
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                  placeholder="+971 50 000 0000"
+                />
               </div>
               {!editUser && (
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Temporary Password</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    Temporary Password *
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -560,12 +599,20 @@ export default function UsersPage() {
                       <Icon name="ArrowPathIcon" size={14} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Share this password with the user securely.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    User can log in immediately with this password. Share it securely.
+                  </p>
                 </div>
               )}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Role</label>
-                <select value={form.role} onChange={(e) => handleRoleChange(e.target.value as UserRole)} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Role
+                </label>
+                <select
+                  value={form.role}
+                  onChange={(e) => handleRoleChange(e.target.value as UserRole)}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                >
                   {(Object.keys(roleLabels) as UserRole[]).map((r) => (
                     <option key={r} value={r}>{roleLabels[r]}</option>
                   ))}
@@ -578,15 +625,23 @@ export default function UsersPage() {
                 </p>
               </div>
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Status</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'Active' | 'Inactive' })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Status
+                </label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value as 'Active' | 'Inactive' })}
+                  className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
               {/* Module Permissions */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Module Access</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">
+                  Module Access
+                </label>
                 <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                   {MODULES.map((mod) => (
                     <div key={mod.key} className="flex items-center justify-between py-1.5 px-2 hover:bg-white/2">
@@ -604,10 +659,15 @@ export default function UsersPage() {
               )}
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-border">
-              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleSave}
-                disabled={!form.full_name || !form.email || isSaving}
+                disabled={!form.full_name.trim() || !form.email.trim() || isSaving}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? (
@@ -615,8 +675,10 @@ export default function UsersPage() {
                     <Icon name="ArrowPathIcon" size={14} className="animate-spin" />
                     {editUser ? 'Saving...' : 'Creating...'}
                   </>
+                ) : editUser ? (
+                  'Save Changes'
                 ) : (
-                  editUser ? 'Save Changes' : 'Create User'
+                  'Create User'
                 )}
               </button>
             </div>
@@ -631,22 +693,43 @@ export default function UsersPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
                 <h2 className="text-base font-bold text-foreground">Module Permissions</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{permUser.full_name} · {roleLabels[permUser.role]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {permUser.full_name} · {roleLabels[permUser.role]}
+                </p>
               </div>
-              <button onClick={() => setShowPermModal(false)} className="text-muted-foreground hover:text-foreground"><Icon name="XMarkIcon" size={18} /></button>
+              <button onClick={() => setShowPermModal(false)} className="text-muted-foreground hover:text-foreground">
+                <Icon name="XMarkIcon" size={18} />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-foreground">{enabledCount(permUser.permissions)} of {MODULES.length} modules enabled</span>
+                <span className="text-xs text-muted-foreground">
+                  {enabledCount(permUser.permissions)} of {MODULES.length} modules enabled
+                </span>
                 <div className="flex gap-2">
-                  <button onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, true])) })} className="text-[10px] text-primary hover:underline">Enable All</button>
+                  <button
+                    onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, true])) })}
+                    className="text-[10px] text-primary hover:underline"
+                  >
+                    Enable All
+                  </button>
                   <span className="text-muted-foreground/30">|</span>
-                  <button onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, false])) })} className="text-[10px] text-muted-foreground hover:text-foreground">Disable All</button>
+                  <button
+                    onClick={() => setPermUser({ ...permUser, permissions: Object.fromEntries(MODULES.map((m) => [m.key, false])) })}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Disable All
+                  </button>
                 </div>
               </div>
               <div className="space-y-1">
                 {MODULES.map((mod) => (
-                  <div key={mod.key} className={`flex items-center justify-between py-2.5 px-3 border transition-colors ${permUser.permissions[mod.key] ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'}`}>
+                  <div
+                    key={mod.key}
+                    className={`flex items-center justify-between py-2.5 px-3 border transition-colors ${
+                      permUser.permissions[mod.key] ? 'border-primary/20 bg-primary/5' : 'border-border bg-transparent'
+                    }`}
+                  >
                     <span className="text-sm text-foreground">{mod.label}</span>
                     <Toggle checked={!!permUser.permissions[mod.key]} onChange={() => togglePermUser(mod.key)} />
                   </div>
@@ -654,8 +737,16 @@ export default function UsersPage() {
               </div>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-border">
-              <button onClick={() => setShowPermModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleSavePermissions} className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors">
+              <button
+                onClick={() => setShowPermModal(false)}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePermissions}
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors"
+              >
                 Save Permissions
               </button>
             </div>
