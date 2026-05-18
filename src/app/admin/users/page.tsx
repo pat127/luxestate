@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { createClient } from '@/lib/supabase/client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -161,8 +160,6 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function UsersPage() {
-  const supabase = createClient();
-
   // State
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,20 +200,17 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setUsers((data as UserProfile[]) || []);
+      const res = await fetch('/api/admin/users');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to load users');
+      setUsers((result.users as UserProfile[]) || []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load users';
       setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -302,21 +296,24 @@ export default function UsersPage() {
 
     try {
       if (editUser) {
-        // Update existing profile directly via Supabase client
-        const { error: updateError } = await supabase
-          .from('user_profiles')
-          .update({
-            full_name: form.full_name.trim(),
-            email: form.email.trim(),
-            role: form.role,
-            status: form.status,
-            phone: form.phone.trim() || null,
-            permissions: form.permissions,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editUser.id);
-
-        if (updateError) throw updateError;
+        // Update existing profile via admin API route
+        const res = await fetch('/api/admin/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editUser.id,
+            updates: {
+              full_name: form.full_name.trim(),
+              email: form.email.trim(),
+              role: form.role,
+              status: form.status,
+              phone: form.phone.trim() || null,
+              permissions: form.permissions,
+            },
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to update user');
         showToast('User updated successfully');
       } else {
         // Create new user via server-side API route (uses service role key)
@@ -371,12 +368,16 @@ export default function UsersPage() {
   const handleSavePermissions = async () => {
     if (!permUser) return;
     try {
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ permissions: permUser.permissions, updated_at: new Date().toISOString() })
-        .eq('id', permUser.id);
-
-      if (updateError) throw updateError;
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: permUser.id,
+          updates: { permissions: permUser.permissions },
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to save permissions');
       setUsers((prev) => prev.map((u) => (u.id === permUser.id ? { ...u, permissions: permUser.permissions } : u)));
       showToast('Permissions saved');
       setShowPermModal(false);
@@ -390,12 +391,16 @@ export default function UsersPage() {
   const handleToggleStatus = async (user: UserProfile) => {
     const newStatus: UserStatus = user.status === 'Active' ? 'Inactive' : 'Active';
     try {
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          updates: { status: newStatus },
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to update status');
       setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)));
       showToast(`User ${newStatus === 'Active' ? 'activated' : 'deactivated'}`);
     } catch (err: unknown) {

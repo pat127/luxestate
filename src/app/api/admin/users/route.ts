@@ -13,6 +13,26 @@ function createAdminClient() {
   });
 }
 
+// GET /api/admin/users — fetch all user profiles
+export async function GET() {
+  try {
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ users: data });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 // POST /api/admin/users — create a new auth user + profile
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +93,36 @@ export async function POST(req: NextRequest) {
       .single();
 
     return NextResponse.json({ user: profile }, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// PUT /api/admin/users — update an existing user profile
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, updates } = body;
+
+    if (!id || !updates) {
+      return NextResponse.json({ error: 'id and updates are required' }, { status: 400 });
+    }
+
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient
+      .from('user_profiles')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ user: data });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });
