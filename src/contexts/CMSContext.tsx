@@ -446,7 +446,7 @@ const DEFAULT_BRANDING: BrandingConfig = {
   social_facebook: '',
   social_twitter: '',
   social_youtube: '',
-  social_tiktok: '',
+  social_tiktok: ''
 };
 
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
@@ -614,7 +614,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15831eb38-1768374767097.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1fef2a040-1772907432197.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -740,7 +740,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Where Architecture Becomes Legacy',
   hero_subheadline: 'Ultra-premium properties for discerning buyers',
   hero_description: 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.',
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1de1aff6c-1773039815800.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f930205d-1764676806048.png",
   hero_eyebrow: 'Curated Luxury Properties',
   cta_primary_text: 'Explore Properties',
   cta_primary_link: '/residential',
@@ -880,9 +880,9 @@ function mergeWithDefaults(stored: PageConfig): PageConfig {
     // Merge sections: default page sections provide fallback values,
     // but stored values (including false) always take priority
     const defaultPage = DEFAULT_PAGES.find((p) => p.key === stored.key);
-    const mergedSections = defaultPage
-      ? { ...defaultPage.sections, ...stored.sections }
-      : stored.sections;
+    const mergedSections = defaultPage ?
+    { ...defaultPage.sections, ...stored.sections } :
+    stored.sections;
     return { ...stored, sections: mergedSections };
   }
   // Deep merge: stored values take priority, only fill in completely missing keys
@@ -924,34 +924,34 @@ function loadInitialCMSData(): {
     const stored = localStorage.getItem(CMS_STORAGE_KEY);
     if (stored) {
       const data: CMSData = JSON.parse(stored);
-      const pages = data.pages?.length
-        ? DEFAULT_PAGES.map((defaultPage) => {
-            const storedPage = data.pages.find((p) => p.key === defaultPage.key);
-            if (!storedPage) return defaultPage;
-            return mergeWithDefaults(storedPage);
-          })
-        : DEFAULT_PAGES;
+      const pages = data.pages?.length ?
+      DEFAULT_PAGES.map((defaultPage) => {
+        const storedPage = data.pages.find((p) => p.key === defaultPage.key);
+        if (!storedPage) return defaultPage;
+        return mergeWithDefaults(storedPage);
+      }) :
+      DEFAULT_PAGES;
       return {
         pages,
         branding: data.branding ? { ...DEFAULT_BRANDING, ...data.branding } : DEFAULT_BRANDING,
         propertyDetail: data.propertyDetail ? { ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail } : DEFAULT_PROPERTY_DETAIL,
         projectDetail: data.projectDetail ? { ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail } : DEFAULT_PROJECT_DETAIL,
-        lastSaved: data.lastSaved,
+        lastSaved: data.lastSaved
       };
     }
   } catch {
+
     // use defaults
-  }
-  return {
+  }return {
     pages: DEFAULT_PAGES,
     branding: DEFAULT_BRANDING,
     propertyDetail: DEFAULT_PROPERTY_DETAIL,
     projectDetail: DEFAULT_PROJECT_DETAIL,
-    lastSaved: undefined,
+    lastSaved: undefined
   };
 }
 
-const _cmsInitCache: { data: ReturnType<typeof loadInitialCMSData> | null } = { data: null };
+const _cmsInitCache: {data: ReturnType<typeof loadInitialCMSData> | null;} = { data: null };
 function getCachedInitialData() {
   if (!_cmsInitCache.data) _cmsInitCache.data = loadInitialCMSData();
   return _cmsInitCache.data;
@@ -1011,11 +1011,11 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
 
 
 
+
       // storage unavailable
     }}, [propertyDetail, projectDetail]);return <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
       {children}
-    </CMSContext.Provider>;}
-export function useCMS() {
+    </CMSContext.Provider>;}export function useCMS() {
   return useContext(CMSContext);
 }
 
