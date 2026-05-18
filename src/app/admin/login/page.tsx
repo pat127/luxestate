@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@coveestates.com"
+                placeholder="you@coveestate.com"
                 required
                 className="w-full bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground px-3 py-2.5 focus:outline-none focus:border-primary/60 transition-colors"
               />
@@ -95,29 +95,6 @@ export default function AdminLoginPage() {
               )}
             </button>
           </form>
-
-          {/* Demo credentials */}
-          <div className="mt-6 pt-5 border-t border-border space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">
-              Demo Credentials
-            </p>
-            <button
-              type="button"
-              onClick={() => { setEmail('admin@coveestates.com'); setPassword('Admin@2024!'); }}
-              className="w-full text-left px-3 py-2 bg-background border border-border hover:border-primary/40 transition-colors"
-            >
-              <p className="text-xs font-semibold text-foreground">Super Admin / CEO</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">admin@coveestates.com · Admin@2024!</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setEmail('sarah@coveestates.com'); setPassword('Agent@2024!'); }}
-              className="w-full text-left px-3 py-2 bg-background border border-border hover:border-primary/40 transition-colors"
-            >
-              <p className="text-xs font-semibold text-foreground">Agent — Sarah Mitchell</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">sarah@coveestates.com · Agent@2024!</p>
-            </button>
-          </div>
         </div>
       </div>
     </div>
