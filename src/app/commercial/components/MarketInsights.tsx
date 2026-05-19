@@ -54,7 +54,7 @@ export default function MarketInsights() {
   return (
     <section ref={sectionRef} className="py-20 px-6 md:px-10 border-t border-border bg-background">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-14 gap-6 animate-on-scroll">
+        <div className="flex flex-col md:flex-row justify-between md:items-end items-start mb-14 gap-6 animate-on-scroll">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Intelligence</span>
             <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">

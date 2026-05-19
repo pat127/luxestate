@@ -61,14 +61,14 @@ export default function ProjectTimeline() {
   return (
     <section ref={sectionRef} className="py-20 px-6 md:px-10 border-t border-border bg-card">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 animate-on-scroll">
+        <div className="flex flex-col md:flex-row justify-between md:items-end items-start mb-16 gap-6 animate-on-scroll">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Acquisition Process</span>
             <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">
               From Registration<br />to Keys
             </h2>
           </div>
-          <p className="text-muted-foreground text-sm max-w-xs leading-relaxed text-right">
+          <p className="text-muted-foreground text-sm max-w-xs leading-relaxed text-left md:text-right">
             Our structured process protects your investment at every stage of the off-plan acquisition journey.
           </p>
         </div>

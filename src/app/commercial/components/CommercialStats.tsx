@@ -97,7 +97,7 @@ export default function CommercialStats() {
         {/* Stats Row */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16 animate-on-scroll">
-            <div className="text-center border-r border-border last:border-r-0 px-4">
+            <div className="text-left md:text-center md:border-r border-border last:border-r-0 px-4">
               <p className="text-3xl md:text-4xl font-black text-primary tracking-tighter mb-2">{stats.totalAssets}+</p>
               <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">Active Assets</p>
             </div>

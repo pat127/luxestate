@@ -109,7 +109,7 @@ export default function ProjectsGallery() {
 
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 animate-on-scroll">
+      <div className="flex flex-col md:flex-row justify-between md:items-end items-start mb-12 gap-6 animate-on-scroll">
         <div>
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Developments</span>
           <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">Active Projects</h2>
