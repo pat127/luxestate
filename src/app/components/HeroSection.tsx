@@ -158,7 +158,7 @@ export default function HeroSection() {
             </Link>
             <Link
               href={ctaSecondaryLink}
-              className="flex items-center justify-center gap-2 border border-foreground/30 text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300 min-h-[52px]">
+              className="flex items-center justify-center gap-2 border-2 border-white text-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-colors duration-300 min-h-[52px]">
               {ctaSecondaryText}
             </Link>
           </div>

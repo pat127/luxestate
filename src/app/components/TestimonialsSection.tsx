@@ -51,7 +51,7 @@ export default function TestimonialsSection({ content }: Props) {
   return (
     <section ref={sectionRef} className="py-24 bg-card border-t border-border">
       <div className="max-w-7xl mx-auto px-6 md:px-10">
-        <div className="text-center mb-20 animate-on-scroll">
+        <div className="text-left md:text-center mb-20 animate-on-scroll">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
             {c.eyebrow}
           </span>
@@ -110,7 +110,7 @@ export default function TestimonialsSection({ content }: Props) {
                 {c.awards_headline}<br /><span key={c.awards_headline_shimmer} className="text-gold-shimmer">{c.awards_headline_shimmer}</span>
               </h3>
             </div>
-            <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">
+            <p className="text-muted-foreground text-sm max-w-xs text-left leading-relaxed">
               {c.awards_subtext}
             </p>
           </div>
