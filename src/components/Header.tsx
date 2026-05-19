@@ -194,6 +194,15 @@ export default function Header() {
               <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
 
+            {/* Sign In - desktop only */}
+            <Link
+              href="/login"
+              className="hidden md:flex items-center gap-1.5 px-4 py-2.5 border border-white/30 text-white/80 hover:text-primary hover:border-primary/50 text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300"
+            >
+              <Icon name="UserIcon" size={13} />
+              Sign In
+            </Link>
+
             {/* Mobile: WhatsApp icon */}
             <a
               href="https://wa.me/971508862683"
