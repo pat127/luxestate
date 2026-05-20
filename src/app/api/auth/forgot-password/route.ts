@@ -21,11 +21,11 @@ export async function POST(req: NextRequest) {
     const adminClient = createAdminClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
 
-    // Use Supabase's built-in password reset email — no Resend dependency
+    // Use Supabase's built-in password reset email — redirectTo must point to auth/callback
     const { error } = await adminClient.auth.resetPasswordForEmail(
       email.toLowerCase().trim(),
       {
-        redirectTo: `${siteUrl}/admin/reset-password`,
+        redirectTo: `${siteUrl}/auth/callback?next=/admin/reset-password`,
       }
     );
 
