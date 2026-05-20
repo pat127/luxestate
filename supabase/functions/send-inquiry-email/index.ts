@@ -58,7 +58,7 @@ serve(async (req) => {
                   <!-- Header -->
                   <tr>
                     <td style="padding:32px 40px 24px;border-bottom:1px solid #222222;">
-                      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C5A47E;">LuxEstate</p>
+                      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C5A47E;">Cove Estates</p>
                       <h1 style="margin:8px 0 0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">We've Received Your ${formLabel}</h1>
                     </td>
                   </tr>
@@ -67,7 +67,7 @@ serve(async (req) => {
                     <td style="padding:32px 40px;">
                       <p style="margin:0 0 20px;font-size:14px;color:#999999;line-height:1.6;">Dear <strong style="color:#ffffff;">${name}</strong>,</p>
                       <p style="margin:0 0 24px;font-size:14px;color:#999999;line-height:1.6;">
-                        Thank you for reaching out to LuxEstate. We have received your inquiry and a member of our team will be in touch with you within 24 hours.
+                        Thank you for reaching out to Cove Estates. We have received your inquiry and a member of our team will be in touch with you within 24 hours.
                       </p>
                       ${(projectName || propertyType || budget || message) ? `
                       <!-- Summary Box -->
@@ -93,7 +93,7 @@ serve(async (req) => {
                   <!-- Footer -->
                   <tr>
                     <td style="padding:20px 40px;border-top:1px solid #222222;">
-                      <p style="margin:0;font-size:11px;color:#444444;text-align:center;">© LuxEstate · This is an automated confirmation, please do not reply.</p>
+                      <p style="margin:0;font-size:11px;color:#444444;text-align:center;">© Cove Estates · This is an automated confirmation, please do not reply.</p>
                     </td>
                   </tr>
                 </table>
@@ -120,7 +120,7 @@ serve(async (req) => {
                   <!-- Header -->
                   <tr>
                     <td style="padding:32px 40px 24px;border-bottom:1px solid #222222;">
-                      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C5A47E;">LuxEstate CRM</p>
+                      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C5A47E;">Cove Estates CRM</p>
                       <h1 style="margin:8px 0 0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">New ${formLabel} Received</h1>
                     </td>
                   </tr>
@@ -165,7 +165,7 @@ serve(async (req) => {
                   <!-- Footer -->
                   <tr>
                     <td style="padding:20px 40px;border-top:1px solid #222222;">
-                      <p style="margin:0;font-size:11px;color:#444444;text-align:center;">© LuxEstate CRM · Automated lead notification</p>
+                      <p style="margin:0;font-size:11px;color:#444444;text-align:center;">© Cove Estates CRM · Automated lead notification</p>
                     </td>
                   </tr>
                 </table>
@@ -187,7 +187,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "onboarding@resend.dev",
           to: [email],
-          subject: `LuxEstate — We've Received Your ${formLabel}`,
+          subject: `Cove Estates — We've Received Your ${formLabel}`,
           html: confirmationHtml,
         }),
       }),
@@ -200,7 +200,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "onboarding@resend.dev",
           to: [ADMIN_EMAIL],
-          subject: `[LuxEstate] New ${formLabel} from ${name}`,
+          subject: `[Cove Estates] New ${formLabel} from ${name}`,
           html: adminHtml,
         }),
       }),

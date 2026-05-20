@@ -60,7 +60,7 @@ export default function PropertyDetailsPage() {
     ? property.amenities.split(',').map((a: string) => a.trim()).filter(Boolean)
     : [];
 
-  const shareUrl = `https://luxestate6357.builtwithrocket.new/properties/${id}`;
+  const shareUrl = `https://coveestate.com/properties/${id}`;
 
   const handleCopyLink = () => {
     if (typeof navigator !== 'undefined') {

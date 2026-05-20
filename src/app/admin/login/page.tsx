@@ -106,7 +106,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
                     className="w-full bg-secondary border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                    placeholder="you@luxestate.com"
+                    placeholder="you@coveestate.com"
                   />
                 </div>
 
@@ -197,7 +197,7 @@ export default function AdminLoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       autoComplete="email"
                       className="w-full bg-secondary border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                      placeholder="you@luxestate.com"
+                      placeholder="you@coveestate.com"
                     />
                   </div>
 

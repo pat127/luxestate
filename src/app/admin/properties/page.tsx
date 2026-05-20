@@ -970,11 +970,11 @@ export default function PropertiesPage() {
               </button>
             </div>
             <div className="flex gap-2">
-              <input type="text" readOnly value={`https://luxestate6357.builtwithrocket.new/properties/${shareProperty.id}`} className="flex-1 bg-[#1a1a1a] border border-[#333] text-xs text-gray-300 px-3 py-2 focus:outline-none" />
+              <input type="text" readOnly value={`https://coveestate.com/properties/${shareProperty.id}`} className="flex-1 bg-[#1a1a1a] border border-[#333] text-xs text-gray-300 px-3 py-2 focus:outline-none" />
               <button
                 onClick={() => {
                   if (typeof navigator !== 'undefined') {
-                    navigator.clipboard.writeText(`https://luxestate6357.builtwithrocket.new/properties/${shareProperty.id}`);
+                    navigator.clipboard.writeText(`https://coveestate.com/properties/${shareProperty.id}`);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }

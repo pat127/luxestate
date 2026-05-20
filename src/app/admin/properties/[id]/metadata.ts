@@ -33,7 +33,7 @@ export async function generatePropertyMetadata({ params }: { params: Promise<{ i
 
   const title = `${property.name} | ${property.propertyType} in ${property.location} | Cove Estates`;
   const description = `${property.beds ? `${property.beds} Bed ` : ''}${property.propertyType} in ${property.community}, ${property.location}. ${property.price}. ${property.sqft} sq ft. ${property.description.slice(0, 100)}...`;
-  const url = `https://luxestate6357.builtwithrocket.new/admin/properties/${id}`;
+  const url = `https://coveestate.com/admin/properties/${id}`;
 
   return {
     title,

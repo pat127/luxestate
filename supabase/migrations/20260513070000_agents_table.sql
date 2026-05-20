@@ -59,12 +59,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.agents LIMIT 1) THEN
     INSERT INTO public.agents (name, email, phone, role, agent_status, leads, deals, commission, joined, nationality, languages, specialization, license_no)
     VALUES
-      ('CEO Admin',       'ceo@luxestate.com',   '+971 50 886 2683', 'CEO / Senior Agent', 'Active',   0,  0,  'AED 0',       'Jan 2006', 'UAE',     ARRAY['English','Arabic'],          'Luxury Residential', 'RERA-00001'),
-      ('Sarah Mitchell',  'sarah@luxestate.com', '+971 50 100 2000', 'Senior Agent',       'Active',  45, 12, 'AED 280,000', 'Jan 2022', 'British', ARRAY['English','French'],          'Luxury Residential', 'RERA-12345'),
-      ('James Carter',    'james@luxestate.com', '+971 55 200 3000', 'Agent',              'Active',  32,  8, 'AED 190,000', 'Mar 2022', 'American',ARRAY['English'],                  'Off-Plan',           'RERA-23456'),
-      ('Omar Hassan',     'omar@luxestate.com',  '+971 52 300 4000', 'Senior Agent',       'Active',  58, 15, 'AED 420,000', 'Sep 2021', 'Emirati', ARRAY['Arabic','English'],          'Commercial',         'RERA-34567'),
-      ('Priya Sharma',    'priya@luxestate.com', '+971 56 400 5000', 'Junior Agent',       'Active',  18,  4, 'AED 85,000',  'Jun 2023', 'Indian',  ARRAY['English','Hindi'],           'Residential',        'RERA-45678'),
-      ('Lucas Fontaine',  'lucas@luxestate.com', '+971 58 500 6000', 'Agent',              'Inactive',22,  6, 'AED 140,000', 'Nov 2022', 'French',  ARRAY['French','English'],          'Luxury Residential', 'RERA-56789')
+      ('CEO Admin',       'ceo@coveestate.com',   '+971 50 886 2683', 'CEO / Senior Agent', 'Active',   0,  0,  'AED 0',       'Jan 2006', 'UAE',     ARRAY['English','Arabic'],          'Luxury Residential', 'RERA-00001'),
+      ('Sarah Mitchell',  'sarah@coveestate.com', '+971 50 100 2000', 'Senior Agent',       'Active',  45, 12, 'AED 280,000', 'Jan 2022', 'British', ARRAY['English','French'],          'Luxury Residential', 'RERA-12345'),
+      ('James Carter',    'james@coveestate.com', '+971 55 200 3000', 'Agent',              'Active',  32,  8, 'AED 190,000', 'Mar 2022', 'American',ARRAY['English'],                  'Off-Plan',           'RERA-23456'),
+      ('Omar Hassan',     'omar@coveestate.com',  '+971 52 300 4000', 'Senior Agent',       'Active',  58, 15, 'AED 420,000', 'Sep 2021', 'Emirati', ARRAY['Arabic','English'],          'Commercial',         'RERA-34567'),
+      ('Priya Sharma',    'priya@coveestate.com', '+971 56 400 5000', 'Junior Agent',       'Active',  18,  4, 'AED 85,000',  'Jun 2023', 'Indian',  ARRAY['English','Hindi'],           'Residential',        'RERA-45678'),
+      ('Lucas Fontaine',  'lucas@coveestate.com', '+971 58 500 6000', 'Agent',              'Inactive',22,  6, 'AED 140,000', 'Nov 2022', 'French',  ARRAY['French','English'],          'Luxury Residential', 'RERA-56789')
     ON CONFLICT DO NOTHING;
   END IF;
 EXCEPTION

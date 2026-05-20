@@ -64,7 +64,7 @@ serve(async (req) => {
 
           <p style="color: #737373; font-size: 12px; margin: 0 0 24px 0;">⚠️ Please change your password after your first login for security.</p>
 
-          <a href="https://luxestate6357.builtwithrocket.new/admin/login" style="display: inline-block; background: #c9a96e; color: #0a0a0a; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 24px; text-decoration: none;">
+          <a href="https://coveestate.com/admin/login" style="display: inline-block; background: #c9a96e; color: #0a0a0a; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 24px; text-decoration: none;">
             Log In to Admin Portal →
           </a>
 

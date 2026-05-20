@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
-const SITE_URL = 'https://luxestate6357.builtwithrocket.new';
+const SITE_URL = 'https://coveestate.com';
 
 const XML_FEED_URL = `${SITE_URL}/api/feed/properties.xml`;
 const PROJECTS_FEED_URL = `${SITE_URL}/api/feed/projects.xml`;
@@ -135,7 +135,7 @@ export default function SyndicationPage() {
         <div>
           <p className="text-sm font-semibold text-foreground">XML Feed Syndication</p>
           <p className="text-xs text-muted-foreground mt-1">
-            LuxEstate distributes listings via live XML feeds. Share the feed URLs below with portals (Property Finder, Bayut, Dubizzle, etc.) or any aggregator that supports XML/RSS property feeds. Feeds are automatically updated whenever listings change.
+            Cove Estates distributes listings via live XML feeds. Share the feed URLs below with portals (Property Finder, Bayut, Dubizzle, etc.) or any aggregator that supports XML/RSS property feeds. Feeds are automatically updated whenever listings change.
           </p>
         </div>
       </div>

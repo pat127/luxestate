@@ -853,7 +853,7 @@ export default function UsersPage() {
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
-                  placeholder="user@luxestate.com"
+                  placeholder="user@coveestate.com"
                 />
               </div>
 

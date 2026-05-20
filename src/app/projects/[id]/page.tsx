@@ -79,7 +79,7 @@ function mapProject(p: any) {
     location_coords: { lat: parseFloat(p.latitude) || 25.0657, lng: parseFloat(p.longitude) || 55.1713 },
     pois: Array.isArray(p.pois) ? p.pois : [],
     agent: {
-      name: 'LuxEstate Specialist', title: 'Off-Plan Consultant',
+      name: 'Cove Estates Specialist', title: 'Off-Plan Consultant',
       phone: '+971 4 000 0000', whatsapp: '971400000000',
       email: 'projects@luxestate.ae', avatar: '', avatarAlt: 'LuxEstate Specialist',
       listings: 0, experience: '', languages: 'English, Arabic',

@@ -62,7 +62,7 @@ export default function ProjectDetailsPage() {
   const amenities: string[] = Array.isArray(project.amenities) ? project.amenities : [];
   const floorPlans: any[] = Array.isArray(project.floor_plans) ? project.floor_plans : [];
   const soldPct = project.total_units > 0 ? Math.round((project.sold_units / project.total_units) * 100) : 0;
-  const shareUrl = `https://luxestate6357.builtwithrocket.new/projects/${id}`;
+  const shareUrl = `https://coveestate.com/projects/${id}`;
 
   const handleCopyLink = () => {
     if (typeof navigator !== 'undefined') {

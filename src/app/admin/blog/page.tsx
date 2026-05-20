@@ -464,7 +464,7 @@ export default function BlogPostsPage() {
                   <div className="bg-input border border-border p-4">
                     <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Search Preview</p>
                     <p className="text-sm text-blue-400 font-medium">{form.metaTitle || form.title || 'Post Title'}</p>
-                    <p className="text-xs text-emerald-400 mt-0.5">luxestate.com/blog/{form.slug || 'post-slug'}</p>
+                    <p className="text-xs text-emerald-400 mt-0.5">coveestate.com/blog/{form.slug || 'post-slug'}</p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{form.metaDesc || form.excerpt || 'Meta description will appear here...'}</p>
                   </div>
                 </>
