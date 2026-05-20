@@ -29,7 +29,14 @@ export default function AdminLoginPage() {
         password: password.trim(),
       });
       if (signInError) throw signInError;
-      router.push('/admin');
+
+      // Confirm session is established before navigating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.replace('/admin');
+      } else {
+        setError('Login succeeded but session could not be established. Please try again.');
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Invalid credentials';
       setError(msg === 'Invalid login credentials' ? 'Invalid email or password.' : msg);

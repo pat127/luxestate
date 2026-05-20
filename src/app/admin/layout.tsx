@@ -82,6 +82,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
+  const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
@@ -117,11 +118,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   // Redirect unauthenticated users (except on standalone routes)
   useEffect(() => {
-    if (STANDALONE_ROUTES.includes(pathname)) return;
+    if (STANDALONE_ROUTES.includes(pathname)) {
+      setAuthChecked(true);
+      return;
+    }
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push('/admin/login');
+      } else {
+        setAuthChecked(true);
       }
     };
     checkAuth();
@@ -163,6 +169,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Render standalone (no sidebar) for login and reset-password pages
   if (STANDALONE_ROUTES.includes(pathname)) {
     return <>{children}</>;
+  }
+
+  // Don't render admin UI until auth is confirmed (prevents flash redirect)
+  if (!authChecked) {
+    return null;
   }
 
   return (
