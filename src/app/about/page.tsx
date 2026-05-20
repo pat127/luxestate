@@ -6,6 +6,8 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useCMS, DEFAULT_ABOUT_CONTENT, AboutContent } from '@/contexts/CMSContext';
+import { createClient } from '@/lib/supabase/client';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 export default function AboutPage() {
   const { getPage } = useCMS();
@@ -300,9 +302,32 @@ export default function AboutPage() {
 function ContactForm() {
   const [form, setForm] = React.useState({ name: '', email: '', phone: '', message: '' });
   const [submitted, setSubmitted] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    try {
+      const supabase = createClient();
+      await supabase.from('leads').insert({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        source: 'Website',
+        status: 'New',
+        notes: form.message || null,
+      });
+    } catch {
+      // silent fail
+    }
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      message: form.message || undefined,
+      formType: 'contact',
+    });
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -363,8 +388,9 @@ function ContactForm() {
       </div>
       <button
         type="submit"
-        className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group">
-        Send Message
+        disabled={submitting}
+        className="w-full flex items-center justify-center gap-3 bg-primary text-primary-foreground py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group disabled:opacity-60">
+        {submitting ? 'Sending...' : 'Send Message'}
         <Icon name="ArrowRightIcon" size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
       </button>
     </form>
