@@ -92,7 +92,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const syncAuthUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setAuthChecked(true);
+        return;
+      }
 
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -112,26 +115,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           avatar: initials,
         });
       }
+      setAuthChecked(true);
     };
     syncAuthUser();
   }, [supabase, setCurrentUser]);
 
-  // Redirect unauthenticated users (except on standalone routes)
-  useEffect(() => {
-    if (STANDALONE_ROUTES.includes(pathname)) {
-      setAuthChecked(true);
-      return;
-    }
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/admin/login');
-      } else {
-        setAuthChecked(true);
-      }
-    };
-    checkAuth();
-  }, [pathname, supabase, router]);
+  // Auth redirect removed — admin area is freely accessible
 
   const fetchPendingDocs = useCallback(async () => {
     if (currentUser.role !== 'super_admin') return;
@@ -171,7 +160,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Don't render admin UI until auth is confirmed (prevents flash redirect)
+  // Wait for auth check to complete before rendering (prevents layout flash)
   if (!authChecked) {
     return null;
   }
