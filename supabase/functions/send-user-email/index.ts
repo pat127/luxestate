@@ -20,11 +20,16 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno?.env?.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 
+    // Use a verified sender domain if configured, otherwise fall back to Resend test address
+    // NOTE: onboarding@resend.dev only delivers to the Resend account owner's email.
+    // Set RESEND_FROM_EMAIL to a verified domain sender (e.g. noreply@yourdomain.com) to send to any recipient.
+    const FROM_EMAIL = Deno?.env?.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
+
     let subject = "";
     let html = "";
 
     if (type === "welcome") {
-      subject = "Your LuxEstate Admin Account Credentials";
+      subject = "Your Cove Estates Admin Account Credentials";
       html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #e5e5e5; padding: 40px; border: 1px solid #262626;">
           <div style="margin-bottom: 32px;">
@@ -67,7 +72,7 @@ serve(async (req) => {
         </div>
       `;
     } else if (type === "reset") {
-      subject = "Reset Your LuxEstate Admin Password";
+      subject = "Reset Your Cove Estates Admin Password";
       html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #e5e5e5; padding: 40px; border: 1px solid #262626;">
           <div style="margin-bottom: 32px;">
@@ -101,7 +106,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "onboarding@resend.dev",
+        from: FROM_EMAIL,
         to: [to],
         subject,
         html,
@@ -109,7 +114,10 @@ serve(async (req) => {
     });
 
     const data = await res?.json();
-    if (!res?.ok) throw new Error(data.message || "Failed to send email");
+    if (!res?.ok) {
+      console.error("Resend API error:", JSON.stringify(data));
+      throw new Error(data.message || data.error || "Failed to send email via Resend");
+    }
 
     return new Response(JSON.stringify({ success: true, id: data.id }), {
       headers: {
@@ -118,6 +126,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
+    console.error("send-user-email error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: {

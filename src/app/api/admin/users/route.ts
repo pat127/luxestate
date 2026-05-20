@@ -95,12 +95,12 @@ export async function POST(req: NextRequest) {
     // 4. Send welcome email with credentials (non-blocking)
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${anonKey}`,
+          Authorization: `Bearer ${serviceKey}`,
         },
         body: JSON.stringify({
           type: 'welcome',
@@ -111,6 +111,10 @@ export async function POST(req: NextRequest) {
           user_id: userId,
         }),
       });
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text();
+        console.warn('Welcome email response error:', errBody);
+      }
     } catch (emailErr) {
       console.warn('Welcome email failed (non-blocking):', emailErr);
     }

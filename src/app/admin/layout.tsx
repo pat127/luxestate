@@ -4,8 +4,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
-import { RoleProvider, useRole, mockUsersList, type UserRole, type Permission } from '@/contexts/RoleContext';
+import { RoleProvider, useRole, type UserRole, type Permission } from '@/contexts/RoleContext';
 import { createClient } from '@/lib/supabase/client';
+
+// Routes that should render WITHOUT the admin sidebar/nav
+const STANDALONE_ROUTES = ['/admin/login', '/admin/reset-password'];
 
 const allCrmLinks = [
   { label: 'Dashboard', href: '/admin', icon: 'Squares2X2Icon', permission: 'view_dashboard' as Permission },
@@ -84,6 +87,46 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { currentUser, setCurrentUser, can, isRole } = useRole();
   const supabase = useMemo(() => createClient(), []);
 
+  // Sync real auth user role into RoleContext
+  useEffect(() => {
+    const syncAuthUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id, email, full_name, role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && profile.role) {
+        const validRoles: UserRole[] = ['super_admin', 'admin', 'marketing', 'agent'];
+        const role: UserRole = validRoles.includes(profile.role) ? profile.role : 'agent';
+        const initials = (profile.full_name || profile.email || 'U').charAt(0).toUpperCase();
+        setCurrentUser({
+          id: profile.id,
+          name: profile.full_name || profile.email || 'User',
+          email: profile.email || user.email || '',
+          role,
+          avatar: initials,
+        });
+      }
+    };
+    syncAuthUser();
+  }, [supabase, setCurrentUser]);
+
+  // Redirect unauthenticated users (except on standalone routes)
+  useEffect(() => {
+    if (STANDALONE_ROUTES.includes(pathname)) return;
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/admin/login');
+      }
+    };
+    checkAuth();
+  }, [pathname, supabase, router]);
+
   const fetchPendingDocs = useCallback(async () => {
     if (currentUser.role !== 'super_admin') return;
     const { data } = await supabase
@@ -98,7 +141,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     fetchPendingDocs();
   }, [fetchPendingDocs]);
 
-  // Re-fetch when notifications panel opens
   const handleBellClick = () => {
     setShowNotifications(!showNotifications);
     setShowRoleSwitcher(false);
@@ -107,7 +149,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const crmLinks = allCrmLinks.filter((l) => can(l.permission));
   const cmsLinks = allCmsLinks.filter((l) => {
-    if (!isRole('super_admin', 'marketing')) return false;
+    if (!isRole('super_admin', 'admin', 'marketing')) return false;
     return can(l.permission);
   });
 
@@ -117,6 +159,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     router.push('/admin/login');
   };
+
+  // Render standalone (no sidebar) for login and reset-password pages
+  if (STANDALONE_ROUTES.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -247,7 +294,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     </button>
                   </div>
                   <div className="divide-y divide-border max-h-72 overflow-y-auto">
-                    {/* CEO: Pending approval documents */}
                     {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
                       <Link
                         key={doc.id}
@@ -265,7 +311,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
                       </Link>
                     ))}
-                    {/* Static general notifications */}
                     {[
                       { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
                       { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
@@ -296,45 +341,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Role switcher */}
-            <div className="relative">
-              <button
-                onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-                className="flex items-center gap-2 px-3 py-1.5 border border-border hover:border-primary/50 transition-colors"
-              >
-                <div className="w-6 h-6 bg-primary/20 border border-primary/30 flex items-center justify-center">
-                  <span className="text-primary text-xs font-bold">{currentUser.avatar}</span>
-                </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold text-foreground leading-none">{currentUser.name}</p>
-                  <p className={`text-[10px] mt-0.5 font-medium ${roleBadgeColors[currentUser.role]}`}>{roleLabels[currentUser.role]}</p>
-                </div>
-                <Icon name="ChevronDownIcon" size={12} className="text-muted-foreground" />
-              </button>
-
-              {showRoleSwitcher && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-card border border-border shadow-xl z-50">
-                  <div className="px-3 py-2 border-b border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Switch Role (Demo)</p>
-                  </div>
-                  {mockUsersList.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => { setCurrentUser(u); setShowRoleSwitcher(false); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-primary/10 transition-colors ${currentUser.id === u.id ? 'bg-primary/5' : ''}`}
-                    >
-                      <div className="w-7 h-7 bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary text-xs font-bold">{u.avatar}</span>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-medium text-foreground">{u.name}</p>
-                        <p className={`text-[10px] ${roleBadgeColors[u.role]}`}>{roleLabels[u.role]}</p>
-                      </div>
-                      {currentUser.id === u.id && <Icon name="CheckIcon" size={12} className="text-primary ml-auto" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Role display (real user — no switcher in production) */}
+            <div className="flex items-center gap-2 px-3 py-1.5 border border-border">
+              <div className="w-6 h-6 bg-primary/20 border border-primary/30 flex items-center justify-center">
+                <span className="text-primary text-xs font-bold">{currentUser.avatar}</span>
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-semibold text-foreground leading-none">{currentUser.name}</p>
+                <p className={`text-[10px] mt-0.5 font-medium ${roleBadgeColors[currentUser.role]}`}>{roleLabels[currentUser.role]}</p>
+              </div>
             </div>
           </div>
         </header>
