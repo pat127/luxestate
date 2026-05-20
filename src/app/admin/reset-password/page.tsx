@@ -18,9 +18,20 @@ export default function ResetPasswordPage() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    // Supabase handles the token from the URL hash automatically
+    // After server-side OTP verification, the session is already in cookies.
+    // Check for an existing session first, then also listen for PASSWORD_RECOVERY
+    // (which fires when the token is processed client-side via hash).
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setSessionReady(true);
+        return;
+      }
+    };
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setSessionReady(true);
       }
     });
