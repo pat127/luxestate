@@ -49,13 +49,13 @@ export async function POST(req: NextRequest) {
 
     // Send email via Supabase Edge Function
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
+    const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${anonKey}`,
+        Authorization: `Bearer ${serviceKey}`,
       },
       body: JSON.stringify({
         type: 'reset',
@@ -64,6 +64,12 @@ export async function POST(req: NextRequest) {
         reset_link: linkData.properties?.action_link,
       }),
     });
+
+    if (!emailRes.ok) {
+      const emailErr = await emailRes.json().catch(() => ({}));
+      console.error('Failed to send reset email:', emailErr);
+      return NextResponse.json({ error: 'Failed to send reset email' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
