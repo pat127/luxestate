@@ -19,58 +19,22 @@ export async function POST(req: NextRequest) {
     }
 
     const adminClient = createAdminClient();
-
-    // Check if user exists in user_profiles
-    const { data: profile } = await adminClient
-      .from('user_profiles')
-      .select('id, email, full_name')
-      .eq('email', email.toLowerCase().trim())
-      .single();
-
-    if (!profile) {
-      // Return success even if not found (security: don't reveal if email exists)
-      return NextResponse.json({ success: true });
-    }
-
-    // Generate password reset link via Supabase admin
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'recovery',
-      email: profile.email,
-      options: {
+
+    // Use Supabase's built-in password reset email — no Resend dependency
+    const { error } = await adminClient.auth.resetPasswordForEmail(
+      email.toLowerCase().trim(),
+      {
         redirectTo: `${siteUrl}/admin/reset-password`,
-      },
-    });
+      }
+    );
 
-    if (linkError) {
-      console.error('Failed to generate reset link:', linkError.message);
-      return NextResponse.json({ error: 'Failed to generate reset link' }, { status: 500 });
-    }
-
-    // Send email via Supabase Edge Function
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-user-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        type: 'reset',
-        to: profile.email,
-        email: profile.email,
-        reset_link: linkData.properties?.action_link,
-      }),
-    });
-
-    if (!emailRes.ok) {
-      const emailErr = await emailRes.json().catch(() => ({}));
-      console.error('Failed to send reset email:', emailErr);
+    if (error) {
+      console.error('Failed to send reset email:', error.message);
       return NextResponse.json({ error: 'Failed to send reset email' }, { status: 500 });
     }
 
+    // Always return success (don't reveal whether email exists)
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';
