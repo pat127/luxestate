@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -175,6 +177,10 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
 
+  // Auth — used to determine if current user is super_admin
+  const { user: authUser } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   // Modals
   const [showUserModal, setShowUserModal] = useState(false);
   const [showPermModal, setShowPermModal] = useState(false);
@@ -201,17 +207,36 @@ export default function UsersPage() {
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // ─── Check super_admin role from DB ─────────────────────────────────────────
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const supabase = createClient();
+    supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', authUser.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.role === 'super_admin') setIsSuperAdmin(true);
+      });
+  }, [authUser?.id]);
+
   // ─── Resend Credentials ─────────────────────────────────────────────────────
 
   const handleResendCredentials = async (user: UserProfile) => {
     const newPassword = generatePassword();
     try {
-      // Reset the user's password via admin API
-      const adminClient_url = '/api/admin/users/reset-password';
-      const res = await fetch(adminClient_url, {
+      const res = await fetch('/api/admin/users/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: user.id, email: user.email, full_name: user.full_name, password: newPassword }),
+        body: JSON.stringify({
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          password: newPassword,
+          requestingUserId: authUser?.id,
+        }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to resend credentials');
@@ -659,13 +684,16 @@ export default function UsersPage() {
                             >
                               <Icon name="ShieldCheckIcon" size={13} />
                             </button>
-                            <button
-                              onClick={() => handleResendCredentials(user)}
-                              className="p-1.5 text-muted-foreground hover:text-amber-400 transition-colors"
-                              title="Resend credentials"
-                            >
-                              <Icon name="EnvelopeIcon" size={13} />
-                            </button>
+                            {/* Only super_admins can reset passwords */}
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => handleResendCredentials(user)}
+                                className="p-1.5 text-muted-foreground hover:text-amber-400 transition-colors"
+                                title="Reset password & resend credentials"
+                              >
+                                <Icon name="EnvelopeIcon" size={13} />
+                              </button>
+                            )}
                             <button
                               onClick={() => setShowDeleteConfirm(user.id)}
                               className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
