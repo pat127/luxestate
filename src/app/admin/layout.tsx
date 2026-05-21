@@ -88,11 +88,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { currentUser, setCurrentUser, can, isRole } = useRole();
   const supabase = useMemo(() => createClient(), []);
 
-  // Sync real auth user role into RoleContext
   useEffect(() => {
     const syncAuthUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        if (!STANDALONE_ROUTES.includes(pathname)) {
+          router.replace('/admin/login');
+        }
         setAuthChecked(true);
         return;
       }
@@ -118,9 +120,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       setAuthChecked(true);
     };
     syncAuthUser();
-  }, [supabase, setCurrentUser]);
-
-  // Auth redirect removed — admin area is freely accessible
+  }, [supabase, setCurrentUser, pathname, router]);
 
   const fetchPendingDocs = useCallback(async () => {
     if (currentUser.role !== 'super_admin') return;

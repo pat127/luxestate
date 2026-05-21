@@ -136,6 +136,39 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function CopyButton({ text, label }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="px-3 py-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors text-xs font-medium flex items-center gap-1.5"
+      title={label || 'Copy'}
+    >
+      <Icon name={copied ? 'CheckIcon' : 'ClipboardDocumentIcon'} size={14} />
+      {copied ? 'Copied' : (label || 'Copy')}
+    </button>
+  );
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
@@ -187,6 +220,7 @@ export default function UsersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
   const [permUser, setPermUser] = useState<UserProfile | null>(null);
+  const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string; name: string } | null>(null);
 
   // Form
   const [form, setForm] = useState<UserForm>({
@@ -368,14 +402,17 @@ export default function UsersPage() {
         if (!res.ok) throw new Error(result.error || 'Failed to update user');
         showToast('User updated successfully');
       } else {
-        // Create new user via server-side API route (uses service role key)
+        const trimmedEmail = form.email.trim();
+        const trimmedPassword = form.password.trim();
+        const trimmedName = form.full_name.trim();
+
         const res = await fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: form.email.trim(),
-            password: form.password.trim(),
-            full_name: form.full_name.trim(),
+            email: trimmedEmail,
+            password: trimmedPassword,
+            full_name: trimmedName,
             role: form.role,
             status: form.status,
             phone: form.phone.trim() || null,
@@ -385,7 +422,8 @@ export default function UsersPage() {
 
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Failed to create user');
-        showToast('User created successfully');
+
+        setCreatedCreds({ email: trimmedEmail, password: trimmedPassword, name: trimmedName });
       }
 
       await fetchUsers();
@@ -912,6 +950,7 @@ export default function UsersPage() {
                       onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                       className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary"
                     />
+                    <CopyButton text={form.password} />
                     <button
                       type="button"
                       onClick={() => setForm((p) => ({ ...p, password: generatePassword() }))}
@@ -1139,6 +1178,70 @@ export default function UsersPage() {
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors"
               >
                 Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CREDENTIALS CONFIRMATION ── */}
+      {createdCreds && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <Icon name="CheckCircleIcon" size={18} className="text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">User Created Successfully</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Save these credentials — the password cannot be retrieved later.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-secondary border border-border p-4 space-y-3 mb-4">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Name</p>
+                <p className="text-sm text-foreground font-medium">{createdCreds.name}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Email</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-foreground font-mono flex-1 select-all">{createdCreds.email}</p>
+                  <CopyButton text={createdCreds.email} />
+                </div>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Password</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-primary font-mono font-bold flex-1 select-all">{createdCreds.password}</p>
+                  <CopyButton text={createdCreds.password} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Email: ${createdCreds.email}\nPassword: ${createdCreds.password}`
+                  ).catch(() => {});
+                  showToast('Credentials copied to clipboard');
+                }}
+                className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
+              >
+                <Icon name="ClipboardDocumentIcon" size={14} />
+                Copy All
+              </button>
+              <button
+                onClick={() => {
+                  setCreatedCreds(null);
+                  showToast('User created successfully');
+                }}
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors"
+              >
+                Done
               </button>
             </div>
           </div>

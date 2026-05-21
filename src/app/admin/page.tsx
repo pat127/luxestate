@@ -157,15 +157,22 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Welcome back, Admin</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Welcome back, {currentUser.name}
+            <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border border-primary/30 text-primary bg-primary/5 align-middle">
+              {currentUser.role === 'super_admin' ? 'Super Admin' : currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'marketing' ? 'Marketing' : 'Agent'}
+            </span>
+          </p>
         </div>
-        <button
-          onClick={() => setView(view === 'team' ? 'ceo' : 'team')}
-          className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider hover:bg-primary/20 transition-colors"
-        >
-          <Icon name="UserCircleIcon" size={14} />
-          {view === 'ceo' ? 'CEO View' : 'Team View'}
-        </button>
+        {(currentUser.role === 'super_admin' || currentUser.role === 'admin') && (
+          <button
+            onClick={() => setView(view === 'team' ? 'ceo' : 'team')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider hover:bg-primary/20 transition-colors"
+          >
+            <Icon name="UserCircleIcon" size={14} />
+            {view === 'ceo' ? 'CEO View' : 'Team View'}
+          </button>
+        )}
       </div>
 
       {/* Primary Stats */}

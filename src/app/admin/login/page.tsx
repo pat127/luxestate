@@ -1,9 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
+
+type UserRole = 'super_admin' | 'admin' | 'marketing' | 'agent';
+
+const ROLE_META: Record<UserRole, { label: string; icon: string; color: string; defaultRoute: string }> = {
+  super_admin: { label: 'Super Admin', icon: 'ShieldCheckIcon', color: 'text-amber-400', defaultRoute: '/admin' },
+  admin: { label: 'Admin', icon: 'Cog6ToothIcon', color: 'text-blue-400', defaultRoute: '/admin' },
+  marketing: { label: 'Marketing', icon: 'MegaphoneIcon', color: 'text-pink-400', defaultRoute: '/admin' },
+  agent: { label: 'Agent', icon: 'IdentificationIcon', color: 'text-emerald-400', defaultRoute: '/admin' },
+};
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -14,6 +23,20 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [loginSuccess, setLoginSuccess] = useState<{
+    name: string;
+    role: UserRole;
+    redirectTo: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!loginSuccess) return;
+    const timer = setTimeout(() => {
+      router.replace(loginSuccess.redirectTo);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [loginSuccess, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +53,38 @@ export default function AdminLoginPage() {
       });
       if (signInError) throw signInError;
 
-      // Confirm session is established before navigating
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        router.replace('/admin');
-      } else {
+      if (!user) {
         setError('Login succeeded but session could not be established. Please try again.');
+        return;
       }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('full_name, role, status')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.status === 'Inactive') {
+        await supabase.auth.signOut();
+        setError('Your account has been deactivated. Contact your administrator.');
+        return;
+      }
+
+      const validRoles: UserRole[] = ['super_admin', 'admin', 'marketing', 'agent'];
+      const role: UserRole = profile?.role && validRoles.includes(profile.role) ? profile.role : 'agent';
+      const meta = ROLE_META[role];
+
+      await supabase
+        .from('user_profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      setLoginSuccess({
+        name: profile?.full_name || user.email || 'User',
+        role,
+        redirectTo: meta.defaultRoute,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Invalid credentials';
       setError(msg === 'Invalid login credentials' ? 'Invalid email or password.' : msg);
@@ -44,6 +92,35 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
+
+  if (loginSuccess) {
+    const meta = ROLE_META[loginSuccess.role];
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center animate-in fade-in zoom-in-95 duration-500">
+          <div className={`w-16 h-16 mx-auto mb-5 flex items-center justify-center border-2 border-current rounded-full ${meta.color}`}>
+            <Icon name={meta.icon as any} size={28} />
+          </div>
+          <h2 className="text-foreground font-bold text-lg mb-1">Welcome back</h2>
+          <p className="text-foreground text-base font-medium mb-2">{loginSuccess.name}</p>
+          <span className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-3 py-1 border rounded-sm ${meta.color} border-current/20`}>
+            <Icon name={meta.icon as any} size={12} />
+            {meta.label}
+          </span>
+          <div className="mt-6 flex items-center justify-center gap-2 text-muted-foreground">
+            <Icon name="ArrowPathIcon" size={14} className="animate-spin" />
+            <span className="text-xs">Redirecting to your dashboard...</span>
+          </div>
+          <div className="mt-4 w-32 h-0.5 bg-border mx-auto overflow-hidden rounded-full">
+            <div className="h-full bg-primary animate-[progress_1.8s_ease-in-out]" style={{ animation: 'progress 1.8s ease-in-out forwards' }} />
+          </div>
+          <style>{`
+            @keyframes progress { from { width: 0% } to { width: 100% } }
+          `}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
