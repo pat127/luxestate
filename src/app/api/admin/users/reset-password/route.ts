@@ -39,11 +39,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Requester identity is required' }, { status: 403 });
     }
 
-    // Update the user's password
+    // Update the user's auth password
     const { error: updateError } = await adminClient.auth.admin.updateUserById(id, { password });
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
+
+    // Store new password in user_profiles
+    await adminClient
+      .from('user_profiles')
+      .update({ password, updated_at: new Date().toISOString() })
+      .eq('id', id);
 
     // Send welcome email with new credentials (non-blocking)
     try {

@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
           role: role || 'agent',
           status: status || 'Active',
           phone: phone || null,
+          password,
           permissions: permissions || {},
           updated_at: new Date().toISOString(),
         },
@@ -137,6 +138,18 @@ export async function PUT(req: NextRequest) {
     }
 
     const adminClient = createAdminClient();
+
+    // Update auth user if password or email changed
+    const authUpdates: Record<string, string> = {};
+    if (updates.password) authUpdates.password = updates.password;
+    if (updates.email) authUpdates.email = updates.email;
+
+    if (Object.keys(authUpdates).length > 0) {
+      const { error: authError } = await adminClient.auth.admin.updateUserById(id, authUpdates);
+      if (authError) {
+        return NextResponse.json({ error: authError.message }, { status: 400 });
+      }
+    }
 
     const { data, error } = await adminClient
       .from('user_profiles')

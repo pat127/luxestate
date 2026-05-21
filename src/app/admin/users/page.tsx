@@ -17,6 +17,7 @@ interface UserProfile {
   role: UserRole;
   status: UserStatus;
   phone: string | null;
+  password: string | null;
   permissions: Record<string, boolean>;
   last_login_at: string | null;
   created_at: string;
@@ -349,7 +350,7 @@ export default function UsersPage() {
       status: user.status,
       phone: user.phone || '',
       permissions: { ...(user.permissions || DEFAULT_PERMISSIONS[user.role]) },
-      password: '',
+      password: user.password || '',
     });
     setShowUserModal(true);
   };
@@ -382,21 +383,21 @@ export default function UsersPage() {
 
     try {
       if (editUser) {
-        // Update existing profile via admin API route
+        const updates: Record<string, unknown> = {
+          full_name: form.full_name.trim(),
+          email: form.email.trim(),
+          role: form.role,
+          status: form.status,
+          phone: form.phone.trim() || null,
+          permissions: form.permissions,
+        };
+        if (form.password.trim()) {
+          updates.password = form.password.trim();
+        }
         const res = await fetch('/api/admin/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: editUser.id,
-            updates: {
-              full_name: form.full_name.trim(),
-              email: form.email.trim(),
-              role: form.role,
-              status: form.status,
-              phone: form.phone.trim() || null,
-              permissions: form.permissions,
-            },
-          }),
+          body: JSON.stringify({ id: editUser.id, updates }),
         });
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Failed to update user');
@@ -937,34 +938,49 @@ export default function UsersPage() {
                 />
               </div>
 
-              {/* Password (create only) */}
-              {!editUser && (
+              {/* Password */}
+              {editUser && editUser.password && (
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
-                    Temporary Password
+                    Current Password
                   </label>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={form.password}
-                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                      className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary"
-                    />
-                    <CopyButton text={form.password} />
-                    <button
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, password: generatePassword() }))}
-                      className="px-3 py-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                      title="Regenerate"
-                    >
-                      <Icon name="ArrowPathIcon" size={14} />
-                    </button>
+                    <div className="flex-1 bg-secondary/50 border border-border px-3 py-2 text-sm text-muted-foreground font-mono select-all">
+                      {editUser.password}
+                    </div>
+                    <CopyButton text={editUser.password} label="Copy" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    A welcome email with these credentials will be sent to the user automatically.
-                  </p>
                 </div>
               )}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  {editUser ? 'New Password' : 'Temporary Password'}
+                  {!editUser && <span className="text-red-400 ml-0.5">*</span>}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={form.password}
+                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                    className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary"
+                    placeholder={editUser ? 'Enter new password to replace current' : ''}
+                  />
+                  <CopyButton text={form.password} />
+                  <button
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, password: generatePassword() }))}
+                    className="px-3 py-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                    title="Regenerate"
+                  >
+                    <Icon name="ArrowPathIcon" size={14} />
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {editUser
+                    ? 'Enter a new password to replace the current one, or leave blank to keep it.'
+                    : 'A welcome email with these credentials will be sent to the user automatically.'}
+                </p>
+              </div>
 
               {/* Role + Status row */}
               <div className="grid grid-cols-2 gap-3">
