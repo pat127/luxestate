@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 export type PageKey = 'home' | 'residential' | 'commercial' | 'projects' | 'about' | 'blog' | 'contact';
 
@@ -409,6 +410,7 @@ export interface BrandingConfig {
   primary_color: string;
   accent_color: string;
   font_family: string;
+  border_radius?: string;
   logo_url?: string;
   phone?: string;
   email?: string;
@@ -420,6 +422,29 @@ export interface BrandingConfig {
   social_twitter?: string;
   social_youtube?: string;
   social_tiktok?: string;
+  // Appearance
+  dark_mode?: boolean;
+  sticky_header?: boolean;
+  scroll_animations?: boolean;
+  gold_shimmer?: boolean;
+  show_whatsapp_button?: boolean;
+  // SEO
+  seo_title?: string;
+  seo_description?: string;
+  google_analytics_id?: string;
+  google_search_console?: string;
+  enable_sitemap?: boolean;
+  enable_robots?: boolean;
+  enable_jsonld?: boolean;
+  enable_og_tags?: boolean;
+  // Workflow
+  auto_assign_leads?: boolean;
+  lead_notifications?: boolean;
+  deal_stage_alerts?: boolean;
+  task_reminders?: boolean;
+  weekly_reports?: boolean;
+  lead_assignment_method?: string;
+  followup_days?: number;
 }
 
 export interface CMSData {
@@ -436,17 +461,38 @@ const DEFAULT_BRANDING: BrandingConfig = {
   primary_color: '#C9A84C',
   accent_color: '#B8963E',
   font_family: 'Plus Jakarta Sans',
+  border_radius: '0px',
   logo_url: '/assets/images/app_logo.png',
   phone: '+971 50 886 2683',
   email: 'admin@coveestates.com',
   whatsapp: '+971508862683',
   address: '8th Level, Moosa Tower 1, Dubai, UAE',
-  social_instagram: '',
-  social_linkedin: '',
-  social_facebook: '',
-  social_twitter: '',
-  social_youtube: '',
-  social_tiktok: ''
+  social_instagram: 'https://instagram.com/coveestates',
+  social_linkedin: 'https://linkedin.com/company/coveestates',
+  social_facebook: 'https://facebook.com/coveestates',
+  social_twitter: 'https://x.com/coveestates',
+  social_youtube: 'https://youtube.com/@coveestates',
+  social_tiktok: 'https://tiktok.com/@coveestates',
+  dark_mode: true,
+  sticky_header: true,
+  scroll_animations: true,
+  gold_shimmer: true,
+  show_whatsapp_button: true,
+  seo_title: 'Cove Estates — Ultra-Premium Properties for Discerning Buyers',
+  seo_description: "Cove Estates curates the world's finest residential and commercial properties for high-net-worth buyers.",
+  google_analytics_id: '',
+  google_search_console: '',
+  enable_sitemap: true,
+  enable_robots: true,
+  enable_jsonld: true,
+  enable_og_tags: true,
+  auto_assign_leads: true,
+  lead_notifications: true,
+  deal_stage_alerts: true,
+  task_reminders: true,
+  weekly_reports: true,
+  lead_assignment_method: 'Round Robin',
+  followup_days: 3,
 };
 
 export const DEFAULT_HOMEPAGE_BLOCKS: HomepageBlock[] = [
@@ -844,8 +890,6 @@ export const DEFAULT_PAGES: PageConfig[] = [
 }];
 
 
-const CMS_STORAGE_KEY = 'coveestates_cms_data';
-
 interface CMSContextValue {
   pages: PageConfig[];
   branding: BrandingConfig;
@@ -856,7 +900,7 @@ interface CMSContextValue {
   updateBranding: (b: BrandingConfig) => void;
   updatePropertyDetail: (p: PropertyDetailContent) => void;
   updateProjectDetail: (p: ProjectDetailContent) => void;
-  saveAll: (pages: PageConfig[], branding: BrandingConfig, propertyDetail?: PropertyDetailContent, projectDetail?: ProjectDetailContent) => void;
+  saveAll: (pages: PageConfig[], branding: BrandingConfig, propertyDetail?: PropertyDetailContent, projectDetail?: ProjectDetailContent) => Promise<void>;
   lastSaved?: string;
   loaded: boolean;
 }
@@ -871,7 +915,7 @@ const CMSContext = createContext<CMSContextValue>({
   updateBranding: () => {},
   updatePropertyDetail: () => {},
   updateProjectDetail: () => {},
-  saveAll: () => {},
+  saveAll: async () => {},
   loaded: false
 });
 
@@ -913,109 +957,113 @@ function mergeWithDefaults(stored: PageConfig): PageConfig {
   };
 }
 
-function loadInitialCMSData(): {
-  pages: PageConfig[];
-  branding: BrandingConfig;
-  propertyDetail: PropertyDetailContent;
-  projectDetail: ProjectDetailContent;
-  lastSaved: string | undefined;
-} {
-  try {
-    const stored = localStorage.getItem(CMS_STORAGE_KEY);
-    if (stored) {
-      const data: CMSData = JSON.parse(stored);
-      const pages = data.pages?.length ?
-      DEFAULT_PAGES.map((defaultPage) => {
+function parseCMSData(data: CMSData) {
+  const pages = data.pages?.length
+    ? DEFAULT_PAGES.map((defaultPage) => {
         const storedPage = data.pages.find((p) => p.key === defaultPage.key);
         if (!storedPage) return defaultPage;
         return mergeWithDefaults(storedPage);
-      }) :
-      DEFAULT_PAGES;
-      return {
-        pages,
-        branding: data.branding ? { ...DEFAULT_BRANDING, ...data.branding } : DEFAULT_BRANDING,
-        propertyDetail: data.propertyDetail ? { ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail } : DEFAULT_PROPERTY_DETAIL,
-        projectDetail: data.projectDetail ? { ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail } : DEFAULT_PROJECT_DETAIL,
-        lastSaved: data.lastSaved
-      };
-    }
-  } catch {
-
-    // use defaults
-  }return {
-    pages: DEFAULT_PAGES,
-    branding: DEFAULT_BRANDING,
-    propertyDetail: DEFAULT_PROPERTY_DETAIL,
-    projectDetail: DEFAULT_PROJECT_DETAIL,
-    lastSaved: undefined
+      })
+    : DEFAULT_PAGES;
+  return {
+    pages,
+    branding: data.branding ? { ...DEFAULT_BRANDING, ...data.branding } : DEFAULT_BRANDING,
+    propertyDetail: data.propertyDetail ? { ...DEFAULT_PROPERTY_DETAIL, ...data.propertyDetail } : DEFAULT_PROPERTY_DETAIL,
+    projectDetail: data.projectDetail ? { ...DEFAULT_PROJECT_DETAIL, ...data.projectDetail } : DEFAULT_PROJECT_DETAIL,
+    lastSaved: data.lastSaved,
   };
 }
 
-const _cmsInitCache: {data: ReturnType<typeof loadInitialCMSData> | null;} = { data: null };
-function getCachedInitialData() {
-  if (!_cmsInitCache.data) _cmsInitCache.data = loadInitialCMSData();
-  return _cmsInitCache.data;
-}
-
-export function CMSProvider({ children }: {children: React.ReactNode;}) {
+export function CMSProvider({ children }: { children: React.ReactNode }) {
   const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
   const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(DEFAULT_PROPERTY_DETAIL);
   const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(DEFAULT_PROJECT_DETAIL);
   const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
-  const [loaded] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const supabaseRef = useRef(createClient());
 
-  // Hydrate from localStorage only on the client after mount to avoid SSR mismatch
   useEffect(() => {
-    const data = getCachedInitialData();
-    setPages(data.pages);
-    setBranding(data.branding);
-    setPropertyDetail(data.propertyDetail);
-    setProjectDetail(data.projectDetail);
-    setLastSaved(data.lastSaved);
+    if (!branding) return;
+    const root = document.documentElement;
+    if (branding.primary_color) root.style.setProperty('--primary', branding.primary_color);
+    if (branding.accent_color) root.style.setProperty('--accent', branding.accent_color);
+    if (branding.font_family) root.style.setProperty('--font-sans', `'${branding.font_family}', sans-serif`);
+    if (branding.border_radius) root.style.setProperty('--radius', branding.border_radius);
+    if (branding.gold_shimmer === false) root.classList.add('no-shimmer');
+    else root.classList.remove('no-shimmer');
+    if (branding.scroll_animations === false) root.classList.add('no-animations');
+    else root.classList.remove('no-animations');
+  }, [branding]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    supabaseRef.current
+      .from('site_settings')
+      .select('data')
+      .eq('key', 'cms_config')
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && data?.data && Object.keys(data.data).length > 0) {
+          const remote = parseCMSData(data.data as CMSData);
+          setPages(remote.pages);
+          setBranding(remote.branding);
+          setPropertyDetail(remote.propertyDetail);
+          setProjectDetail(remote.projectDetail);
+          setLastSaved(remote.lastSaved);
+        }
+        setLoaded(true);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
-  const getPage = useCallback((key: PageKey): PageConfig => {return pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0];}, [pages]);
+  const getPage = useCallback(
+    (key: PageKey): PageConfig => pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0],
+    [pages],
+  );
+
   const updatePage = useCallback((updated: PageConfig) => {
-    setPages((prev) => prev.map((p) => p.key === updated.key ? updated : p));
+    setPages((prev) => prev.map((p) => (p.key === updated.key ? updated : p)));
   }, []);
 
-  const updateBranding = useCallback((b: BrandingConfig) => {
-    setBranding(b);
-  }, []);
+  const updateBranding = useCallback((b: BrandingConfig) => setBranding(b), []);
+  const updatePropertyDetail = useCallback((p: PropertyDetailContent) => setPropertyDetail(p), []);
+  const updateProjectDetail = useCallback((p: ProjectDetailContent) => setProjectDetail(p), []);
 
-  const updatePropertyDetail = useCallback((p: PropertyDetailContent) => {
-    setPropertyDetail(p);
-  }, []);
+  const saveAll = useCallback(
+    async (newPages: PageConfig[], newBranding: BrandingConfig, newPropertyDetail?: PropertyDetailContent, newProjectDetail?: ProjectDetailContent) => {
+      const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const pd = newPropertyDetail ?? propertyDetail;
+      const prd = newProjectDetail ?? projectDetail;
 
-  const updateProjectDetail = useCallback((p: ProjectDetailContent) => {
-    setProjectDetail(p);
-  }, []);
+      setPages(newPages);
+      setBranding(newBranding);
+      setPropertyDetail(pd);
+      setProjectDetail(prd);
+      setLastSaved(ts);
 
-  const saveAll = useCallback((newPages: PageConfig[], newBranding: BrandingConfig, newPropertyDetail?: PropertyDetailContent, newProjectDetail?: ProjectDetailContent) => {
-    const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    setPages(newPages);
-    setBranding(newBranding);
-    const pd = newPropertyDetail ?? propertyDetail;
-    const prd = newProjectDetail ?? projectDetail;
-    setPropertyDetail(pd);
-    setProjectDetail(prd);
-    setLastSaved(ts);
-    try {
-      localStorage.setItem(CMS_STORAGE_KEY, JSON.stringify({ pages: newPages, branding: newBranding, propertyDetail: pd, projectDetail: prd, lastSaved: ts }));
-    } catch {
+      const payload: CMSData = { pages: newPages, branding: newBranding, propertyDetail: pd, projectDetail: prd, lastSaved: ts };
 
+      const { error } = await supabaseRef.current
+        .from('site_settings')
+        .upsert({ key: 'cms_config', data: payload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
+      if (error) throw error;
+    },
+    [propertyDetail, projectDetail],
+  );
 
-
-
-
-
-
-      // storage unavailable
-    }}, [propertyDetail, projectDetail]);return <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
+  return (
+    <CMSContext.Provider value={{ pages, branding, propertyDetail, projectDetail, getPage, updatePage, updateBranding, updatePropertyDetail, updateProjectDetail, saveAll, lastSaved, loaded }}>
       {children}
-    </CMSContext.Provider>;}export function useCMS() {
+    </CMSContext.Provider>
+  );
+}
+
+export function useCMS() {
   return useContext(CMSContext);
 }
 

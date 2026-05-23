@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 
-import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
 import PinLocationMap from '@/components/ui/PinLocationMap';
 import { useRole } from '@/contexts/RoleContext';
+import { usePropertyFields } from '@/hooks/usePropertyFields';
+import { useCommunities } from '@/hooks/useCommunities';
 
 type PropertyType = 'All' | 'Residential' | 'Commercial';
 type ModalTab = 'basic' | 'dimensions' | 'features' | 'location' | 'media';
@@ -75,6 +76,7 @@ interface PropertyFormData {
   ownerName: string;
   ownerEmail: string;
   ownerContact: string;
+  custom_fields: Record<string, string>;
 }
 
 const defaultFormData: PropertyFormData = {
@@ -121,6 +123,7 @@ const defaultFormData: PropertyFormData = {
   ownerName: '',
   ownerEmail: '',
   ownerContact: '',
+  custom_fields: {},
 };
 
 const statusColors: Record<string, string> = {
@@ -137,6 +140,8 @@ export default function PropertiesPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { isAgentScoped, isAssignedAgent, canViewAll } = useRole();
+  const pf = usePropertyFields();
+  const comm = useCommunities();
 
   const [activeType, setActiveType] = useState<PropertyType>('All');
   const [search, setSearch] = useState('');
@@ -155,7 +160,7 @@ export default function PropertiesPage() {
   const [copied, setCopied] = useState(false);
   const [agentNames, setAgentNames] = useState<string[]>([]);
 
-  const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
+  const [availableAreas, setAvailableAreas] = useState<string[]>(comm.getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
 
   const loadAgentNames = useCallback(async () => {
@@ -333,9 +338,10 @@ export default function PropertiesPage() {
         ownerName: data.owner_name || '',
         ownerEmail: data.owner_email || '',
         ownerContact: data.owner_contact || '',
+        custom_fields: data.custom_fields || {},
       });
-      setAvailableAreas(getAreasForEmirate(data.emirate || 'Dubai'));
-      if (data.location_area) setAvailableCommunities(getCommunitiesForArea(data.location_area));
+      setAvailableAreas(comm.getAreasForEmirate(data.emirate || 'Dubai'));
+      if (data.location_area) setAvailableCommunities(comm.getCommunitiesForArea(data.location_area));
       setEditingId(id);
       setActiveTab('basic');
       loadAgentNames();
@@ -397,6 +403,7 @@ export default function PropertiesPage() {
       owner_name: formData.ownerName,
       owner_email: formData.ownerEmail,
       owner_contact: formData.ownerContact,
+      custom_fields: formData.custom_fields,
     };
 
     let error: any = null;
@@ -669,13 +676,13 @@ export default function PropertiesPage() {
                     <div>
                       <label className={labelCls}>Category</label>
                       <select className={inputCls} value={formData.propCategory} onChange={(e) => setFormData({ ...formData, propCategory: e.target.value })}>
-                        <option>Residential</option><option>Commercial</option>
+                        {pf.categories.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className={labelCls}>Property Type</label>
                       <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
-                        {['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex', 'Office', 'Retail', 'Warehouse', 'Land'].map(t => <option key={t}>{t}</option>)}
+                        {pf.types.map(t => <option key={t}>{t}</option>)}
                       </select>
                     </div>
                     <div>
@@ -687,13 +694,13 @@ export default function PropertiesPage() {
                     <div>
                       <label className={labelCls}>Availability</label>
                       <select className={inputCls} value={formData.availability} onChange={(e) => setFormData({ ...formData, availability: e.target.value })}>
-                        <option>Available</option><option>Under Offer</option><option>Sold</option><option>Rented</option>
+                        {pf.statuses.map(s => <option key={s}>{s}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className={labelCls}>Completion</label>
                       <select className={inputCls} value={formData.completion} onChange={(e) => setFormData({ ...formData, completion: e.target.value })}>
-                        <option>Ready</option><option>Off-Plan</option><option>Under Construction</option>
+                        {pf.completion.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
@@ -809,10 +816,16 @@ export default function PropertiesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className={labelCls}>Furnishing</label>
                       <select className={inputCls} value={formData.furnishing} onChange={(e) => setFormData({ ...formData, furnishing: e.target.value })}>
-                        <option value="">Select...</option><option>Furnished</option><option>Semi-Furnished</option><option>Unfurnished</option>
+                        <option value="">Select...</option>
+                        {pf.furnishing.map(f => <option key={f}>{f}</option>)}
                       </select>
                     </div>
-                    <div><label className={labelCls}>View</label><input className={inputCls} value={formData.viewType} onChange={(e) => setFormData({ ...formData, viewType: e.target.value })} placeholder="e.g. Sea View, Burj View" /></div>
+                    <div><label className={labelCls}>View</label>
+                      <select className={inputCls} value={formData.viewType} onChange={(e) => setFormData({ ...formData, viewType: e.target.value })}>
+                        <option value="">Select...</option>
+                        {pf.views.map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className={labelCls}>Amenities (comma-separated)</label>
@@ -832,6 +845,22 @@ export default function PropertiesPage() {
                       </label>
                     ))}
                   </div>
+                  {pf.customGroups.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Custom Fields</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        {pf.customGroups.map((cg) => (
+                          <div key={cg.key}>
+                            <label className={labelCls}>{cg.label}</label>
+                            <select className={inputCls} value={formData.custom_fields?.[cg.key] ?? ''} onChange={(e) => setFormData({ ...formData, custom_fields: { ...formData.custom_fields, [cg.key]: e.target.value } })}>
+                              <option value="">Select...</option>
+                              {cg.options.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -842,10 +871,10 @@ export default function PropertiesPage() {
                     <select className={inputCls} value={formData.emirate} onChange={(e) => {
                       const em = e.target.value;
                       setFormData({ ...formData, emirate: em, locationArea: '', community: '' });
-                      setAvailableAreas(getAreasForEmirate(em));
+                      setAvailableAreas(comm.getAreasForEmirate(em));
                       setAvailableCommunities([]);
                     }}>
-                      {UAE_EMIRATES.map(em => <option key={em}>{em}</option>)}
+                      {comm.emirates.map(em => <option key={em}>{em}</option>)}
                     </select>
                   </div>
                   <div>
@@ -853,7 +882,7 @@ export default function PropertiesPage() {
                     <select className={inputCls} value={formData.locationArea} onChange={(e) => {
                       const area = e.target.value;
                       setFormData({ ...formData, locationArea: area, community: '' });
-                      setAvailableCommunities(getCommunitiesForArea(area));
+                      setAvailableCommunities(comm.getCommunitiesForArea(area));
                     }}>
                       <option value="">Select area...</option>
                       {availableAreas.map(a => <option key={a}>{a}</option>)}

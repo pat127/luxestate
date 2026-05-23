@@ -10,9 +10,12 @@ import { createClient } from '@/lib/supabase/client';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 export default function AboutPage() {
-  const { getPage } = useCMS();
+  const { getPage, branding } = useCMS();
   const aboutPage = getPage('about');
   const ab: AboutContent = aboutPage.about_content ?? DEFAULT_ABOUT_CONTENT;
+  const bPhone = branding?.phone || '+971 50 886 2683';
+  const bEmail = branding?.email || 'admin@coveestates.com';
+  const bAddress = branding?.address || '8th Level, Moosa Tower 1, Dubai, UAE';
 
   const heroRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLElement>(null);
@@ -90,7 +93,7 @@ export default function AboutPage() {
               })()}
             </h1>
             <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-              {aboutPage.hero_description || 'Since 2006, Cove Estates has been the trusted partner for discerning clients seeking the finest properties in Dubai and beyond.'}
+              {aboutPage.hero_description || `Since 2006, ${branding?.company_name || 'Cove Estates'} has been the trusted partner for discerning clients seeking the finest properties in Dubai and beyond.`}
             </p>
             <div className="flex flex-wrap gap-6 pt-2">
               {ab.hero_stats.map((stat) =>
@@ -256,22 +259,22 @@ export default function AboutPage() {
                 Whether you're buying, selling, or investing, our team is ready to provide the expert guidance your real estate decisions deserve.
               </p>
               <div className="space-y-4">
-                <a href="tel:+971508862683" className="flex items-center gap-4 group">
+                <a href={`tel:${bPhone.replace(/\s+/g, '')}`} className="flex items-center gap-4 group">
                   <div className="w-10 h-10 border border-border flex items-center justify-center group-hover:border-primary group-hover:bg-primary/10 transition-all duration-300">
                     <Icon name="PhoneIcon" size={16} className="text-primary" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Phone</p>
-                    <p className="text-foreground text-sm font-medium">+971 50 886 2683</p>
+                    <p className="text-foreground text-sm font-medium">{bPhone}</p>
                   </div>
                 </a>
-                <a href="mailto:admin@coveestates.com" className="flex items-center gap-4 group">
+                <a href={`mailto:${bEmail}`} className="flex items-center gap-4 group">
                   <div className="w-10 h-10 border border-border flex items-center justify-center group-hover:border-primary group-hover:bg-primary/10 transition-all duration-300">
                     <Icon name="EnvelopeIcon" size={16} className="text-primary" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email</p>
-                    <p className="text-foreground text-sm font-medium">admin@coveestates.com</p>
+                    <p className="text-foreground text-sm font-medium">{bEmail}</p>
                   </div>
                 </a>
                 <div className="flex items-center gap-4">
@@ -280,7 +283,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Office</p>
-                    <p className="text-foreground text-sm font-medium">8th Level, Moosa Tower 1, Dubai, UAE</p>
+                    <p className="text-foreground text-sm font-medium">{bAddress}</p>
                   </div>
                 </div>
               </div>

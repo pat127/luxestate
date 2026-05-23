@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UAE_LOCATIONS } from '@/lib/uaeLocations';
+import { useCommunities } from '@/hooks/useCommunities';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LocationSuggestion {
@@ -15,23 +15,11 @@ interface LocationSuggestion {
   emirate: string;
 }
 
-function buildLocationSuggestions(): LocationSuggestion[] {
-  const suggestions: LocationSuggestion[] = [];
-  UAE_LOCATIONS.forEach((loc) => {
-    suggestions.push({ label: loc.area, type: 'area', emirate: loc.emirate });
-    loc.communities.forEach((c) => {
-      suggestions.push({ label: c, type: 'community', emirate: loc.emirate });
-    });
-  });
-  return suggestions;
-}
-
-const ALL_LOCATION_SUGGESTIONS = buildLocationSuggestions();
-
 export default function HeroSection() {
   const page = useCMSPage('home');
   const router = useRouter();
   const { t } = useLanguage();
+  const { locations } = useCommunities();
   const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -41,6 +29,17 @@ export default function HeroSection() {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const allLocationSuggestions = useMemo(() => {
+    const items: LocationSuggestion[] = [];
+    locations.forEach((loc) => {
+      items.push({ label: loc.area, type: 'area', emirate: loc.emirate });
+      loc.communities.forEach((c) => {
+        items.push({ label: c, type: 'community', emirate: loc.emirate });
+      });
+    });
+    return items;
+  }, [locations]);
 
   useEffect(() => {
     const els = [headlineRef?.current, subRef?.current, searchRef?.current, statsRef?.current];
@@ -77,7 +76,7 @@ export default function HeroSection() {
       return;
     }
     const q = val.toLowerCase();
-    const results = ALL_LOCATION_SUGGESTIONS.filter(
+    const results = allLocationSuggestions.filter(
       (s) => s.label.toLowerCase().includes(q)
     ).slice(0, 8);
     setSuggestions(results);

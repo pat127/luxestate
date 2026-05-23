@@ -9,6 +9,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
+import { useCMS } from '@/contexts/CMSContext';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface ProjectImage { src: string; alt: string; }
@@ -26,7 +27,7 @@ const AMENITY_ICON_MAP: Record<string, string> = {
 };
 const PHASE_ICONS = ['PencilSquareIcon', 'CalendarIcon', 'BuildingOfficeIcon', 'KeyIcon'];
 
-function mapProject(p: any) {
+function mapProject(p: any, brandingArg?: { company_name?: string; phone?: string; whatsapp?: string; email?: string }) {
   const images: ProjectImage[] = (Array.isArray(p.images) ? p.images : [])
     .map((img: any) => ({ src: img?.url || img?.src || '', alt: img?.caption || img?.alt || p.name || '' }))
     .filter((img: ProjectImage) => img.src);
@@ -79,9 +80,10 @@ function mapProject(p: any) {
     location_coords: { lat: parseFloat(p.latitude) || 25.0657, lng: parseFloat(p.longitude) || 55.1713 },
     pois: Array.isArray(p.pois) ? p.pois : [],
     agent: {
-      name: 'Cove Estates Specialist', title: 'Off-Plan Consultant',
-      phone: '+971 4 000 0000', whatsapp: '971400000000',
-      email: 'projects@luxestate.ae', avatar: '', avatarAlt: 'LuxEstate Specialist',
+      name: `${brandingArg?.company_name || 'Cove Estates'} Specialist`, title: 'Off-Plan Consultant',
+      phone: brandingArg?.phone || '+971 50 886 2683',
+      whatsapp: (brandingArg?.whatsapp || brandingArg?.phone || '+971508862683').replace(/[^0-9]/g, ''),
+      email: brandingArg?.email || 'admin@coveestates.com', avatar: '', avatarAlt: `${brandingArg?.company_name || 'Cove Estates'} Specialist`,
       listings: 0, experience: '', languages: 'English, Arabic',
     },
   };
@@ -293,6 +295,7 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const supabase = createClient();
+  const { branding } = useCMS();
 
   const [project, setProject] = useState<ReturnType<typeof mapProject> | null>(null);
   const [similar, setSimilar] = useState<SimilarProject[]>([]);
@@ -303,7 +306,7 @@ export default function ProjectDetailPage() {
     if (!id) { setNotFound(true); setLoaded(true); return; }
     supabase.from('projects').select('*').eq('id', id).single().then(({ data, error }) => {
       if (error || !data) { setNotFound(true); setLoaded(true); return; }
-      const mapped = mapProject(data);
+      const mapped = mapProject(data, branding);
       setProject(mapped);
       // Load similar projects
       supabase.from('projects').select('id, name, location_area, images, handover_date, starting_price, total_units').eq('published', true).neq('id', id).limit(3).then(({ data: simData }) => {

@@ -6,6 +6,7 @@ import { CMSProvider } from '@/contexts/CMSContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import DynamicSEO from '@/components/DynamicSEO';
 import { Suspense } from 'react';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -129,6 +130,9 @@ const organizationSchema = {
     'https://instagram.com/coveestates',
     'https://linkedin.com/company/coveestates',
     'https://facebook.com/coveestates',
+    'https://x.com/coveestates',
+    'https://youtube.com/@coveestates',
+    'https://tiktok.com/@coveestates',
   ],
   knowsAbout: [
     'Luxury Real Estate',
@@ -182,10 +186,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.18" />
         <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
       <body className={plusJakartaSans.className}>
-        <Suspense fallback={null}>
-          <GoogleAnalytics />
-        </Suspense>
         <CMSProvider>
+          <Suspense fallback={null}>
+            <GoogleAnalytics />
+          </Suspense>
+          <DynamicSEO />
           <CurrencyProvider defaultCurrency="AED">
             <LanguageProvider>
               {children}

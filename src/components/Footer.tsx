@@ -54,12 +54,21 @@ function TikTokIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-const socialLinks = [
-  { Icon: InstagramIcon, label: 'Instagram', href: 'https://instagram.com/coveestates' },
-  { Icon: LinkedInIcon, label: 'LinkedIn', href: 'https://linkedin.com/company/coveestates' },
-  { Icon: YouTubeIcon, label: 'YouTube', href: 'https://youtube.com/@coveestates' },
-  { Icon: MetaIcon, label: 'Facebook', href: 'https://facebook.com/coveestates' },
-  { Icon: TikTokIcon, label: 'TikTok', href: 'https://tiktok.com/@coveestates' },
+function XIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+const SOCIAL_ICON_MAP: { key: string; Icon: React.FC<{ size?: number }>; label: string; fallback: string }[] = [
+  { key: 'social_instagram', Icon: InstagramIcon, label: 'Instagram', fallback: 'https://instagram.com/coveestates' },
+  { key: 'social_linkedin', Icon: LinkedInIcon, label: 'LinkedIn', fallback: 'https://linkedin.com/company/coveestates' },
+  { key: 'social_youtube', Icon: YouTubeIcon, label: 'YouTube', fallback: 'https://youtube.com/@coveestates' },
+  { key: 'social_facebook', Icon: MetaIcon, label: 'Facebook', fallback: 'https://facebook.com/coveestates' },
+  { key: 'social_twitter', Icon: XIcon, label: 'X', fallback: 'https://x.com/coveestates' },
+  { key: 'social_tiktok', Icon: TikTokIcon, label: 'TikTok', fallback: 'https://tiktok.com/@coveestates' },
 ];
 
 const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
@@ -159,6 +168,19 @@ function LanguageSelector() {
 export default function Footer() {
   const { t } = useLanguage();
   const cms = useCMS();
+  const b = cms?.branding;
+
+  const phone = b?.phone || '+971 50 886 2683';
+  const email = b?.email || 'admin@coveestates.com';
+  const address = b?.address || '8th Level, Moosa Tower 1, Dubai, UAE';
+  const phoneTel = `tel:${phone.replace(/\s+/g, '')}`;
+
+  const socialLinks = SOCIAL_ICON_MAP
+    .map((s) => {
+      const url = b ? (b as unknown as Record<string, string>)[s.key] : undefined;
+      return { ...s, href: url || s.fallback };
+    })
+    .filter((s) => s.href);
 
   const companyLinks = [
     { label: t('footer.company_about'), href: '/about' },
@@ -201,7 +223,7 @@ export default function Footer() {
               <AppLogo size={96} src={cms?.branding?.logo_url || '/assets/images/app_logo.png'} className="brightness-0 invert" />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-              {t('footer.tagline')}
+              {b?.tagline || t('footer.tagline')}
             </p>
             {/* Social Links */}
             <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -222,15 +244,15 @@ export default function Footer() {
             <div className="space-y-2.5 mt-1">
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="PhoneIcon" size={12} className="text-primary flex-shrink-0" />
-                <a href="tel:+971508862683" className="hover:text-primary transition-colors duration-300">+971 50 886 2683</a>
+                <a href={phoneTel} className="hover:text-primary transition-colors duration-300">{phone}</a>
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Icon name="EnvelopeIcon" size={12} className="text-primary flex-shrink-0" />
-                <span className="break-all">admin@coveestates.com</span>
+                <span className="break-all">{email}</span>
               </p>
               <p className="text-xs text-muted-foreground flex items-start gap-2">
                 <Icon name="MapPinIcon" size={12} className="text-primary flex-shrink-0 mt-0.5" />
-                <span>8th Level, Moosa Tower 1, Dubai, UAE</span>
+                <span>{address}</span>
               </p>
             </div>
           </div>
@@ -252,7 +274,7 @@ export default function Footer() {
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-10 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
           <span className="text-muted-foreground text-xs tracking-widest text-center sm:text-left">
-            {t('footer.copyright')}
+            © {new Date().getFullYear()} {b?.company_name || 'Cove Estates'} Real Estate LLC. All rights reserved.
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

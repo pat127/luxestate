@@ -4,10 +4,11 @@ import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'reac
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import { useRouter } from 'next/navigation';
-import { UAE_EMIRATES, getAreasForEmirate, getCommunitiesForArea } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
 import PinLocationMap from '@/components/ui/PinLocationMap';
 import { useRole } from '@/contexts/RoleContext';
+import { usePropertyFields } from '@/hooks/usePropertyFields';
+import { useCommunities } from '@/hooks/useCommunities';
 
 interface Project {
   id: string;
@@ -31,8 +32,8 @@ interface PaymentMilestone { id: number; label: string; percentage: string; dueD
 interface ProjectImage { id: number; url: string; caption: string; }
 interface FloorPlan { id: number; url: string; label: string; }
 
-const PROPERTY_TYPES = ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'];
-const AMENITIES_LIST = ['Swimming Pool', 'Gym', 'Kids Play Area', 'Parks', 'Retail', 'Mosque', 'School', 'Concierge', 'Security', 'Parking', 'Beach Access', 'Golf Course'];
+const PROPERTY_TYPES_FALLBACK = ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'];
+const AMENITIES_LIST_FALLBACK = ['Swimming Pool', 'Gym', 'Kids Play Area', 'Parks', 'Retail', 'Mosque', 'School', 'Concierge', 'Security', 'Parking', 'Beach Access', 'Golf Course'];
 
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
@@ -60,6 +61,10 @@ function ProjectsPageInner() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { isAgentScoped, canViewAll } = useRole();
+  const pf = usePropertyFields();
+  const comm = useCommunities();
+  const PROPERTY_TYPES = pf.loaded ? pf.types : PROPERTY_TYPES_FALLBACK;
+  const AMENITIES_LIST = pf.loaded ? pf.amenities : AMENITIES_LIST_FALLBACK;
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -103,7 +108,7 @@ function ProjectsPageInner() {
   const [fullAddress, setFullAddress] = useState('');
   const [latitude, setLatitude] = useState('25.0657');
   const [longitude, setLongitude] = useState('55.1713');
-  const [availableAreas, setAvailableAreas] = useState<string[]>(getAreasForEmirate('Dubai'));
+  const [availableAreas, setAvailableAreas] = useState<string[]>(comm.getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
 
   // Payment tab
@@ -192,7 +197,7 @@ function ProjectsPageInner() {
     setSizeRange(''); setSelectedPropertyTypes([]); setSelectedAmenities([]); setUnitTypes([]);
     setEmirate('Dubai'); setLocationArea(''); setCommunity(''); setSubCommunity('');
     setFullAddress(''); setLatitude('25.0657'); setLongitude('55.1713');
-    setAvailableAreas(getAreasForEmirate('Dubai')); setAvailableCommunities([]);
+    setAvailableAreas(comm.getAreasForEmirate('Dubai')); setAvailableCommunities([]);
     setPaymentPlanSummary(''); setPostHandoverPlan(''); setMilestones([]);
     setImageUrlsText(''); setFloorPlans([]); setMasterPlanUrl(''); setVideoUrl(''); setVirtualTourUrl('');
     setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
@@ -218,8 +223,8 @@ function ProjectsPageInner() {
     setEmirate(em); setLocationArea(data.location_area || ''); setCommunity(data.community || '');
     setSubCommunity(data.sub_community || ''); setFullAddress(data.full_address || '');
     setLatitude(data.latitude || '25.0657'); setLongitude(data.longitude || '55.1713');
-    setAvailableAreas(getAreasForEmirate(em));
-    if (data.location_area) setAvailableCommunities(getCommunitiesForArea(data.location_area));
+    setAvailableAreas(comm.getAreasForEmirate(em));
+    if (data.location_area) setAvailableCommunities(comm.getCommunitiesForArea(data.location_area));
     setPaymentPlanSummary(data.payment_plan_summary || ''); setPostHandoverPlan(data.post_handover_plan || '');
     setMilestones((Array.isArray(data.milestones) ? data.milestones : []).map((m: any, i: number) => ({ id: Date.now() + i, label: m.label || '', percentage: m.percentage || '', dueDate: m.dueDate || '' })));
     const imgs = Array.isArray(data.images) ? data.images : [];
@@ -518,12 +523,12 @@ function ProjectsPageInner() {
               {activeTab === 'location' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className={labelCls}>Emirate</label>
-                    <select className={inputCls} value={emirate} onChange={(e) => { const em = e.target.value; setEmirate(em); setLocationArea(''); setCommunity(''); setAvailableAreas(getAreasForEmirate(em)); setAvailableCommunities([]); }}>
-                      {UAE_EMIRATES.map(em => <option key={em}>{em}</option>)}
+                    <select className={inputCls} value={emirate} onChange={(e) => { const em = e.target.value; setEmirate(em); setLocationArea(''); setCommunity(''); setAvailableAreas(comm.getAreasForEmirate(em)); setAvailableCommunities([]); }}>
+                      {comm.emirates.map(em => <option key={em}>{em}</option>)}
                     </select>
                   </div>
                   <div><label className={labelCls}>Area</label>
-                    <select className={inputCls} value={locationArea} onChange={(e) => { const area = e.target.value; setLocationArea(area); setCommunity(''); setAvailableCommunities(getCommunitiesForArea(area)); }}>
+                    <select className={inputCls} value={locationArea} onChange={(e) => { const area = e.target.value; setLocationArea(area); setCommunity(''); setAvailableCommunities(comm.getCommunitiesForArea(area)); }}>
                       <option value="">Select area...</option>
                       {availableAreas.map(a => <option key={a}>{a}</option>)}
                     </select>

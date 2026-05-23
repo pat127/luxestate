@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, DEFAULT_ABOUT_CONTENT, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
+import { createClient } from '@/lib/supabase/client';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
 
@@ -70,15 +71,14 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function ToggleField({ label, description, defaultChecked = false }: { label: string; description?: string; defaultChecked?: boolean }) {
-  const [checked, setChecked] = useState(defaultChecked);
+function ToggleField({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-border">
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </div>
-      <button onClick={() => setChecked(!checked)} className={`w-10 h-5 relative transition-colors ${checked ? 'bg-primary' : 'bg-muted'}`}>
+      <button onClick={() => onChange(!checked)} className={`w-10 h-5 relative transition-colors ${checked ? 'bg-primary' : 'bg-muted'}`}>
         <span className={`absolute top-0.5 w-4 h-4 bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </button>
     </div>
@@ -921,49 +921,142 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
 }
 
 // ─── Property Fields Manager ──────────────────────────────────────────────────
+const DEFAULT_GROUP_KEYS = new Set(['statuses', 'types', 'categories', 'furnishing', 'completion', 'amenities', 'views', 'payment_plans']);
+
 function PropertyFieldsManager() {
   const [groups, setGroups] = useState<PropertyFieldGroup[]>(DEFAULT_PROPERTY_FIELDS);
   const [activeGroup, setActiveGroup] = useState(DEFAULT_PROPERTY_FIELDS[0].key);
   const [newValue, setNewValue] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showNewGroupForm, setShowNewGroupForm] = useState(false);
+  const [newGroupLabel, setNewGroupLabel] = useState('');
+  const supabase = React.useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    supabase
+      .from('site_settings')
+      .select('data')
+      .eq('key', 'property_fields')
+      .single()
+      .then(({ data }) => {
+        if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
+          setGroups(data.data as PropertyFieldGroup[]);
+        } else {
+          supabase.from('site_settings').upsert(
+            { key: 'property_fields', data: DEFAULT_PROPERTY_FIELDS, updated_at: new Date().toISOString() },
+            { onConflict: 'key' },
+          );
+        }
+      });
+  }, [supabase]);
+
+  const persistGroups = async (updated: PropertyFieldGroup[]) => {
+    setGroups(updated);
+    setSaving(true);
+    await supabase
+      .from('site_settings')
+      .upsert({ key: 'property_fields', data: updated, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const addGroup = () => {
+    const label = newGroupLabel.trim();
+    if (!label) return;
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (groups.some((g) => g.key === key)) return;
+    const updated = [...groups, { key, label, options: [] }];
+    persistGroups(updated);
+    setActiveGroup(key);
+    setNewGroupLabel('');
+    setShowNewGroupForm(false);
+  };
+
+  const deleteGroup = (key: string) => {
+    if (DEFAULT_GROUP_KEYS.has(key)) return;
+    const updated = groups.filter((g) => g.key !== key);
+    persistGroups(updated);
+    if (activeGroup === key) setActiveGroup(updated[0]?.key ?? '');
+  };
 
   const group = groups.find((g) => g.key === activeGroup)!;
 
   const addOption = () => {
     if (!newValue.trim()) return;
-    setGroups(groups.map((g) => g.key === activeGroup ? { ...g, options: [...g.options, { id: Date.now(), value: newValue.trim() }] } : g));
+    const updated = groups.map((g) => g.key === activeGroup ? { ...g, options: [...g.options, { id: Date.now(), value: newValue.trim() }] } : g);
+    persistGroups(updated);
     setNewValue('');
   };
 
   const removeOption = (id: number) => {
-    setGroups(groups.map((g) => g.key === activeGroup ? { ...g, options: g.options.filter((o) => o.id !== id) } : g));
+    const updated = groups.map((g) => g.key === activeGroup ? { ...g, options: g.options.filter((o) => o.id !== id) } : g);
+    persistGroups(updated);
   };
 
   const saveEdit = (id: number) => {
     if (!editValue.trim()) return;
-    setGroups(groups.map((g) => g.key === activeGroup ? { ...g, options: g.options.map((o) => o.id === id ? { ...o, value: editValue } : o) } : g));
+    const updated = groups.map((g) => g.key === activeGroup ? { ...g, options: g.options.map((o) => o.id === id ? { ...o, value: editValue } : o) } : g);
+    persistGroups(updated);
     setEditingId(null);
   };
 
   return (
     <div>
       <SectionHeader title="Property Field Configuration" description="Manage dropdown options, statuses, and field values used across property listings" />
+      {(saved || saving) && (
+        <div className="mb-4">
+          <span className={`text-xs font-semibold ${saving ? 'text-primary' : 'text-emerald-400'} flex items-center gap-1.5`}>
+            <Icon name={saving ? 'ArrowPathIcon' : 'CheckCircleIcon'} size={14} className={saving ? 'animate-spin' : ''} />
+            {saving ? 'Saving…' : 'Saved'}
+          </span>
+        </div>
+      )}
       <div className="flex gap-6">
         <div className="w-48 flex-shrink-0">
           <div className="space-y-1">
             {groups.map((g) => (
-              <button key={g.key} onClick={() => setActiveGroup(g.key)} className={`w-full text-left px-3 py-2.5 text-xs font-medium transition-colors border ${activeGroup === g.key ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/2'}`}>
-                <div>{g.label}</div>
-                <div className="text-[10px] opacity-60 mt-0.5">{g.options.length} options</div>
+              <button key={g.key} onClick={() => setActiveGroup(g.key)} className={`w-full text-left px-3 py-2.5 text-xs font-medium transition-colors border group ${activeGroup === g.key ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/2'}`}>
+                <div className="flex items-center justify-between">
+                  <span>{g.label}</span>
+                  {!DEFAULT_GROUP_KEYS.has(g.key) && (
+                    <span onClick={(e) => { e.stopPropagation(); deleteGroup(g.key); }} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity ml-1" title="Delete group">
+                      <Icon name="TrashIcon" size={11} />
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] opacity-60 mt-0.5">{g.options.length} options{!DEFAULT_GROUP_KEYS.has(g.key) ? ' · custom' : ''}</div>
               </button>
             ))}
           </div>
+          {showNewGroupForm ? (
+            <div className="mt-3 space-y-2">
+              <input value={newGroupLabel} onChange={(e) => setNewGroupLabel(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addGroup()} placeholder="Group name…" className="w-full px-2.5 py-2 bg-input border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" autoFocus />
+              <div className="flex gap-1.5">
+                <button onClick={addGroup} disabled={!newGroupLabel.trim()} className="flex-1 px-2 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">Create</button>
+                <button onClick={() => { setShowNewGroupForm(false); setNewGroupLabel(''); }} className="flex-1 px-2 py-1.5 border border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowNewGroupForm(true)} className="mt-3 w-full px-3 py-2.5 border border-dashed border-border text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-1.5">
+              <Icon name="PlusIcon" size={12} /> New Field Group
+            </button>
+          )}
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-foreground">{group.label}</h3>
-            <span className="text-xs text-muted-foreground">{group.options.length} options</span>
+            <h3 className="text-sm font-bold text-foreground">{group.label}{!DEFAULT_GROUP_KEYS.has(group.key) && <span className="ml-2 text-[10px] font-normal text-primary/70 bg-primary/10 px-1.5 py-0.5">Custom</span>}</h3>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{group.options.length} options</span>
+              {!DEFAULT_GROUP_KEYS.has(group.key) && (
+                <button onClick={() => deleteGroup(group.key)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1">
+                  <Icon name="TrashIcon" size={12} /> Delete Group
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-2 mb-4">
             {group.options.map((opt) => (
@@ -1004,8 +1097,6 @@ function PropertyFieldsManager() {
 }
 
 // ─── Communities Manager ──────────────────────────────────────────────────────
-const STORAGE_KEY = 'coveestates_communities';
-
 function CommunitiesManager() {
   const [locations, setLocations] = useState<UAELocation[]>([]);
   const [selectedEmirate, setSelectedEmirate] = useState('Dubai');
@@ -1016,16 +1107,28 @@ function CommunitiesManager() {
   const [editingCommunity, setEditingCommunity] = useState<{ area: string; idx: number } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [activeView, setActiveView] = useState<'communities' | 'areas' | 'emirates'>('communities');
+  const supabase = React.useMemo(() => createClient(), []);
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    if (stored) {
-      try { setLocations(JSON.parse(stored)); } catch { setLocations(UAE_LOCATIONS); }
-    } else {
-      setLocations(UAE_LOCATIONS);
-    }
-  }, []);
+    supabase
+      .from('site_settings')
+      .select('data')
+      .eq('key', 'communities')
+      .single()
+      .then(({ data }) => {
+        if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
+          setLocations(data.data as UAELocation[]);
+        } else {
+          setLocations(UAE_LOCATIONS);
+          supabase.from('site_settings').upsert(
+            { key: 'communities', data: UAE_LOCATIONS, updated_at: new Date().toISOString() },
+            { onConflict: 'key' },
+          );
+        }
+      });
+  }, [supabase]);
 
   useEffect(() => {
     if (locations.length > 0) {
@@ -1036,11 +1139,13 @@ function CommunitiesManager() {
     }
   }, [selectedEmirate, locations]);
 
-  const saveLocations = (updated: UAELocation[]) => {
+  const saveLocations = async (updated: UAELocation[]) => {
     setLocations(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
+    setSaving(true);
+    await supabase
+      .from('site_settings')
+      .upsert({ key: 'communities', data: updated, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1121,9 +1226,10 @@ function CommunitiesManager() {
             Manage all emirates, areas, and communities. Changes are saved instantly and used across all property/project forms.
           </p>
         </div>
-        {saved && (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-            <Icon name="CheckCircleIcon" size={14} /> Saved
+        {(saved || saving) && (
+          <span className={`flex items-center gap-1.5 text-xs font-semibold ${saving ? 'text-primary' : 'text-emerald-400'}`}>
+            <Icon name={saving ? 'ArrowPathIcon' : 'CheckCircleIcon'} size={14} className={saving ? 'animate-spin' : ''} />
+            {saving ? 'Saving…' : 'Saved'}
           </span>
         )}
       </div>
@@ -1351,16 +1457,19 @@ export default function SettingsPage() {
   const { pages: cmsPages, branding: cmsBranding, propertyDetail: cmsPropertyDetail, projectDetail: cmsProjectDetail, saveAll, lastSaved, loaded } = useCMS();
   const [activeTab, setActiveTab] = useState<SettingsTab>('Company');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pages, setPages] = useState<PageConfig[]>(cmsPages);
   const [activePage, setActivePage] = useState<PageKey>('home');
   const [branding, setBranding] = useState<BrandingConfig>(cmsBranding);
   const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(cmsPropertyDetail);
   const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(cmsProjectDetail);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = React.useRef<HTMLInputElement>(null);
   const initializedRef = React.useRef(false);
 
-  // Sync from CMS context only after localStorage has loaded (not on every render)
+  // Sync from CMS context only after Supabase data has loaded (not on every render)
   React.useEffect(() => {
     if (!initializedRef.current && loaded) {
       setPages(cmsPages);
@@ -1371,22 +1480,50 @@ export default function SettingsPage() {
     }
   }, [loaded, cmsPages, cmsBranding, cmsPropertyDetail, cmsProjectDetail]);
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setLogoPreview(dataUrl);
-      setBranding((prev) => ({ ...prev, logo_url: dataUrl }));
-    };
-    reader.readAsDataURL(file);
+
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const oldUrl = branding.logo_url;
+      if (oldUrl && oldUrl.includes('/site-assets/')) {
+        const oldPath = oldUrl.split('/site-assets/').pop();
+        if (oldPath) formData.append('oldPath', oldPath);
+      }
+
+      const res = await fetch('/api/admin/upload-logo', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Upload failed');
+
+      setLogoPreview(result.url);
+      setBranding((prev) => ({ ...prev, logo_url: result.url }));
+    } catch (err: any) {
+      console.error('Logo upload failed:', err);
+      setSaveError(err?.message || 'Failed to upload logo');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
   };
 
-  const handleSave = () => {
-    saveAll(pages, branding, propertyDetail, projectDetail);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await saveAll(pages, branding, propertyDetail, projectDetail);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setSaveError(err?.message || 'Failed to save settings');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const currentPage = pages.find((p) => p.key === activePage) || pages[0];
@@ -1483,10 +1620,13 @@ export default function SettingsPage() {
             {lastSaved && <span className="ml-2 text-xs text-primary/60">· Last saved: {lastSaved}</span>}
           </p>
         </div>
-        <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-          <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
-          {saved ? 'Saved & Live!' : 'Save Changes'}
-        </button>
+        <div className="flex items-center gap-3">
+          {saveError && <span className="text-xs text-red-400">{saveError}</span>}
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <Icon name={saved ? 'CheckIcon' : saving ? 'ArrowPathIcon' : 'CloudArrowUpIcon'} size={14} className={saving ? 'animate-spin' : ''} />
+            {saved ? 'Saved & Live!' : saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
       </div>
 
       {/* Main Tabs */}
@@ -1531,8 +1671,8 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Border Radius</label>
-                <select className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                  <option>0px — Sharp</option><option>4px — Slight</option><option>8px — Rounded</option>
+                <select value={branding.border_radius || '0px'} onChange={(e) => setBranding({ ...branding, border_radius: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+                  <option value="0px">0px — Sharp</option><option value="4px">4px — Slight</option><option value="8px">8px — Rounded</option><option value="12px">12px — Soft</option><option value="16px">16px — Pill</option>
                 </select>
               </div>
             </div>
@@ -1546,10 +1686,15 @@ export default function SettingsPage() {
                 onChange={handleLogoUpload}
               />
               <div
-                className="border border-dashed border-border p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
-                onClick={() => logoInputRef.current?.click()}
+                className={`border border-dashed border-border p-6 text-center transition-colors ${logoUploading ? 'opacity-60 pointer-events-none' : 'hover:border-primary/40 cursor-pointer'}`}
+                onClick={() => !logoUploading && logoInputRef.current?.click()}
               >
-                {logoPreview || (branding as any).logo_url ? (
+                {logoUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-muted-foreground">Uploading to Supabase...</p>
+                  </div>
+                ) : logoPreview || (branding as any).logo_url ? (
                   <div className="flex flex-col items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1569,7 +1714,21 @@ export default function SettingsPage() {
               </div>
               {(logoPreview || (branding as any).logo_url) && (
                 <button
-                  onClick={() => { setLogoPreview(null); setBranding((prev) => ({ ...prev, logo_url: undefined })); }}
+                  onClick={async () => {
+                    const oldUrl = branding.logo_url;
+                    if (oldUrl && oldUrl.includes('/site-assets/')) {
+                      const oldPath = oldUrl.split('/site-assets/').pop();
+                      if (oldPath) {
+                        await fetch('/api/admin/upload-logo', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ path: oldPath }),
+                        });
+                      }
+                    }
+                    setLogoPreview(null);
+                    setBranding((prev) => ({ ...prev, logo_url: undefined }));
+                  }}
                   className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors"
                 >
                   Remove logo
@@ -1580,7 +1739,7 @@ export default function SettingsPage() {
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Logo URL (ImageKit / CDN)</label>
               <input
                 type="text"
-                value={branding.logo_url && !branding.logo_url.startsWith('data:') ? branding.logo_url : ''}
+                value={branding.logo_url ?? ''}
                 onChange={(e) => {
                   const url = e.target.value.trim();
                   setLogoPreview(null);
@@ -1596,13 +1755,13 @@ export default function SettingsPage() {
 
         {activeTab === 'Appearance' && (
           <div className="space-y-6">
-            <SectionHeader title="Site Appearance" description="Layout, theme, and visual settings" />
+            <SectionHeader title="Site Appearance" description="Layout, theme, and visual settings — saved with branding" />
             <div className="space-y-0">
-              <ToggleField label="Dark Mode" description="Enable dark mode by default" defaultChecked={true} />
-              <ToggleField label="Sticky Header" description="Keep navigation fixed on scroll" defaultChecked={true} />
-              <ToggleField label="Scroll Animations" description="Enable scroll-triggered animations" defaultChecked={true} />
-              <ToggleField label="Gold Shimmer Effects" description="Enable gold shimmer text animations" defaultChecked={true} />
-              <ToggleField label="Show WhatsApp Button" description="Display WhatsApp chat button in header" defaultChecked={true} />
+              <ToggleField label="Dark Mode" description="Enable dark mode by default" checked={branding.dark_mode !== false} onChange={(v) => setBranding({ ...branding, dark_mode: v })} />
+              <ToggleField label="Sticky Header" description="Keep navigation fixed on scroll" checked={branding.sticky_header !== false} onChange={(v) => setBranding({ ...branding, sticky_header: v })} />
+              <ToggleField label="Scroll Animations" description="Enable scroll-triggered animations" checked={branding.scroll_animations !== false} onChange={(v) => setBranding({ ...branding, scroll_animations: v })} />
+              <ToggleField label="Gold Shimmer Effects" description="Enable gold shimmer text animations" checked={branding.gold_shimmer !== false} onChange={(v) => setBranding({ ...branding, gold_shimmer: v })} />
+              <ToggleField label="Show WhatsApp Button" description="Display WhatsApp chat button in header" checked={branding.show_whatsapp_button !== false} onChange={(v) => setBranding({ ...branding, show_whatsapp_button: v })} />
             </div>
           </div>
         )}
@@ -1640,7 +1799,7 @@ export default function SettingsPage() {
               <InputField label="Instagram" value={branding.social_instagram ?? ''} onChange={(v) => setBranding({ ...branding, social_instagram: v })} placeholder="https://instagram.com/coveestates" />
               <InputField label="LinkedIn" value={branding.social_linkedin ?? ''} onChange={(v) => setBranding({ ...branding, social_linkedin: v })} placeholder="https://linkedin.com/company/coveestates" />
               <InputField label="Facebook" value={branding.social_facebook ?? ''} onChange={(v) => setBranding({ ...branding, social_facebook: v })} placeholder="https://facebook.com/coveestates" />
-              <InputField label="Twitter / X" value={branding.social_twitter ?? ''} onChange={(v) => setBranding({ ...branding, social_twitter: v })} placeholder="https://twitter.com/coveestates" />
+              <InputField label="Twitter / X" value={branding.social_twitter ?? ''} onChange={(v) => setBranding({ ...branding, social_twitter: v })} placeholder="https://x.com/coveestates" />
               <InputField label="YouTube" value={branding.social_youtube ?? ''} onChange={(v) => setBranding({ ...branding, social_youtube: v })} placeholder="https://youtube.com/@coveestates" />
               <InputField label="TikTok" value={branding.social_tiktok ?? ''} onChange={(v) => setBranding({ ...branding, social_tiktok: v })} placeholder="https://tiktok.com/@coveestates" />
             </div>
@@ -1649,40 +1808,40 @@ export default function SettingsPage() {
 
         {activeTab === 'SEO' && (
           <div className="space-y-6">
-            <SectionHeader title="Global SEO Configuration" description="Site-wide search engine optimization settings" />
-            <InputField label="Site Title" value="Cove Estates — Ultra-Premium Properties for Discerning Buyers" />
-            <TextareaField label="Meta Description" value="Cove Estates curates the world's finest residential and commercial properties for high-net-worth buyers." rows={3} />
-            <InputField label="Google Analytics ID" placeholder="G-XXXXXXXXXX" />
-            <InputField label="Google Search Console Verification" placeholder="google-site-verification=..." />
+            <SectionHeader title="Global SEO Configuration" description="Site-wide search engine optimization settings — saved with branding" />
+            <InputField label="Site Title" value={branding.seo_title || ''} onChange={(v) => setBranding({ ...branding, seo_title: v })} placeholder="My Site — Tagline" />
+            <TextareaField label="Meta Description" value={branding.seo_description || ''} onChange={(v) => setBranding({ ...branding, seo_description: v })} rows={3} placeholder="A short description for search engines" />
+            <InputField label="Google Analytics ID" value={branding.google_analytics_id || ''} onChange={(v) => setBranding({ ...branding, google_analytics_id: v })} placeholder="G-XXXXXXXXXX" />
+            <InputField label="Google Search Console Verification" value={branding.google_search_console || ''} onChange={(v) => setBranding({ ...branding, google_search_console: v })} placeholder="google-site-verification=..." />
             <div className="space-y-0">
-              <ToggleField label="Enable Sitemap" description="Auto-generate XML sitemap" defaultChecked={true} />
-              <ToggleField label="Enable Robots.txt" description="Allow search engine crawling" defaultChecked={true} />
-              <ToggleField label="Structured Data (JSON-LD)" description="Enable schema.org markup" defaultChecked={true} />
-              <ToggleField label="Open Graph Tags" description="Enable social sharing meta tags" defaultChecked={true} />
+              <ToggleField label="Enable Sitemap" description="Auto-generate XML sitemap" checked={branding.enable_sitemap !== false} onChange={(v) => setBranding({ ...branding, enable_sitemap: v })} />
+              <ToggleField label="Enable Robots.txt" description="Allow search engine crawling" checked={branding.enable_robots !== false} onChange={(v) => setBranding({ ...branding, enable_robots: v })} />
+              <ToggleField label="Structured Data (JSON-LD)" description="Enable schema.org markup" checked={branding.enable_jsonld !== false} onChange={(v) => setBranding({ ...branding, enable_jsonld: v })} />
+              <ToggleField label="Open Graph Tags" description="Enable social sharing meta tags" checked={branding.enable_og_tags !== false} onChange={(v) => setBranding({ ...branding, enable_og_tags: v })} />
             </div>
           </div>
         )}
 
         {activeTab === 'Workflow' && (
           <div className="space-y-6">
-            <SectionHeader title="Workflow Settings" description="Configure CRM workflow and automation" />
+            <SectionHeader title="Workflow Settings" description="Configure CRM workflow and automation — saved with branding" />
             <div className="space-y-0">
-              <ToggleField label="Auto-assign Leads" description="Automatically assign new leads to agents" defaultChecked={true} />
-              <ToggleField label="Lead Notifications" description="Send email notifications for new leads" defaultChecked={true} />
-              <ToggleField label="Deal Stage Alerts" description="Notify agents when deal stage changes" defaultChecked={true} />
-              <ToggleField label="Task Reminders" description="Send task due date reminders" defaultChecked={true} />
-              <ToggleField label="Weekly Reports" description="Auto-generate and email weekly reports" defaultChecked={true} />
+              <ToggleField label="Auto-assign Leads" description="Automatically assign new leads to agents" checked={branding.auto_assign_leads !== false} onChange={(v) => setBranding({ ...branding, auto_assign_leads: v })} />
+              <ToggleField label="Lead Notifications" description="Send email notifications for new leads" checked={branding.lead_notifications !== false} onChange={(v) => setBranding({ ...branding, lead_notifications: v })} />
+              <ToggleField label="Deal Stage Alerts" description="Notify agents when deal stage changes" checked={branding.deal_stage_alerts !== false} onChange={(v) => setBranding({ ...branding, deal_stage_alerts: v })} />
+              <ToggleField label="Task Reminders" description="Send task due date reminders" checked={branding.task_reminders !== false} onChange={(v) => setBranding({ ...branding, task_reminders: v })} />
+              <ToggleField label="Weekly Reports" description="Auto-generate and email weekly reports" checked={branding.weekly_reports !== false} onChange={(v) => setBranding({ ...branding, weekly_reports: v })} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Lead Assignment Method</label>
-                <select className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+                <select value={branding.lead_assignment_method || 'Round Robin'} onChange={(e) => setBranding({ ...branding, lead_assignment_method: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
                   <option>Round Robin</option><option>By Availability</option><option>Manual</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground hover:text-foreground mb-1.5 uppercase tracking-wider">Follow-up Reminder (days)</label>
-                <input type="number" defaultValue={3} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Follow-up Reminder (days)</label>
+                <input type="number" value={branding.followup_days ?? 3} onChange={(e) => setBranding({ ...branding, followup_days: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50" />
               </div>
             </div>
           </div>
@@ -1859,9 +2018,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="pt-2">
-              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-                <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
-                {saved ? 'Saved & Live!' : 'Save Property Detail'}
+              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <Icon name={saved ? 'CheckIcon' : saving ? 'ArrowPathIcon' : 'CloudArrowUpIcon'} size={14} className={saving ? 'animate-spin' : ''} />
+                {saved ? 'Saved & Live!' : saving ? 'Saving…' : 'Save Property Detail'}
               </button>
             </div>
           </div>
@@ -2099,9 +2258,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="pt-2">
-              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-                <Icon name={saved ? 'CheckIcon' : 'CloudArrowUpIcon'} size={14} />
-                {saved ? 'Saved & Live!' : 'Save Project Detail'}
+              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <Icon name={saved ? 'CheckIcon' : saving ? 'ArrowPathIcon' : 'CloudArrowUpIcon'} size={14} className={saving ? 'animate-spin' : ''} />
+                {saved ? 'Saved & Live!' : saving ? 'Saving…' : 'Save Project Detail'}
               </button>
             </div>
           </div>

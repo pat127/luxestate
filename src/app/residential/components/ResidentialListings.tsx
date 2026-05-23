@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { trackFilterSelection, trackSortSelection } from '@/lib/analytics';
+import { usePropertyFields } from '@/hooks/usePropertyFields';
 
 interface Property {
   id: number;
@@ -31,8 +32,9 @@ export default function ResidentialListings() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [listings, setListings] = useState<Property[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
+  const pf = usePropertyFields();
 
-  const filters = ['All', 'Penthouse', 'Villa', 'Estate', 'Townhouse', 'Loft', 'Residence', 'Apartment'];
+  const filters = ['All', ...pf.types];
 
   useEffect(() => {
     try {

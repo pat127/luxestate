@@ -117,6 +117,26 @@
   padding-bottom: 0.15em;
 }
 
+/* Disable shimmer when toggled off from admin */
+.no-shimmer .text-gold-shimmer {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--primary) !important;
+  color: var(--primary) !important;
+  animation: none !important;
+}
+
+/* Disable scroll animations when toggled off from admin */
+.no-animations .cinematic-in,
+.no-animations [data-aos] {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
 .cinematic-in {
   animation: cinematicIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { ContactContent, DEFAULT_CONTACT } from '@/contexts/CMSContext';
+import { ContactContent, DEFAULT_CONTACT, useCMS } from '@/contexts/CMSContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { trackInquirySubmission } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +16,8 @@ export default function ContactSection({ content }: Props) {
   const c = content ?? DEFAULT_CONTACT;
   const details = c.details ?? DEFAULT_CONTACT.details;
   const { t } = useLanguage();
+  const { branding } = useCMS();
+  const companyName = branding?.company_name || 'Cove Estates';
 
   const [form, setForm] = useState({
     name: '',
@@ -135,7 +137,7 @@ export default function ContactSection({ content }: Props) {
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-3">{t('contact.received_title')}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  {t('contact.received_body')}
+                  {`Thank you for reaching out. A ${companyName} principal will contact you personally within 24 hours.`}
                 </p>
               </div>
             ) : (

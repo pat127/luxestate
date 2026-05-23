@@ -62,8 +62,8 @@ export default function WhyLuxEstate({ content }: Props) {
               {c.eyebrow}
             </span>
             <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
-              Our{' '}
-              <span className="text-gold-shimmer">Process</span>
+              {c.headline}{' '}
+              <span className="text-gold-shimmer">{c.headline_shimmer}</span>
             </h2>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">

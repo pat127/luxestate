@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { usePropertyFields } from '@/hooks/usePropertyFields';
 
 interface CommercialListing {
   id: number;
@@ -26,7 +27,9 @@ export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
   const [listings, setListings] = useState<CommercialListing[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
-  const types = ['All', 'Office', 'Retail', 'Mixed-Use', 'Hospitality'];
+  const pf = usePropertyFields();
+  const commercialTypes = pf.types.filter(t => ['Office', 'Retail', 'Warehouse', 'Land'].includes(t) || !['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'].includes(t));
+  const types = ['All', ...commercialTypes];
 
   useEffect(() => {
     try {
