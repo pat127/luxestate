@@ -154,6 +154,7 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [shareProperty, setShareProperty] = useState<Property | null>(null);
@@ -193,33 +194,42 @@ export default function PropertiesPage() {
 
   const loadProperties = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('id, title, reference_number, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, agent_name, agent_phone, agent_email, published, featured, created_at')
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Error loading properties:', error.message);
+    setLoadError(null);
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, title, reference_number, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, agent_name, agent_phone, agent_email, published, featured, created_at')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error loading properties:', error.message, error);
+        setLoadError(error.message);
+      } else if (data) {
+        setPropertyList(data.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          referenceNumber: p.reference_number || '',
+          locationArea: p.location_area || '',
+          priceAed: p.price_aed || '',
+          propCategory: p.prop_category || 'Residential',
+          availability: p.availability || 'Available',
+          bedrooms: p.bedrooms || '',
+          bathrooms: p.bathrooms || '',
+          areaSqft: p.area_sqft || '',
+          imageUrls: p.image_urls || '',
+          agentName: p.agent_name || '',
+          published: p.published ?? false,
+          featured: p.featured ?? false,
+          createdAt: p.created_at || '',
+        })));
+      } else {
+        setPropertyList([]);
+      }
+    } catch (err: any) {
+      console.error('Unexpected error loading properties:', err);
+      setLoadError(err?.message || 'Failed to load properties');
+    } finally {
+      setLoading(false);
     }
-    if (!error && data) {
-      setPropertyList(data.map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        referenceNumber: p.reference_number || '',
-        locationArea: p.location_area || '',
-        priceAed: p.price_aed || '',
-        propCategory: p.prop_category || 'Residential',
-        availability: p.availability || 'Available',
-        bedrooms: p.bedrooms || '',
-        bathrooms: p.bathrooms || '',
-        areaSqft: p.area_sqft || '',
-        imageUrls: p.image_urls || '',
-        agentName: p.agent_name || '',
-        published: p.published ?? false,
-        featured: p.featured ?? false,
-        createdAt: p.created_at || '',
-      })));
-    }
-    setLoading(false);
   }, [supabase]);
 
   useEffect(() => { loadProperties(); loadAgentNames(); }, [loadProperties, loadAgentNames]);
@@ -541,6 +551,15 @@ export default function PropertiesPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : loadError ? (
+        <div className="text-center py-20 border border-red-500/20 bg-red-500/5">
+          <Icon name="ExclamationTriangleIcon" size={40} className="text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 text-sm font-semibold mb-1">Failed to load properties</p>
+          <p className="text-muted-foreground text-xs mb-4">{loadError}</p>
+          <button onClick={loadProperties} className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+            Retry
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 border border-border">
