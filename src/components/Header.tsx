@@ -152,7 +152,7 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-3 group">
             <AppLogo
               src={logoSrc}
-              size={90}
+              size={108}
               className="transition-transform duration-300 group-hover:scale-105"
             />
           </Link>

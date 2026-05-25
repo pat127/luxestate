@@ -220,7 +220,7 @@ export default function Footer() {
           {/* Brand Column - full width on mobile */}
           <div className="col-span-2 lg:col-span-2 flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <AppLogo size={96} src={cms?.branding?.logo_url || '/assets/images/app_logo.png'} className="brightness-0 invert" />
+              <AppLogo size={115} src={cms?.branding?.logo_url || '/assets/images/app_logo.png'} className="brightness-0 invert" />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               {b?.tagline || t('footer.tagline')}
