@@ -101,7 +101,7 @@ export default function HeroSection() {
   const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
   const heroEyebrow = page?.hero_eyebrow || 'Curated Luxury Properties';
   const heroHeadline = page?.hero_headline || 'Where Architecture Becomes Legacy';
-  const heroDescription = page?.hero_description || 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.';
+  const heroDescription = page?.hero_description ?? 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.';
   const ctaPrimaryText = page?.cta_primary_text || 'Explore Properties';
   const ctaPrimaryLink = page?.cta_primary_link || '/residential';
   const ctaSecondaryText = page?.cta_secondary_text || 'Book Consultation';
@@ -143,9 +143,11 @@ export default function HeroSection() {
             </h1>
           </div>
 
-          <p ref={subRef} className="text-foreground/45 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
-            {heroDescription}
-          </p>
+          {heroDescription && (
+            <p ref={subRef} className="text-foreground/45 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
+              {heroDescription}
+            </p>
+          )}
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-7 md:mb-10">
