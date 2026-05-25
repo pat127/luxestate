@@ -6,9 +6,10 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { trackFilterSelection, trackSortSelection } from '@/lib/analytics';
 import { usePropertyFields } from '@/hooks/usePropertyFields';
+import { createClient } from '@/lib/supabase/client';
 
 interface Property {
-  id: number;
+  id: string;
   name: string;
   location: string;
   price: string;
@@ -22,7 +23,7 @@ interface Property {
   featured: boolean;
 }
 
-const PROPERTIES_STORAGE_KEY = 'admin_properties';
+const RESIDENTIAL_CATEGORIES = ['Residential', 'Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Duplex', 'Studio'];
 
 type SortKey = 'default' | 'price-asc' | 'price-desc' | 'newest';
 
@@ -33,37 +34,46 @@ export default function ResidentialListings() {
   const [listings, setListings] = useState<Property[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
+  const supabase = createClient();
 
   const filters = ['All', ...pf.types];
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
-      if (stored) {
-        const all = JSON.parse(stored);
-        const residential = all.filter((p: any) =>
-          p.published !== false &&
-          ['Residential', 'Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Duplex', 'Studio'].includes(p.category || p.type || '')
-        );
-        setListings(residential.map((p: any) => ({
+    const loadProperties = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, title, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, featured')
+          .eq('published', true)
+          .in('prop_category', RESIDENTIAL_CATEGORIES)
+          .order('created_at', { ascending: false });
+
+        if (error || !data) {
+          setListings([]);
+          return;
+        }
+
+        setListings(data.map((p) => ({
           id: p.id,
-          name: p.name || p.title,
-          location: p.location,
-          price: p.price,
-          beds: p.beds || p.bedrooms || 0,
-          baths: p.baths || p.bathrooms || 0,
-          sqft: p.sqft || p.size || '—',
-          tag: p.type || p.category || 'Property',
-          status: p.status || 'Available',
-          image: p.image || '',
-          alt: p.alt || p.name || 'Property image',
+          name: p.title || '',
+          location: p.location_area || '',
+          price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
+          beds: p.bedrooms || 0,
+          baths: p.bathrooms || 0,
+          sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
+          tag: p.prop_category || 'Property',
+          status: p.availability || 'Available',
+          image: Array.isArray(p.image_urls) && p.image_urls.length > 0 ? p.image_urls[0] : '',
+          alt: p.title || 'Property image',
           featured: p.featured || false,
         })));
+      } catch {
+        setListings([]);
       }
-    } catch {
-      setListings([]);
-    }
-  }, []);
+    };
+
+    loadProperties();
+  }, [supabase]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

@@ -163,6 +163,8 @@ export default function PropertiesPage() {
 
   const [availableAreas, setAvailableAreas] = useState<string[]>(comm.getAreasForEmirate('Dubai'));
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -467,6 +469,58 @@ export default function PropertiesPage() {
     loadProperties();
   };
 
+  const handleUploadToStorage = async () => {
+    const urls = formData.imageUrls.split(',').map(u => u.trim()).filter(Boolean);
+    if (urls.length === 0) return;
+
+    const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const externalUrls = urls.filter(u => !u.includes(supabaseHost));
+    const alreadyUploaded = urls.filter(u => u.includes(supabaseHost));
+
+    if (externalUrls.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress({ done: 0, total: externalUrls.length, errors: [] });
+
+    try {
+      const res = await fetch('/api/admin/upload-property-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          urls: externalUrls,
+          propertyId: editingId || undefined,
+          referenceNumber: formData.referenceNumber || undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setUploadProgress(prev => ({ ...prev, errors: [data.error || 'Upload failed'] }));
+        setUploading(false);
+        return;
+      }
+
+      const newUrls: string[] = [...alreadyUploaded];
+      const errors: string[] = [];
+
+      for (const result of data.results) {
+        if ('uploaded' in result) {
+          newUrls.push(result.uploaded);
+        } else {
+          errors.push(`${result.original.slice(0, 40)}... — ${result.error}`);
+          newUrls.push(result.original);
+        }
+      }
+
+      setFormData(prev => ({ ...prev, imageUrls: newUrls.join(', ') }));
+      setUploadProgress({ done: externalUrls.length - errors.length, total: externalUrls.length, errors });
+    } catch (err: any) {
+      setUploadProgress(prev => ({ ...prev, errors: [err?.message || 'Network error'] }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
   const labelCls = "block text-xs text-[#aaa] mb-1";
 
@@ -660,8 +714,8 @@ export default function PropertiesPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-2xl bg-[#0f1117] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a3040]">
+          <div className="relative w-full max-w-3xl bg-[#0f1117] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#2a3040]">
               <h2 className="text-base font-bold text-white">{editingId ? 'Edit Property' : 'Add New Property'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white transition-colors">
                 <Icon name="XMarkIcon" size={18} />
@@ -669,7 +723,7 @@ export default function PropertiesPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-[#2a3040] overflow-x-auto">
+            <div className="flex-shrink-0 flex border-b border-[#2a3040] overflow-x-auto px-6 bg-[#0f1117]">
               {(['basic', 'dimensions', 'features', 'location', 'media'] as ModalTab[]).map((tab) => (
                 <button
                   key={tab}
@@ -680,95 +734,113 @@ export default function PropertiesPage() {
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {activeTab === 'basic' && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className={labelCls}>Property Title *</label>
-                      <input className={inputCls} value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Luxury Penthouse in Downtown Dubai" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Reference Number</label>
-                      <input className={inputCls} value={formData.referenceNumber} onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Category</label>
-                      <select className={inputCls} value={formData.propCategory} onChange={(e) => setFormData({ ...formData, propCategory: e.target.value })}>
-                        {pf.categories.map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Property Type</label>
-                      <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
-                        {pf.types.map(t => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Listing Type</label>
-                      <select className={inputCls} value={formData.listingType} onChange={(e) => setFormData({ ...formData, listingType: e.target.value })}>
-                        <option>For Sale</option><option>For Rent</option><option>Off-Plan</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Availability</label>
-                      <select className={inputCls} value={formData.availability} onChange={(e) => setFormData({ ...formData, availability: e.target.value })}>
-                        {pf.statuses.map(s => <option key={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Completion</label>
-                      <select className={inputCls} value={formData.completion} onChange={(e) => setFormData({ ...formData, completion: e.target.value })}>
-                        {pf.completion.map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Price (AED)</label>
-                      <input className={inputCls} value={formData.priceAed} onChange={(e) => setFormData({ ...formData, priceAed: e.target.value })} placeholder="e.g. 2,500,000" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Price per Sq Ft (AED)</label>
-                      <input className={inputCls} value={formData.pricePerSqft} onChange={(e) => setFormData({ ...formData, pricePerSqft: e.target.value })} placeholder="e.g. 1,200" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Service Charge</label>
-                      <input className={inputCls} value={formData.serviceCharge} onChange={(e) => setFormData({ ...formData, serviceCharge: e.target.value })} placeholder="e.g. AED 15,000/year" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Agent Name</label>
-                      {agentNames.length > 0 ? (
-                        <select className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}>
-                          <option value="">— Select Agent —</option>
-                          {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
+                <div className="space-y-6">
+                  {/* Property Info */}
+                  <section>
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Property Information</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-3">
+                        <label className={labelCls}>Property Title *</label>
+                        <input className={inputCls} value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Luxury Penthouse in Downtown Dubai" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Reference Number</label>
+                        <input className={inputCls} value={formData.referenceNumber} onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Category</label>
+                        <select className={inputCls} value={formData.propCategory} onChange={(e) => setFormData({ ...formData, propCategory: e.target.value })}>
+                          {pf.categories.map(c => <option key={c}>{c}</option>)}
                         </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Property Type</label>
+                        <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
+                          {pf.types.map(t => <option key={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Listing Type</label>
+                        <select className={inputCls} value={formData.listingType} onChange={(e) => setFormData({ ...formData, listingType: e.target.value })}>
+                          <option>For Sale</option><option>For Rent</option><option>Off-Plan</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Availability</label>
+                        <select className={inputCls} value={formData.availability} onChange={(e) => setFormData({ ...formData, availability: e.target.value })}>
+                          {pf.statuses.map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Completion</label>
+                        <select className={inputCls} value={formData.completion} onChange={(e) => setFormData({ ...formData, completion: e.target.value })}>
+                          {pf.completion.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Pricing */}
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Pricing</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Price (AED)</label>
+                        <input className={inputCls} value={formData.priceAed} onChange={(e) => setFormData({ ...formData, priceAed: e.target.value })} placeholder="e.g. 2,500,000" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Price per Sq Ft (AED)</label>
+                        <input className={inputCls} value={formData.pricePerSqft} onChange={(e) => setFormData({ ...formData, pricePerSqft: e.target.value })} placeholder="e.g. 1,200" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Service Charge</label>
+                        <input className={inputCls} value={formData.serviceCharge} onChange={(e) => setFormData({ ...formData, serviceCharge: e.target.value })} placeholder="e.g. AED 15,000/year" />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Agent Info */}
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Agent Information</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Agent Name</label>
+                        {agentNames.length > 0 ? (
+                          <select className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}>
+                            <option value="">— Select Agent —</option>
+                            {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
+                          </select>
+                        ) : (
+                          <input className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })} />
+                        )}
+                      </div>
+                      {(!isAgentScoped || isAssignedAgent(formData.agentName)) ? (
+                        <>
+                          <div>
+                            <label className={labelCls}>Agent Phone</label>
+                            <input className={inputCls} value={formData.agentPhone} onChange={(e) => setFormData({ ...formData, agentPhone: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Agent Email</label>
+                            <input className={inputCls} value={formData.agentEmail} onChange={(e) => setFormData({ ...formData, agentEmail: e.target.value })} />
+                          </div>
+                        </>
                       ) : (
-                        <input className={inputCls} value={formData.agentName} onChange={(e) => setFormData({ ...formData, agentName: e.target.value })} />
+                        <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
+                          <Icon name="LockClosedIcon" size={13} />
+                          <span>Contact details are only visible to the listing agent.</span>
+                        </div>
                       )}
                     </div>
-                    {/* Owner/agent contact info — only visible to listing agent or admins */}
+                  </section>
+
+                  {/* Owner Details */}
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Owner Details</p>
                     {(!isAgentScoped || isAssignedAgent(formData.agentName)) ? (
-                      <>
-                        <div>
-                          <label className={labelCls}>Agent Phone</label>
-                          <input className={inputCls} value={formData.agentPhone} onChange={(e) => setFormData({ ...formData, agentPhone: e.target.value })} />
-                        </div>
-                        <div>
-                          <label className={labelCls}>Agent Email</label>
-                          <input className={inputCls} value={formData.agentEmail} onChange={(e) => setFormData({ ...formData, agentEmail: e.target.value })} />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
-                        <Icon name="LockClosedIcon" size={13} />
-                        <span>Owner contact details are only visible to the listing agent.</span>
-                      </div>
-                    )}
-                    {/* Owner Details */}
-                    <div className="col-span-2 pt-2 border-t border-[#2a3040]">
-                      <p className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Owner Details</p>
-                    </div>
-                    {(!isAgentScoped || isAssignedAgent(formData.agentName)) ? (
-                      <>
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className={labelCls}>Unit No</label>
                           <input className={inputCls} value={formData.unitNo} onChange={(e) => setFormData({ ...formData, unitNo: e.target.value })} placeholder="e.g. 2401" />
@@ -789,23 +861,29 @@ export default function PropertiesPage() {
                           <label className={labelCls}>Owner Email</label>
                           <input className={inputCls} value={formData.ownerEmail} onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })} placeholder="e.g. owner@email.com" />
                         </div>
-                        <div className="col-span-2">
-                          <p className="text-[10px] text-[#666] flex items-center gap-1.5">
+                        <div className="col-span-3">
+                          <p className="text-[10px] text-[#555] flex items-center gap-1.5">
                             <Icon name="InformationCircleIcon" size={11} />
                             Owner details are automatically saved to Contacts when the property is saved.
                           </p>
                         </div>
-                      </>
+                      </div>
                     ) : (
-                      <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/20 border border-border text-xs text-muted-foreground">
                         <Icon name="LockClosedIcon" size={13} />
                         <span>Unit No, Floor, and Owner details are restricted to the listing agent and admins only.</span>
                       </div>
                     )}
-                    <div className="col-span-2">
-                      <label className={labelCls}>Description</label>
-                      <textarea className={inputCls} rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />
-                    </div>
+                  </section>
+
+                  {/* Description */}
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Description</p>
+                    <textarea className={inputCls} rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />
+                  </section>
+
+                  {/* Toggles */}
+                  <section className="pt-5 border-t border-[#2a3040]">
                     <div className="flex items-center gap-6">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
@@ -816,58 +894,91 @@ export default function PropertiesPage() {
                         <span className="text-xs text-[#aaa]">Published</span>
                       </label>
                     </div>
-                  </div>
-                </>
+                  </section>
+                </div>
               )}
 
               {activeTab === 'dimensions' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className={labelCls}>Bedrooms</label><input className={inputCls} value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })} placeholder="e.g. 3" /></div>
-                  <div><label className={labelCls}>Bathrooms</label><input className={inputCls} value={formData.bathrooms} onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })} placeholder="e.g. 4" /></div>
-                  <div><label className={labelCls}>Area (Sq Ft)</label><input className={inputCls} value={formData.areaSqft} onChange={(e) => setFormData({ ...formData, areaSqft: e.target.value })} placeholder="e.g. 2,500" /></div>
-                  <div><label className={labelCls}>Built-up Area (Sq Ft)</label><input className={inputCls} value={formData.builtUpArea} onChange={(e) => setFormData({ ...formData, builtUpArea: e.target.value })} /></div>
-                  <div><label className={labelCls}>Plot Area (Sq Ft)</label><input className={inputCls} value={formData.plotArea} onChange={(e) => setFormData({ ...formData, plotArea: e.target.value })} /></div>
+                <div className="space-y-6">
+                  <section>
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Room Configuration</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Bedrooms</label>
+                        <input className={inputCls} value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })} placeholder="e.g. 3" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Bathrooms</label>
+                        <input className={inputCls} value={formData.bathrooms} onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })} placeholder="e.g. 4" />
+                      </div>
+                    </div>
+                  </section>
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Area Measurements</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Area (Sq Ft)</label>
+                        <input className={inputCls} value={formData.areaSqft} onChange={(e) => setFormData({ ...formData, areaSqft: e.target.value })} placeholder="e.g. 2,500" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Built-up Area (Sq Ft)</label>
+                        <input className={inputCls} value={formData.builtUpArea} onChange={(e) => setFormData({ ...formData, builtUpArea: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Plot Area (Sq Ft)</label>
+                        <input className={inputCls} value={formData.plotArea} onChange={(e) => setFormData({ ...formData, plotArea: e.target.value })} />
+                      </div>
+                    </div>
+                  </section>
                 </div>
               )}
 
               {activeTab === 'features' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className={labelCls}>Furnishing</label>
-                      <select className={inputCls} value={formData.furnishing} onChange={(e) => setFormData({ ...formData, furnishing: e.target.value })}>
-                        <option value="">Select...</option>
-                        {pf.furnishing.map(f => <option key={f}>{f}</option>)}
-                      </select>
+                <div className="space-y-6">
+                  <section>
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Property Details</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Furnishing</label>
+                        <select className={inputCls} value={formData.furnishing} onChange={(e) => setFormData({ ...formData, furnishing: e.target.value })}>
+                          <option value="">Select...</option>
+                          {pf.furnishing.map(f => <option key={f}>{f}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>View</label>
+                        <select className={inputCls} value={formData.viewType} onChange={(e) => setFormData({ ...formData, viewType: e.target.value })}>
+                          <option value="">Select...</option>
+                          {pf.views.map(v => <option key={v}>{v}</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <div><label className={labelCls}>View</label>
-                      <select className={inputCls} value={formData.viewType} onChange={(e) => setFormData({ ...formData, viewType: e.target.value })}>
-                        <option value="">Select...</option>
-                        {pf.views.map(v => <option key={v}>{v}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Amenities (comma-separated)</label>
+                  </section>
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Amenities</p>
                     <textarea className={inputCls} rows={3} value={formData.amenities} onChange={(e) => setFormData({ ...formData, amenities: e.target.value })} placeholder="Swimming Pool, Gym, Concierge, Parking..." />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { key: 'balcony', label: 'Balcony' },
-                      { key: 'maidRoom', label: 'Maid Room' },
-                      { key: 'studyRoom', label: 'Study Room' },
-                      { key: 'privatePool', label: 'Private Pool' },
-                      { key: 'privateGarden', label: 'Private Garden' },
-                    ].map(({ key, label }) => (
-                      <label key={key} className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={(formData as any)[key]} onChange={(e) => setFormData({ ...formData, [key]: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
-                        <span className="text-xs text-[#aaa]">{label}</span>
-                      </label>
-                    ))}
-                  </div>
+                  </section>
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Additional Features</p>
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                      {[
+                        { key: 'balcony', label: 'Balcony' },
+                        { key: 'maidRoom', label: 'Maid Room' },
+                        { key: 'studyRoom', label: 'Study Room' },
+                        { key: 'privatePool', label: 'Private Pool' },
+                        { key: 'privateGarden', label: 'Private Garden' },
+                      ].map(({ key, label }) => (
+                        <label key={key} className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={(formData as any)[key]} onChange={(e) => setFormData({ ...formData, [key]: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
+                          <span className="text-xs text-[#aaa]">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
                   {pf.customGroups.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Custom Fields</p>
-                      <div className="grid grid-cols-2 gap-4">
+                    <section className="pt-5 border-t border-[#2a3040]">
+                      <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Custom Fields</p>
+                      <div className="grid grid-cols-3 gap-4">
                         {pf.customGroups.map((cg) => (
                           <div key={cg.key}>
                             <label className={labelCls}>{cg.label}</label>
@@ -878,47 +989,53 @@ export default function PropertiesPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </section>
                   )}
                 </div>
               )}
 
               {activeTab === 'location' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Emirate</label>
-                    <select className={inputCls} value={formData.emirate} onChange={(e) => {
-                      const em = e.target.value;
-                      setFormData({ ...formData, emirate: em, locationArea: '', community: '' });
-                      setAvailableAreas(comm.getAreasForEmirate(em));
-                      setAvailableCommunities([]);
-                    }}>
-                      {comm.emirates.map(em => <option key={em}>{em}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Area</label>
-                    <select className={inputCls} value={formData.locationArea} onChange={(e) => {
-                      const area = e.target.value;
-                      setFormData({ ...formData, locationArea: area, community: '' });
-                      setAvailableCommunities(comm.getCommunitiesForArea(area));
-                    }}>
-                      <option value="">Select area...</option>
-                      {availableAreas.map(a => <option key={a}>{a}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Community</label>
-                    <select className={inputCls} value={formData.community} onChange={(e) => setFormData({ ...formData, community: e.target.value })}>
-                      <option value="">Select community...</option>
-                      {availableCommunities.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className={labelCls}>Full Address</label>
-                    <input className={inputCls} value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} placeholder="Full property address" />
-                  </div>
-                  <div className="col-span-2">
+                <div className="space-y-6">
+                  <section>
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Location</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelCls}>Emirate</label>
+                        <select className={inputCls} value={formData.emirate} onChange={(e) => {
+                          const em = e.target.value;
+                          setFormData({ ...formData, emirate: em, locationArea: '', community: '' });
+                          setAvailableAreas(comm.getAreasForEmirate(em));
+                          setAvailableCommunities([]);
+                        }}>
+                          {comm.emirates.map(em => <option key={em}>{em}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Area</label>
+                        <select className={inputCls} value={formData.locationArea} onChange={(e) => {
+                          const area = e.target.value;
+                          setFormData({ ...formData, locationArea: area, community: '' });
+                          setAvailableCommunities(comm.getCommunitiesForArea(area));
+                        }}>
+                          <option value="">Select area...</option>
+                          {availableAreas.map(a => <option key={a}>{a}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Community</label>
+                        <select className={inputCls} value={formData.community} onChange={(e) => setFormData({ ...formData, community: e.target.value })}>
+                          <option value="">Select community...</option>
+                          {availableCommunities.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="col-span-3">
+                        <label className={labelCls}>Full Address</label>
+                        <input className={inputCls} value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} placeholder="Full property address" />
+                      </div>
+                    </div>
+                  </section>
+                  <section className="pt-5 border-t border-[#2a3040]">
+                    <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Map Pin</p>
                     <PinLocationMap
                       label="Pin Location on Map"
                       value={{
@@ -928,52 +1045,113 @@ export default function PropertiesPage() {
                       }}
                       onChange={(val) => setFormData({ ...formData, latitude: String(val.lat), longitude: String(val.lng), fullAddress: val.address || formData.fullAddress })}
                     />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Latitude</label>
-                    <input className={inputCls} value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} placeholder="e.g. 25.2048" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Longitude</label>
-                    <input className={inputCls} value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} placeholder="e.g. 55.2708" />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <label className={labelCls}>Latitude</label>
+                        <input className={inputCls} value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} placeholder="e.g. 25.2048" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Longitude</label>
+                        <input className={inputCls} value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} placeholder="e.g. 55.2708" />
+                      </div>
+                    </div>
+                  </section>
                 </div>
               )}
 
-              {activeTab === 'media' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className={labelCls}>Image URLs (comma-separated)</label>
-                    <textarea
-                      className={inputCls}
-                      rows={5}
-                      value={formData.imageUrls}
-                      onChange={(e) => setFormData({ ...formData, imageUrls: e.target.value })}
-                      placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, ..." />
-                    <p className="text-xs text-[#555] mt-1">Paste multiple image URLs separated by commas</p>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Video URL</label>
-                    <input className={inputCls} value={formData.videoUrl} onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} placeholder="YouTube or Vimeo URL" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Virtual Tour URL</label>
-                    <input className={inputCls} value={formData.virtualTourUrl} onChange={(e) => setFormData({ ...formData, virtualTourUrl: e.target.value })} placeholder="Matterport or 360 tour URL" />
-                  </div>
-                  {formData.imageUrls && (
-                    <div>
-                      <p className="text-xs text-[#aaa] mb-2">Preview</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {formData.imageUrls.split(',').map(u => u.trim()).filter(Boolean).slice(0, 6).map((url, i) => (
-                          <div key={i} className="relative w-20 h-14 border border-[#333] overflow-hidden">
-                            <AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" />
-                          </div>
-                        ))}
+              {activeTab === 'media' && (() => {
+                const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                const imageList = formData.imageUrls.split(',').map(u => u.trim()).filter(Boolean);
+                const externalCount = imageList.filter(u => !u.includes(supabaseHost)).length;
+
+                return (
+                  <div className="space-y-6">
+                    <section>
+                      <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Images</p>
+                      <textarea
+                        className={inputCls}
+                        rows={4}
+                        value={formData.imageUrls}
+                        onChange={(e) => setFormData({ ...formData, imageUrls: e.target.value })}
+                        placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, ..." />
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-[#555]">Paste image URLs separated by commas</p>
+                        {imageList.length > 0 && externalCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleUploadToStorage}
+                            disabled={uploading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a84c] text-black text-[11px] font-bold uppercase tracking-wider hover:bg-[#d4b86a] transition-colors disabled:opacity-50">
+                            {uploading ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                Uploading {uploadProgress.done}/{uploadProgress.total}...
+                              </>
+                            ) : (
+                              <>
+                                <Icon name="CloudArrowUpIcon" size={13} />
+                                Upload {externalCount} to Storage
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+
+                      {uploadProgress.done > 0 && !uploading && (
+                        <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+                          <Icon name="CheckCircleIcon" size={13} />
+                          {uploadProgress.done} image{uploadProgress.done > 1 ? 's' : ''} uploaded to Supabase Storage
+                        </div>
+                      )}
+
+                      {uploadProgress.errors.length > 0 && !uploading && (
+                        <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400 space-y-1">
+                          <p className="font-semibold flex items-center gap-1.5"><Icon name="ExclamationTriangleIcon" size={13} />Some uploads failed:</p>
+                          {uploadProgress.errors.map((err, i) => <p key={i} className="text-[11px] pl-5">{err}</p>)}
+                        </div>
+                      )}
+
+                      {imageList.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex gap-2 flex-wrap">
+                            {imageList.slice(0, 12).map((url, i) => {
+                              const isStored = url.includes(supabaseHost);
+                              return (
+                                <div key={i} className="relative group">
+                                  <div className={`relative w-20 h-14 border overflow-hidden ${isStored ? 'border-emerald-500/40' : 'border-[#333]'}`}>
+                                    <AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" />
+                                  </div>
+                                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold ${isStored ? 'bg-emerald-500 text-white' : 'bg-[#333] text-[#888]'}`}>
+                                    {isStored ? <Icon name="CheckIcon" size={9} /> : i + 1}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {imageList.length > 12 && (
+                              <div className="w-20 h-14 border border-[#333] flex items-center justify-center text-xs text-[#666]">
+                                +{imageList.length - 12}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                    <section className="pt-5 border-t border-[#2a3040]">
+                      <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Video & Virtual Tour</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelCls}>Video URL</label>
+                          <input className={inputCls} value={formData.videoUrl} onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} placeholder="YouTube or Vimeo URL" />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Virtual Tour URL</label>
+                          <input className={inputCls} value={formData.virtualTourUrl} onChange={(e) => setFormData({ ...formData, virtualTourUrl: e.target.value })} placeholder="Matterport or 360 tour URL" />
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">

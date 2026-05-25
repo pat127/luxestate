@@ -5,9 +5,10 @@ import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { usePropertyFields } from '@/hooks/usePropertyFields';
+import { createClient } from '@/lib/supabase/client';
 
 interface CommercialListing {
-  id: number;
+  id: string;
   name: string;
   location: string;
   price: string;
@@ -21,44 +22,53 @@ interface CommercialListing {
   featured: boolean;
 }
 
-const PROPERTIES_STORAGE_KEY = 'admin_properties';
+const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse'];
 
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
   const [listings, setListings] = useState<CommercialListing[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
+  const supabase = createClient();
   const commercialTypes = pf.types.filter(t => ['Office', 'Retail', 'Warehouse', 'Land'].includes(t) || !['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'].includes(t));
   const types = ['All', ...commercialTypes];
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
-      if (stored) {
-        const all = JSON.parse(stored);
-        const commercial = all.filter((p: any) =>
-          p.published !== false &&
-          ['Commercial', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse'].includes(p.category || p.type || '')
-        );
-        setListings(commercial.map((p: any) => ({
+    const loadCommercial = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, title, location_area, price_aed, prop_category, availability, area_sqft, image_urls, featured')
+          .eq('published', true)
+          .in('prop_category', COMMERCIAL_CATEGORIES)
+          .order('created_at', { ascending: false });
+
+        if (error || !data) {
+          setListings([]);
+          return;
+        }
+
+        setListings(data.map((p) => ({
           id: p.id,
-          name: p.name || p.title,
-          location: p.location,
-          price: p.price,
-          type: p.type || p.category || 'Commercial',
-          sqft: p.sqft || p.size || '—',
-          capRate: p.capRate || p.cap_rate || '—',
-          occupancy: p.occupancy || '—',
-          status: p.status || 'Available',
-          image: p.image || '',
-          alt: p.alt || p.name || 'Commercial property image',
+          name: p.title || '',
+          location: p.location_area || '',
+          price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
+          type: p.prop_category || 'Commercial',
+          sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
+          capRate: '—',
+          occupancy: '—',
+          status: p.availability || 'Available',
+          image: Array.isArray(p.image_urls) && p.image_urls.length > 0 ? p.image_urls[0] : '',
+          alt: p.title || 'Commercial property image',
           featured: p.featured || false,
         })));
+      } catch {
+        setListings([]);
       }
-    } catch {
-      setListings([]);
-    }
-  }, []);
+    };
+
+    loadCommercial();
+  }, [supabase]);
 
   const filtered = listings.filter((l) => activeType === 'All' || l.type === activeType);
 

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
 
-const PROPERTIES_STORAGE_KEY = 'admin_properties';
+const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse'];
 
 interface ComputedStats {
   portfolioValue: string;
@@ -32,45 +33,46 @@ export default function CommercialStats() {
   const sectionRef = useRef<HTMLElement>(null);
   const [stats, setStats] = useState<ComputedStats | null>(null);
   const [sectors, setSectors] = useState<SectorCount[]>([]);
+  const supabase = createClient();
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PROPERTIES_STORAGE_KEY);
-      if (stored) {
-        const all = JSON.parse(stored);
-        const commercial = all.filter((p: any) =>
-          p.published !== false &&
-          ['Commercial', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse'].includes(p.category || p.type || '')
-        );
+    const loadStats = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, prop_category, price_aed')
+          .eq('published', true)
+          .in('prop_category', COMMERCIAL_CATEGORIES);
 
-        if (commercial.length > 0) {
-          // Compute stats
-          const sectorMap: Record<string, number> = {};
-          commercial.forEach((p: any) => {
-            const t = p.type || p.category || 'Commercial';
-            sectorMap[t] = (sectorMap[t] || 0) + 1;
-          });
+        if (error || !data || data.length === 0) return;
 
-          const sectorList: SectorCount[] = Object.entries(sectorMap).map(([label, count]) => ({
-            icon: SECTOR_META[label]?.icon || 'BuildingOfficeIcon',
-            label,
-            count: `${count} Asset${count !== 1 ? 's' : ''}`,
-            desc: SECTOR_META[label]?.desc || 'Commercial properties',
-          }));
+        const sectorMap: Record<string, number> = {};
+        data.forEach((p) => {
+          const t = p.prop_category || 'Commercial';
+          sectorMap[t] = (sectorMap[t] || 0) + 1;
+        });
 
-          setStats({
-            portfolioValue: '—',
-            avgCapRate: '—',
-            avgOccupancy: '—',
-            totalAssets: commercial.length,
-          });
-          setSectors(sectorList);
-        }
+        const sectorList: SectorCount[] = Object.entries(sectorMap).map(([label, count]) => ({
+          icon: SECTOR_META[label]?.icon || 'BuildingOfficeIcon',
+          label,
+          count: `${count} Asset${count !== 1 ? 's' : ''}`,
+          desc: SECTOR_META[label]?.desc || 'Commercial properties',
+        }));
+
+        setStats({
+          portfolioValue: '—',
+          avgCapRate: '—',
+          avgOccupancy: '—',
+          totalAssets: data.length,
+        });
+        setSectors(sectorList);
+      } catch {
+        // no data
       }
-    } catch {
-      // no data
-    }
-  }, []);
+    };
+
+    loadStats();
+  }, [supabase]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

@@ -1,38 +1,36 @@
 import type { Metadata } from 'next';
-
-const propertyData: Record<string, any> = {
-  '1': {
-    name: 'Obsidian Penthouse',
-    location: 'Downtown Dubai',
-    community: 'Burj Khalifa District',
-    price: 'AED 28,500,000',
-    propertyType: 'Penthouse',
-    beds: 5,
-    baths: 6,
-    sqft: '8,200',
-    description: 'Discover this exceptional Obsidian Penthouse nestled in the heart of Downtown Dubai. This stunning property offers an unparalleled living experience with world-class amenities, breathtaking Burj Khalifa views, and meticulous attention to detail.',
-    image: 'https://img.rocket.new/generatedImages/rocket_gen_img_15fed27fb-1772893766018.png',
-  },
-  '2': {
-    name: 'Meridian Villa',
-    location: 'Palm Jumeirah',
-    community: 'Frond N',
-    price: 'AED 42,000,000',
-    propertyType: 'Villa',
-    beds: 7,
-    baths: 9,
-    sqft: '14,500',
-    description: 'An extraordinary beachfront villa on Palm Jumeirah offering unobstructed sea views and the ultimate in luxury living. This 7-bedroom masterpiece features a private beach, infinity pool, and world-class finishes throughout.',
-    image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1b9553347-1774335786277.png',
-  },
-};
+import { createClient } from '@/lib/supabase/server';
 
 export async function generatePropertyMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const property = propertyData[id] || propertyData['1'];
+  const supabase = await createClient();
 
-  const title = `${property.name} | ${property.propertyType} in ${property.location} | Cove Estates`;
-  const description = `${property.beds ? `${property.beds} Bed ` : ''}${property.propertyType} in ${property.community}, ${property.location}. ${property.price}. ${property.sqft} sq ft. ${property.description.slice(0, 100)}...`;
+  const { data: property } = await supabase
+    .from('properties')
+    .select('title, location_area, community, price_aed, property_type, bedrooms, bathrooms, area_sqft, description, image_urls')
+    .eq('id', id)
+    .single();
+
+  if (!property) {
+    return {
+      title: 'Property | Cove Estates',
+      description: 'View property details on Cove Estates.',
+    };
+  }
+
+  const name = property.title || 'Property';
+  const location = property.location_area || '';
+  const community = property.community || '';
+  const propertyType = property.property_type || 'Property';
+  const price = property.price_aed ? `AED ${Number(property.price_aed).toLocaleString()}` : '';
+  const beds = property.bedrooms || 0;
+  const baths = property.bathrooms || 0;
+  const sqft = property.area_sqft ? Number(property.area_sqft).toLocaleString() : '';
+  const desc = property.description || '';
+  const image = Array.isArray(property.image_urls) && property.image_urls.length > 0 ? property.image_urls[0] : '';
+
+  const title = `${name} | ${propertyType} in ${location} | Cove Estates`;
+  const description = `${beds ? `${beds} Bed ` : ''}${propertyType} in ${community}${community && location ? ', ' : ''}${location}. ${price}. ${sqft} sq ft. ${desc.slice(0, 100)}...`;
   const url = `https://coveestate.com/admin/properties/${id}`;
 
   return {
@@ -43,14 +41,16 @@ export async function generatePropertyMetadata({ params }: { params: Promise<{ i
       description,
       url,
       siteName: 'Cove Estates',
-      images: [
-        {
-          url: property.image,
-          width: 1200,
-          height: 630,
-          alt: `${property.name} - ${property.propertyType} in ${property.location}`,
-        },
-      ],
+      ...(image ? {
+        images: [
+          {
+            url: image,
+            width: 1200,
+            height: 630,
+            alt: `${name} - ${propertyType} in ${location}`,
+          },
+        ],
+      } : {}),
       type: 'website',
       locale: 'en_AE',
     },
@@ -58,7 +58,7 @@ export async function generatePropertyMetadata({ params }: { params: Promise<{ i
       card: 'summary_large_image',
       title,
       description,
-      images: [property.image],
+      ...(image ? { images: [image] } : {}),
     },
     alternates: {
       canonical: url,
