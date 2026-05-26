@@ -30,6 +30,20 @@ const BLUR_DATA_URL =
 
 function sanitizeSrc(src: string, fallback: string): string {
     if (!src) return fallback;
+
+    // Decode percent-encoded spaces to detect concatenated URLs
+    const decoded = decodeURIComponent(src);
+
+    // If the decoded string contains multiple URLs (space-separated), extract the first one
+    const multiUrlMatch = decoded.match(/^(https?:\/\/\S+)/);
+    if (multiUrlMatch && decoded.includes(' http')) {
+        // Multiple URLs concatenated — use only the first
+        const firstUrl = decoded.split(/\s+https?:\/\//)[0];
+        if (firstUrl.startsWith('http://') || firstUrl.startsWith('https://')) {
+            return firstUrl;
+        }
+    }
+
     if (src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
         return src;
     }
