@@ -28,6 +28,14 @@ const BLUR_DATA_URL =
     '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="#1a1a2e"/><rect width="100%" height="100%" fill="url(#g)" opacity=".4"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16213e"/><stop offset="100%" stop-color="#0f3460"/></linearGradient></defs></svg>'
   );
 
+function sanitizeSrc(src: string, fallback: string): string {
+    if (!src) return fallback;
+    if (src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+        return src;
+    }
+    return fallback;
+}
+
 const AppImage = memo(function AppImage({
     src,
     alt,
@@ -52,7 +60,7 @@ const AppImage = memo(function AppImage({
     const imgRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
-        setImageSrc(src || fallbackSrc);
+        setImageSrc(sanitizeSrc(src, fallbackSrc));
         setHasError(false);
         setLoaded(false);
     }, [src, fallbackSrc]);
