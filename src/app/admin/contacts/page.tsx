@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Contact {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -17,35 +18,6 @@ interface Contact {
   assignedAgent?: string;
   notes?: string;
   source?: string;
-}
-
-const CONTACTS_STORAGE_KEY = 'admin_contacts';
-const IMPORT_STORAGE_KEY = 'imported_contacts';
-
-const seedContacts: Contact[] = [];
-
-function loadContacts(): Contact[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(CONTACTS_STORAGE_KEY);
-    const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Contact[];
-    let base: Contact[] = stored ? JSON.parse(stored) : [];
-    const existingIds = new Set(base.map(c => c.id));
-    const newImports = imported.filter(c => !existingIds.has(c.id));
-    if (newImports.length > 0) {
-      base = [...base, ...newImports];
-      localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
-      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(base));
-    }
-    return base;
-  } catch {
-    return [];
-  }
-}
-
-function saveContacts(contacts: Contact[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts));
 }
 
 const statusColors: Record<string, string> = {
@@ -82,69 +54,49 @@ const emptyForm: ContactForm = {
 
 export default function ContactsPage() {
   const { currentUser, isAgentScoped } = useRole();
+  const supabase = useMemo(() => createClient(), []);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [form, setForm] = useState<ContactForm>(emptyForm);
 
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [bulkTypeValue, setBulkTypeValue] = useState('');
   const [convertConfirm, setConvertConfirm] = useState(false);
 
-  useEffect(() => {
-    const allContacts = loadContacts();
-    // Agents see only contacts assigned to them
+  const loadContacts = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from('contacts').select('*').order('created_at', { ascending: false });
     if (isAgentScoped) {
-      setContacts(allContacts.filter(c => 
-        (c.assignedAgent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
-      ));
-    } else {
-      setContacts(allContacts);
+      query = query.eq('assigned_agent', currentUser.name);
     }
-  }, [isAgentScoped, currentUser.name]);
+    const { data } = await query;
+    if (data) {
+      setContacts(data.map((c: any) => ({
+        id: c.id,
+        name: c.name || '',
+        email: c.email || '',
+        phone: c.phone || '',
+        type: c.type || 'Buyer',
+        status: c.status || 'Active',
+        lastContact: c.last_contact || '',
+        deals: c.deals || 0,
+        nationality: c.nationality || '',
+        assignedAgent: c.assigned_agent || '',
+        notes: c.notes || '',
+        source: c.source || '',
+      })));
+    }
+    setLoading(false);
+  }, [supabase, isAgentScoped, currentUser.name]);
 
-  // Poll for new imports
   useEffect(() => {
-    const interval = setInterval(() => {
-      const imported = JSON.parse(localStorage.getItem(IMPORT_STORAGE_KEY) || '[]') as Contact[];
-      if (imported.length > 0) {
-        setContacts(prev => {
-          const existingIds = new Set(prev.map(c => c.id));
-          const newImports = imported.filter(c => !existingIds.has(c.id));
-          if (newImports.length === 0) return prev;
-          // For agents, only include imports assigned to them
-          const filtered = isAgentScoped
-            ? newImports.filter(c => (c.assignedAgent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim())
-            : newImports;
-          if (filtered.length === 0) return prev;
-          const updated = [...prev, ...filtered];
-          localStorage.setItem(IMPORT_STORAGE_KEY, '[]');
-          if (!isAgentScoped) localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(updated));
-          return updated;
-        });
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isAgentScoped, currentUser.name]);
-
-  const updateContacts = (updated: Contact[]) => {
-    setContacts(updated);
-    // Only persist full list for non-agents; agents work with filtered view
-    if (!isAgentScoped) {
-      saveContacts(updated);
-    } else {
-      // Merge agent's updated contacts back into full list
-      const all = loadContacts();
-      const agentIds = new Set(updated.map(c => c.id));
-      const others = all.filter(c => 
-        (c.assignedAgent || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim()
-      );
-      saveContacts([...others, ...updated]);
-    }
-  };
+    loadContacts();
+  }, [loadContacts]);
 
   const types = ['All', 'Buyer', 'Investor', 'Seller', 'Tenant', 'Landlord'];
 
@@ -168,7 +120,7 @@ export default function ContactsPage() {
     }
   };
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
@@ -177,18 +129,20 @@ export default function ContactsPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleBulkStatusChange = () => {
+  const handleBulkStatusChange = async () => {
     if (!bulkStatusValue) return;
-    updateContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, status: bulkStatusValue } : c));
+    await supabase.from('contacts').update({ status: bulkStatusValue }).in('id', Array.from(selectedIds));
     setBulkStatusValue('');
     clearSelection();
+    loadContacts();
   };
 
-  const handleBulkTypeChange = () => {
+  const handleBulkTypeChange = async () => {
     if (!bulkTypeValue) return;
-    updateContacts(contacts.map((c) => selectedIds.has(c.id) ? { ...c, type: bulkTypeValue } : c));
+    await supabase.from('contacts').update({ type: bulkTypeValue }).in('id', Array.from(selectedIds));
     setBulkTypeValue('');
     clearSelection();
+    loadContacts();
   };
 
   const handleConvertToLead = () => {
@@ -197,9 +151,10 @@ export default function ContactsPage() {
     alert(`${selectedIds.size} contact(s) converted to leads successfully.`);
   };
 
-  const handleBulkDelete = () => {
-    updateContacts(contacts.filter((c) => !selectedIds.has(c.id)));
+  const handleBulkDelete = async () => {
+    await supabase.from('contacts').delete().in('id', Array.from(selectedIds));
     clearSelection();
+    loadContacts();
   };
 
   const openNew = () => { setEditContact(null); setForm(emptyForm); setShowModal(true); };
@@ -210,17 +165,21 @@ export default function ContactsPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.email) return;
     if (editContact) {
-      updateContacts(contacts.map(c => c.id === editContact.id ? { ...c, name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes } : c));
+      await supabase.from('contacts').update({ name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, nationality: form.nationality, assigned_agent: form.assignedAgent, notes: form.notes, source: form.source }).eq('id', editContact.id);
     } else {
-      updateContacts([...contacts, { id: Date.now(), name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, lastContact: 'Just now', deals: 0, nationality: form.nationality, assignedAgent: form.assignedAgent, source: form.source, notes: form.notes }]);
+      await supabase.from('contacts').insert({ name: form.name, email: form.email, phone: form.phone, type: form.type, status: form.status, nationality: form.nationality, assigned_agent: form.assignedAgent, notes: form.notes, source: form.source, budget: form.budget, last_contact: 'Just now' });
     }
     setShowModal(false);
+    loadContacts();
   };
 
-  const handleDelete = (id: number) => updateContacts(contacts.filter(c => c.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('contacts').delete().eq('id', id);
+    loadContacts();
+  };
 
   return (
     <div className="p-6">

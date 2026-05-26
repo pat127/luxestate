@@ -29,4 +29,9 @@ export const imageHosts = [
         hostname: '*.imagekit.io',
         pathname: '/**',
     },
+    {
+        protocol: 'https',
+        hostname: 'hkxstgyxmxiiccstmbnj.supabase.co',
+        pathname: '/storage/**',
+    },
 ];

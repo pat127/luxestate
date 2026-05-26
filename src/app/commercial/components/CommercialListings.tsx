@@ -48,20 +48,27 @@ export default function CommercialListings() {
           return;
         }
 
-        setListings(data.map((p) => ({
-          id: p.id,
-          name: p.title || '',
-          location: p.location_area || '',
-          price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
-          type: p.prop_category || 'Commercial',
-          sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
-          capRate: '—',
-          occupancy: '—',
-          status: p.availability || 'Available',
-          image: Array.isArray(p.image_urls) && p.image_urls.length > 0 ? p.image_urls[0] : '',
-          alt: p.title || 'Commercial property image',
-          featured: p.featured || false,
-        })));
+        setListings(data.map((p) => {
+          const imgs = Array.isArray(p.image_urls)
+            ? p.image_urls
+            : typeof p.image_urls === 'string'
+              ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+              : [];
+          return {
+            id: p.id,
+            name: p.title || '',
+            location: p.location_area || '',
+            price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
+            type: p.prop_category || 'Commercial',
+            sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
+            capRate: '—',
+            occupancy: '—',
+            status: p.availability || 'Available',
+            image: imgs.length > 0 ? imgs[0] : '',
+            alt: p.title || 'Commercial property image',
+            featured: p.featured || false,
+          };
+        }));
       } catch {
         setListings([]);
       }

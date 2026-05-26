@@ -1,42 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
 
 interface BlogPost {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   category: string;
   author: string;
   status: string;
   views: number;
-  date: string;
+  created_at: string;
   excerpt: string;
-  featuredImage?: string;
+  content?: string;
+  featured_image?: string;
   tags?: string[];
-  metaTitle?: string;
-  metaDesc?: string;
-  publishDate?: string;
-}
-
-const BLOG_STORAGE_KEY = 'admin_blog_posts';
-
-const initialPosts: BlogPost[] = [];
-
-function loadPosts(): BlogPost[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(BLOG_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePosts(posts: BlogPost[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(posts));
+  meta_title?: string;
+  meta_desc?: string;
+  publish_date?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -85,7 +68,9 @@ const emptyForm: PostForm = {
 };
 
 export default function BlogPostsPage() {
-  const [posts, setPosts] = useState<BlogPost[]>(loadPosts());
+  const supabase = useMemo(() => createClient(), []);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editPost, setEditPost] = useState<BlogPost | null>(null);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -96,10 +81,16 @@ export default function BlogPostsPage() {
   const [importMsg, setImportMsg] = useState('');
   const csvInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Persist posts to localStorage whenever they change
+  const loadPosts = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('blog_posts').select('*').order('created_at', { ascending: false });
+    if (data) setPosts(data);
+    setLoading(false);
+  }, [supabase]);
+
   useEffect(() => {
-    savePosts(posts);
-  }, [posts]);
+    loadPosts();
+  }, [loadPosts]);
 
   const categories = ['All', 'Market Insights', 'Off-Plan', 'Investment', 'Residential', 'Legal', 'Lifestyle'];
 
@@ -123,47 +114,74 @@ export default function BlogPostsPage() {
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
-      content: '',
+      content: post.content || '',
       category: post.category,
       status: post.status,
       author: post.author,
-      featuredImage: post.featuredImage || '',
+      featuredImage: post.featured_image || '',
       tags: (post.tags || []).join(', '),
-      metaTitle: post.metaTitle || '',
-      metaDesc: post.metaDesc || '',
-      publishDate: post.publishDate || '',
+      metaTitle: post.meta_title || '',
+      metaDesc: post.meta_desc || '',
+      publishDate: post.publish_date || '',
     });
     setActiveTab('content');
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title) return;
     const slug = form.slug || form.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const tagList = form.tags.split(',').map(t => t.trim()).filter(Boolean);
     if (editPost) {
-      setPosts(posts.map(p => p.id === editPost.id ? { ...p, title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc } : p));
+      await supabase.from('blog_posts').update({
+        title: form.title,
+        slug,
+        excerpt: form.excerpt,
+        content: form.content,
+        category: form.category,
+        status: form.status,
+        author: form.author,
+        featured_image: form.featuredImage,
+        tags: tagList,
+        meta_title: form.metaTitle,
+        meta_desc: form.metaDesc,
+        publish_date: form.publishDate || null,
+      }).eq('id', editPost.id);
     } else {
-      setPosts([...posts, { id: Date.now(), title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, views: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc }]);
+      await supabase.from('blog_posts').insert({
+        title: form.title,
+        slug,
+        excerpt: form.excerpt,
+        content: form.content,
+        category: form.category,
+        status: form.status,
+        author: form.author,
+        featured_image: form.featuredImage,
+        tags: tagList,
+        meta_title: form.metaTitle,
+        meta_desc: form.metaDesc,
+        publish_date: form.publishDate || null,
+      });
     }
     setShowModal(false);
+    loadPosts();
   };
 
-  const handleDelete = (id: number) => {
-    setPosts(posts.filter(p => p.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('blog_posts').delete().eq('id', id);
+    loadPosts();
   };
 
   const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
         const lines = text.split(/\r?\n/).filter(Boolean);
         if (lines.length < 2) { setImportMsg('CSV must have a header row and at least one data row.'); return; }
 
-        // Parse header row — support quoted fields
         const parseRow = (row: string): string[] => {
           const result: string[] = [];
           let cur = '';
@@ -180,30 +198,7 @@ export default function BlogPostsPage() {
 
         const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''));
 
-        // Field mapping: CSV header → BlogPost field
-        const fieldMap: Record<string, keyof BlogPost | 'tags_str'> = {
-          title: 'title',
-          slug: 'slug',
-          excerpt: 'excerpt',
-          category: 'category',
-          author: 'author',
-          status: 'status',
-          featured_image: 'featuredImage',
-          featured_image_url: 'featuredImage',
-          image: 'featuredImage',
-          image_url: 'featuredImage',
-          tags: 'tags_str',
-          meta_title: 'metaTitle',
-          seo_title: 'metaTitle',
-          meta_description: 'metaDesc',
-          meta_desc: 'metaDesc',
-          seo_description: 'metaDesc',
-          publish_date: 'publishDate',
-          date: 'publishDate',
-          views: 'views',
-        };
-
-        const imported: BlogPost[] = [];
+        const imported: Omit<BlogPost, 'id' | 'created_at'>[] = [];
         for (let i = 1; i < lines.length; i++) {
           const values = parseRow(lines[i]);
           if (values.every(v => !v)) continue;
@@ -217,8 +212,7 @@ export default function BlogPostsPage() {
           const tagsRaw = row['tags'] || '';
           const tags = tagsRaw ? tagsRaw.split(/[;|]/).map(t => t.trim()).filter(Boolean) : [];
 
-          const post: BlogPost = {
-            id: Date.now() + i,
+          imported.push({
             title,
             slug,
             excerpt: row['excerpt'] || '',
@@ -226,18 +220,17 @@ export default function BlogPostsPage() {
             author: row['author'] || 'Admin',
             status: row['status'] || 'Draft',
             views: parseInt(row['views'] || '0', 10) || 0,
-            date: row['publish_date'] || row['date'] || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            featuredImage: row['featured_image'] || row['featured_image_url'] || row['image'] || row['image_url'] || '',
+            featured_image: row['featured_image'] || row['featured_image_url'] || row['image'] || row['image_url'] || '',
             tags,
-            metaTitle: row['meta_title'] || row['seo_title'] || '',
-            metaDesc: row['meta_description'] || row['meta_desc'] || row['seo_description'] || '',
-            publishDate: row['publish_date'] || row['date'] || '',
-          };
-          imported.push(post);
+            meta_title: row['meta_title'] || row['seo_title'] || '',
+            meta_desc: row['meta_description'] || row['meta_desc'] || row['seo_description'] || '',
+            publish_date: row['publish_date'] || row['date'] || '',
+          });
         }
 
         if (imported.length === 0) { setImportMsg('No valid rows found. Ensure CSV has a "title" column.'); return; }
-        setPosts(prev => [...imported, ...prev]);
+        await supabase.from('blog_posts').insert(imported);
+        loadPosts();
         setImportMsg(`✓ Imported ${imported.length} post${imported.length > 1 ? 's' : ''}`);
         setTimeout(() => setImportMsg(''), 4000);
       } catch {
@@ -246,7 +239,6 @@ export default function BlogPostsPage() {
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-imported
     e.target.value = '';
   };
 
@@ -325,7 +317,9 @@ export default function BlogPostsPage() {
 
       {/* Posts list */}
       <div className="space-y-3">
-        {filtered.map((post) => (
+        {loading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">Loading posts...</div>
+        ) : filtered.map((post) => (
           <div key={post.id} className="bg-card border border-border p-4 hover:border-primary/20 transition-colors">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -337,7 +331,7 @@ export default function BlogPostsPage() {
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{post.excerpt}</p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Icon name="UserIcon" size={11} />{post.author}</span>
-                  <span className="flex items-center gap-1"><Icon name="CalendarIcon" size={11} />{post.date}</span>
+                  <span className="flex items-center gap-1"><Icon name="CalendarIcon" size={11} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   {post.views > 0 && <span className="flex items-center gap-1"><Icon name="EyeIcon" size={11} />{post.views.toLocaleString()} views</span>}
                   <span className="flex items-center gap-1 text-primary/60"><Icon name="LinkIcon" size={11} />/{post.slug}</span>
                   {post.tags && post.tags.length > 0 && (
@@ -356,7 +350,7 @@ export default function BlogPostsPage() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-8 text-sm text-muted-foreground">No posts found</div>
         )}
       </div>

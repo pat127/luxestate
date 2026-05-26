@@ -98,9 +98,9 @@ export default function HeroSection() {
     }
   };
 
-  const heroImage = page?.hero_image || 'https://img.rocket.new/generatedImages/rocket_gen_img_17ed54c15-1776778711567.png';
+  const heroImage = page?.hero_image || '';
   const heroEyebrow = page?.hero_eyebrow || 'Curated Luxury Properties';
-  const heroHeadline = page?.hero_headline || 'Where Architecture Becomes Legacy';
+  const heroHeadline = page?.hero_headline || '';
   const heroDescription = page?.hero_description ?? 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.';
   const ctaPrimaryText = page?.cta_primary_text || 'Explore Properties';
   const ctaPrimaryLink = page?.cta_primary_link || '/residential';

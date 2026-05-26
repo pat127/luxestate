@@ -68,7 +68,7 @@ export default function AboutPage() {
             priority
             className="object-cover"
             sizes="100vw" />
-          
+
           <div className="absolute inset-0 hero-overlay" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-transparent" />
         </div>
@@ -163,7 +163,7 @@ export default function AboutPage() {
               key={value.title}
               className="animate-on-scroll border border-border bg-background p-8 group hover:border-primary/40 transition-all duration-500"
               style={{ transitionDelay: `${i * 80}ms` }}>
-              
+
                 <div className="w-12 h-12 border border-border flex items-center justify-center mb-6 group-hover:border-primary group-hover:bg-primary/10 transition-all duration-300">
                   <Icon name={value.icon as Parameters<typeof Icon>[0]['name']} size={20} className="text-primary" />
                 </div>

@@ -1,56 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Deal {
-  id: number;
+  id: string;
   refNo: string;
   property: string;
   propertyRef: string;
   lead: string;
   client: string;
   agent: string;
-  value: string;
-  commission: string;
+  value: number;
+  commission: number;
   stage: string;
   type: string;
   date: string;
   notes?: string;
 }
-
-interface StoredLead { id: number; name: string; email?: string; }
-interface StoredAgent { id: number; name: string; }
-interface StoredProperty { id: number; name: string; title?: string; }
-
-const DEALS_STORAGE_KEY = 'admin_deals';
-
-const seedDeals: Deal[] = [
-  { id: 1, refNo: 'DL-2026-001', property: 'Obsidian Penthouse', propertyRef: 'LX-RES-001', lead: 'James Harrington', client: 'James Harrington', agent: 'Sarah Mitchell', value: 'AED 28,500,000', commission: 'AED 570,000', stage: 'Negotiation', type: 'Sale', date: '2 days ago', notes: 'Client wants to close by end of month' },
-  { id: 2, refNo: 'DL-2026-002', property: 'Atlas Tower Office', propertyRef: 'LX-COM-002', lead: 'Sofia Al-Rashid', client: 'Sofia Al-Rashid', agent: 'Omar Hassan', value: 'AED 12,000,000', commission: 'AED 240,000', stage: 'Proposal', type: 'Sale', date: '5 days ago', notes: '' },
-  { id: 3, refNo: 'DL-2026-003', property: 'Marina Bay Unit 12B', propertyRef: 'LX-RES-003', lead: 'Marcus Chen', client: 'Marcus Chen', agent: 'James Carter', value: 'AED 2,400,000', commission: 'AED 48,000', stage: 'Closed Won', type: 'Sale', date: '1 week ago', notes: 'Deal closed successfully' },
-  { id: 4, refNo: 'DL-2026-004', property: 'Meridian Villa', propertyRef: 'LX-RES-004', lead: 'Priya Sharma', client: 'Priya Sharma', agent: 'Sarah Mitchell', value: 'AED 42,000,000', commission: 'AED 840,000', stage: 'Qualified', type: 'Sale', date: '2 weeks ago', notes: '' },
-  { id: 5, refNo: 'DL-2026-005', property: 'Creek Horizon Unit 5A', propertyRef: 'LX-OP-005', lead: 'David Okonkwo', client: 'David Okonkwo', agent: 'Priya Sharma', value: 'AED 1,800,000', commission: 'AED 36,000', stage: 'Closed Lost', type: 'Off-Plan', date: '3 weeks ago', notes: 'Client went with competitor' },
-];
-
-const fallbackProperties = [
-  { ref: 'LX-RES-001', name: 'Obsidian Penthouse' },
-  { ref: 'LX-COM-002', name: 'Atlas Tower Office' },
-  { ref: 'LX-RES-003', name: 'Marina Bay Unit 12B' },
-  { ref: 'LX-RES-004', name: 'Meridian Villa' },
-  { ref: 'LX-OP-005', name: 'Creek Horizon Unit 5A' },
-  { ref: 'LX-RES-006', name: 'Palm Grove Villa' },
-  { ref: 'LX-COM-007', name: 'DIFC Office Suite' },
-];
-
-const fallbackLeads = [
-  'Alexander Webb', 'Natasha Ivanova', 'Omar Al-Farsi', 'Emily Thornton',
-  'Raj Patel', 'Chloe Beaumont', 'James Harrington', 'Sofia Al-Rashid',
-  'Marcus Chen', 'Priya Sharma', 'David Okonkwo',
-];
-
-const fallbackAgents = ['Sarah Mitchell', 'Omar Hassan', 'James Carter', 'Priya Sharma'];
 
 const stageColors: Record<string, string> = {
   Qualified: 'text-blue-400 bg-blue-400/10',
@@ -94,100 +63,86 @@ const emptyForm: DealForm = {
   notes: '',
 };
 
-function generateDealRef(deals: Deal[]): string {
+function generateDealRef(count: number): string {
   const year = new Date().getFullYear();
-  const next = deals.length + 1;
+  const next = count + 1;
   return `DL-${year}-${String(next).padStart(3, '0')}`;
-}
-
-function loadDeals(): Deal[] {
-  if (typeof window === 'undefined') return seedDeals;
-  try {
-    const stored = localStorage.getItem(DEALS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : seedDeals;
-  } catch {
-    return seedDeals;
-  }
-}
-
-function saveDeals(deals: Deal[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(DEALS_STORAGE_KEY, JSON.stringify(deals));
 }
 
 export default function DealsPage() {
   const { currentUser, isAgentScoped } = useRole();
+  const supabase = useMemo(() => createClient(), []);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStage, setFilterStage] = useState('All');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editDeal, setEditDeal] = useState<Deal | null>(null);
   const [form, setForm] = useState<DealForm>(emptyForm);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
 
-  // CRM data from localStorage
-  const [crmLeads, setCrmLeads] = useState<string[]>(fallbackLeads);
-  const [crmAgents, setCrmAgents] = useState<string[]>(fallbackAgents);
-  const [crmProperties, setCrmProperties] = useState<{ ref: string; name: string }[]>(fallbackProperties);
+  const [crmLeads, setCrmLeads] = useState<string[]>([]);
+  const [crmAgents, setCrmAgents] = useState<string[]>([]);
+  const [crmProperties, setCrmProperties] = useState<{ ref: string; name: string }[]>([]);
+
+  const loadDeals = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from('deals').select('*').order('created_at', { ascending: false });
+    if (isAgentScoped) {
+      query = query.eq('agent', currentUser.name);
+    }
+    const { data } = await query;
+    if (data) {
+      setDeals(
+        data.map((d: Record<string, unknown>) => ({
+          id: d.id as string,
+          refNo: (d.ref_no as string) || '',
+          property: (d.property as string) || '',
+          propertyRef: (d.property_ref as string) || '',
+          lead: (d.lead as string) || '',
+          client: (d.client as string) || '',
+          agent: (d.agent as string) || '',
+          value: (d.value as number) || 0,
+          commission: (d.commission as number) || 0,
+          stage: (d.stage as string) || 'Qualified',
+          type: (d.type as string) || 'Sale',
+          date: d.created_at
+            ? new Date(d.created_at as string).toLocaleDateString()
+            : '',
+          notes: (d.notes as string) || '',
+        }))
+      );
+    }
+    setLoading(false);
+  }, [supabase, isAgentScoped, currentUser.name]);
 
   useEffect(() => {
-    const allDeals = loadDeals();
-    // Agents see only their own deals
-    if (isAgentScoped) {
-      setDeals(allDeals.filter(d => 
-        (d.agent || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
-      ));
-    } else {
-      setDeals(allDeals);
-    }
+    loadDeals();
 
-    // Load real CRM leads
-    try {
-      const storedLeads: StoredLead[] = JSON.parse(localStorage.getItem('admin_leads') || '[]');
-      if (storedLeads.length > 0) {
-        setCrmLeads(storedLeads.map(l => l.name).filter(Boolean));
+    (async () => {
+      const { data: leads } = await supabase.from('leads').select('name');
+      if (leads && leads.length > 0) {
+        setCrmLeads(leads.map((l: { name: string }) => l.name).filter(Boolean));
       }
-    } catch { /* use fallback */ }
 
-    // Load real CRM agents
-    try {
-      const storedAgents: StoredAgent[] = JSON.parse(localStorage.getItem('admin_agents') || '[]');
-      if (storedAgents.length > 0) {
-        setCrmAgents(storedAgents.map(a => a.name).filter(Boolean));
+      const { data: agents } = await supabase.from('agents').select('name');
+      if (agents && agents.length > 0) {
+        setCrmAgents(agents.map((a: { name: string }) => a.name).filter(Boolean));
       }
-    } catch { /* use fallback */ }
 
-    // Load real CRM properties
-    try {
-      const storedProps: StoredProperty[] = JSON.parse(localStorage.getItem('admin_properties') || '[]');
-      const importedProps: StoredProperty[] = JSON.parse(localStorage.getItem('imported_properties') || '[]');
-      const allProps = [...storedProps, ...importedProps];
-      if (allProps.length > 0) {
-        setCrmProperties(allProps.map((p, i) => ({
-          ref: `LX-${String(p.id || i).slice(-4)}`,
-          name: p.title || p.name || 'Unnamed Property',
-        })));
+      const { data: props } = await supabase.from('properties').select('id, title, reference_number');
+      if (props && props.length > 0) {
+        setCrmProperties(
+          props.map((p: { id: string; title: string; reference_number: string }) => ({
+            ref: p.reference_number || p.id,
+            name: p.title || 'Unnamed Property',
+          }))
+        );
       }
-    } catch { /* use fallback */ }
-  }, [isAgentScoped, currentUser.name]);
-
-  const updateDeals = (updated: Deal[]) => {
-    if (!isAgentScoped) {
-      setDeals(updated);
-      saveDeals(updated);
-    } else {
-      // Merge agent's deals back into full list
-      const all = loadDeals();
-      const others = all.filter(d =>
-        (d.agent || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim()
-      );
-      const merged = [...others, ...updated];
-      saveDeals(merged);
-      setDeals(updated);
-    }
-  };
+    })();
+  }, [loadDeals, supabase]);
 
   const showSaved = () => {
     setSavedMsg(true);
@@ -219,7 +174,7 @@ export default function DealsPage() {
     }
   };
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
@@ -228,10 +183,11 @@ export default function DealsPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleBulkDelete = () => {
-    updateDeals(deals.filter(d => !selectedIds.has(d.id)));
-    setDeleteConfirm(false);
+  const handleBulkDelete = async () => {
+    await supabase.from('deals').delete().in('id', Array.from(selectedIds));
     clearSelection();
+    setDeleteConfirm(false);
+    await loadDeals();
     showSaved();
   };
 
@@ -251,8 +207,8 @@ export default function DealsPage() {
       clientEmail: '',
       clientPhone: '',
       agent: deal.agent,
-      value: deal.value.replace('AED ', '').replace(/,/g, ''),
-      commission: deal.commission.replace('AED ', '').replace(/,/g, ''),
+      value: String(deal.value),
+      commission: String(deal.commission),
       stage: deal.stage,
       type: deal.type,
       closingDate: '',
@@ -270,55 +226,69 @@ export default function DealsPage() {
     setForm((f) => ({ ...f, lead, client: lead }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.propertyRef || !form.lead) return;
-    const fmtVal = form.value ? `AED ${parseInt(form.value).toLocaleString()}` : 'AED 0';
-    const fmtComm = form.commission ? `AED ${parseInt(form.commission).toLocaleString()}` : 'AED 0';
-    let updated: Deal[];
+    const valueNum = parseInt(form.value) || 0;
+    const commissionNum = parseInt(form.commission) || 0;
+
     if (editDeal) {
-      updated = deals.map((d) =>
-        d.id === editDeal.id
-          ? { ...d, propertyRef: form.propertyRef, property: form.property, lead: form.lead, client: form.client, agent: form.agent, value: fmtVal, commission: fmtComm, stage: form.stage, type: form.type, notes: form.notes }
-          : d
-      );
+      await supabase
+        .from('deals')
+        .update({
+          property: form.property,
+          property_ref: form.propertyRef,
+          lead: form.lead,
+          client: form.client,
+          client_email: form.clientEmail || null,
+          client_phone: form.clientPhone || null,
+          agent: form.agent,
+          value: valueNum,
+          commission: commissionNum,
+          stage: form.stage,
+          type: form.type,
+          closing_date: form.closingDate || null,
+          notes: form.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editDeal.id);
     } else {
-      const newDeal: Deal = {
-        id: Date.now(),
-        refNo: generateDealRef(deals),
-        propertyRef: form.propertyRef,
+      const refNo = generateDealRef(deals.length);
+      await supabase.from('deals').insert({
+        ref_no: refNo,
         property: form.property,
+        property_ref: form.propertyRef,
         lead: form.lead,
         client: form.client,
+        client_email: form.clientEmail || null,
+        client_phone: form.clientPhone || null,
         agent: form.agent,
-        value: fmtVal,
-        commission: fmtComm,
+        value: valueNum,
+        commission: commissionNum,
         stage: form.stage,
         type: form.type,
-        date: 'Just now',
+        closing_date: form.closingDate || null,
         notes: form.notes,
-      };
-      updated = [newDeal, ...deals];
+      });
     }
-    updateDeals(updated);
+    await loadDeals();
     setShowModal(false);
     setForm(emptyForm);
     showSaved();
   };
 
-  const handleDelete = (id: number) => {
-    updateDeals(deals.filter((d) => d.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('deals').delete().eq('id', id);
+    await loadDeals();
     showSaved();
   };
 
-  const totalValue = deals.filter((d) => d.stage === 'Closed Won').reduce((s, d) => {
-    const n = parseInt(d.value.replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const totalValue = deals
+    .filter((d) => d.stage === 'Closed Won')
+    .reduce((s, d) => s + d.value, 0);
 
-  const pipelineValue = deals.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage)).reduce((s, d) => {
-    const n = parseInt(d.value.replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const pipelineValue = deals
+    .filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage))
+    .reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="p-6">
@@ -423,7 +393,7 @@ export default function DealsPage() {
                   <span className="text-xs font-mono font-bold text-primary">{deal.refNo}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-mono text-muted-foreground">{deal.propertyRef}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{deal.property}</span>
                 </td>
                 <td className="px-4 py-3 text-sm font-medium text-foreground">{deal.property}</td>
                 <td className="px-4 py-3">
@@ -432,8 +402,8 @@ export default function DealsPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{deal.agent}</td>
                 <td className="px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">{deal.value}</p>
-                  <p className="text-xs text-muted-foreground">{deal.commission}</p>
+                  <p className="text-sm font-semibold text-foreground">AED {deal.value.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">AED {deal.commission.toLocaleString()}</p>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${stageColors[deal.stage] || ''}`}>{deal.stage}</span>
@@ -451,7 +421,9 @@ export default function DealsPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-sm">No deals found</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {loading ? 'Loading deals...' : 'No deals found'}
+          </div>
         )}
       </div>
 
@@ -485,7 +457,7 @@ export default function DealsPage() {
               <div>
                 <h2 className="text-base font-bold text-foreground">{editDeal ? 'Edit Deal' : 'New Deal'}</h2>
                 {!editDeal && (
-                  <p className="text-xs text-muted-foreground mt-0.5">Ref will be auto-generated: <span className="text-primary font-mono">{generateDealRef(deals)}</span></p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Ref will be auto-generated: <span className="text-primary font-mono">{generateDealRef(deals.length)}</span></p>
                 )}
                 {editDeal && (
                   <p className="text-xs text-muted-foreground mt-0.5">Ref: <span className="text-primary font-mono">{editDeal.refNo}</span></p>
@@ -509,7 +481,7 @@ export default function DealsPage() {
                 >
                   <option value="">Select Property...</option>
                   {crmProperties.map((p) => (
-                    <option key={p.ref} value={p.ref}>{p.ref} — {p.name}</option>
+                    <option key={p.ref} value={p.ref}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -518,7 +490,6 @@ export default function DealsPage() {
                 <div className="bg-primary/5 border border-primary/20 px-3 py-2 flex items-center gap-2">
                   <Icon name="HomeIcon" size={14} className="text-primary" />
                   <span className="text-xs text-foreground">{form.property}</span>
-                  <span className="text-xs font-mono text-primary ml-auto">{form.propertyRef}</span>
                 </div>
               )}
 

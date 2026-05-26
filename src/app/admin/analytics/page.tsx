@@ -1,33 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { AreaChart, Area, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { createClient } from '@/lib/supabase/client';
 
 interface StoredLead {
-  id: number;
+  id: string;
   name: string;
   source?: string;
   status?: string;
-  date?: string;
-  assignedAgent?: string;
+  created_at?: string;
+  assigned_agent?: string;
 }
 
 interface StoredDeal {
-  id: number;
+  id: string;
   stage?: string;
   type?: string;
-  value?: string;
-  commission?: string;
+  value?: number;
+  commission?: number;
   agent?: string;
-  date?: string;
+  created_at?: string;
 }
 
 interface StoredAgent {
-  id: number;
+  id: string;
   name: string;
-  leads?: number;
-  deals?: number;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -48,10 +47,7 @@ function buildMonthlyData(leads: StoredLead[], deals: StoredDeal[]) {
   const totalLeads = leads.length;
   const totalDeals = deals.length;
   const closedDeals = deals.filter(d => d.stage === 'Closed Won');
-  const totalRevenue = closedDeals.reduce((s, d) => {
-    const n = parseInt((d.value || '').replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const totalRevenue = closedDeals.reduce((s, d) => s + (d.value || 0), 0);
 
   // Spread data across months with slight variation
   const weights = [0.12, 0.14, 0.16, 0.18, 0.22, 0.18];
@@ -88,7 +84,7 @@ function buildRevenueByType(deals: StoredDeal[]) {
   const types: Record<string, number> = {};
   deals.filter(d => d.stage === 'Closed Won').forEach(d => {
     const t = d.type || 'Other';
-    const v = parseInt((d.value || '').replace(/[^0-9]/g, '')) || 0;
+    const v = d.value || 0;
     types[t] = (types[t] || 0) + v;
   });
   const total = Object.values(types).reduce((s, v) => s + v, 0) || 1;
@@ -119,14 +115,11 @@ function buildSourceData(leads: StoredLead[]) {
 
 function buildAgentPerformance(agents: StoredAgent[], leads: StoredLead[], deals: StoredDeal[]) {
   return agents.slice(0, 6).map(agent => {
-    const agentLeads = leads.filter(l => l.assignedAgent === agent.name).length || agent.leads || 0;
-    const agentDeals = deals.filter(d => d.agent === agent.name && d.stage === 'Closed Won').length || agent.deals || 0;
+    const agentLeads = leads.filter(l => l.assigned_agent === agent.name).length;
+    const agentDeals = deals.filter(d => d.agent === agent.name && d.stage === 'Closed Won').length;
     const agentRevenue = deals
       .filter(d => d.agent === agent.name && d.stage === 'Closed Won')
-      .reduce((s, d) => {
-        const n = parseInt((d.value || '').replace(/[^0-9]/g, ''));
-        return s + (isNaN(n) ? 0 : n);
-      }, 0);
+      .reduce((s, d) => s + (d.value || 0), 0);
     return {
       agent: agent.name.split(' ')[0] + ' ' + (agent.name.split(' ')[1]?.[0] || '') + '.',
       fullName: agent.name,
@@ -152,6 +145,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsPage() {
+  const supabase = useMemo(() => createClient(), []);
   const [period, setPeriod] = useState<'6m' | '1y' | 'all'>('6m');
   const [monthlyData, setMonthlyData] = useState<ReturnType<typeof buildMonthlyData>>([]);
   const [funnelData, setFunnelData] = useState<ReturnType<typeof buildFunnelData>>([]);
@@ -160,22 +154,24 @@ export default function AnalyticsPage() {
   const [agentPerf, setAgentPerf] = useState<ReturnType<typeof buildAgentPerformance>>([]);
 
   useEffect(() => {
-    const leads: StoredLead[] = (() => {
-      try { return JSON.parse(localStorage.getItem('admin_leads') || '[]'); } catch { return []; }
-    })();
-    const deals: StoredDeal[] = (() => {
-      try { return JSON.parse(localStorage.getItem('admin_deals') || '[]'); } catch { return []; }
-    })();
-    const agents: StoredAgent[] = (() => {
-      try { return JSON.parse(localStorage.getItem('admin_agents') || '[]'); } catch { return []; }
-    })();
+    async function loadData() {
+      const [leadsRes, dealsRes, agentsRes] = await Promise.all([
+        supabase.from('leads').select('id, name, source, status, created_at, assigned_agent'),
+        supabase.from('deals').select('id, stage, type, value, commission, agent, created_at'),
+        supabase.from('agents').select('id, name'),
+      ]);
+      const leads = leadsRes.data || [];
+      const deals = dealsRes.data || [];
+      const agents = agentsRes.data || [];
 
-    setMonthlyData(buildMonthlyData(leads, deals));
-    setFunnelData(buildFunnelData(leads, deals));
-    setRevenueByType(buildRevenueByType(deals));
-    setSourceData(buildSourceData(leads));
-    setAgentPerf(buildAgentPerformance(agents, leads, deals));
-  }, []);
+      setMonthlyData(buildMonthlyData(leads, deals));
+      setFunnelData(buildFunnelData(leads, deals));
+      setRevenueByType(buildRevenueByType(deals));
+      setSourceData(buildSourceData(leads));
+      setAgentPerf(buildAgentPerformance(agents, leads, deals));
+    }
+    loadData();
+  }, [supabase]);
 
   const totalRevenue = monthlyData.reduce((s, d) => s + d.revenue, 0).toFixed(1);
   const totalLeads = monthlyData.reduce((s, d) => s + d.leads, 0);

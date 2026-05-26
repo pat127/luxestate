@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 
 interface AppImageProps {
@@ -22,9 +22,11 @@ interface AppImageProps {
     [key: string]: any;
 }
 
-// Tiny 1x1 transparent placeholder for blur effect
 const BLUR_DATA_URL =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  'data:image/svg+xml;base64,' +
+  btoa(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="#1a1a2e"/><rect width="100%" height="100%" fill="url(#g)" opacity=".4"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16213e"/><stop offset="100%" stop-color="#0f3460"/></linearGradient></defs></svg>'
+  );
 
 const AppImage = memo(function AppImage({
     src,
@@ -33,8 +35,8 @@ const AppImage = memo(function AppImage({
     height,
     className = '',
     priority = false,
-    quality = 80,
-    placeholder = 'empty',
+    quality = 75,
+    placeholder = 'blur',
     blurDataURL,
     fill = false,
     sizes,
@@ -44,19 +46,16 @@ const AppImage = memo(function AppImage({
     unoptimized = false,
     ...props
 }: AppImageProps) {
-    // Use null as initial state to avoid SSR/client mismatch when src comes from localStorage/CMS
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
+    const [loaded, setLoaded] = useState(false);
+    const imgRef = useRef<HTMLImageElement>(null);
 
-    // Set the image src only on the client to prevent hydration mismatch
     useEffect(() => {
         setImageSrc(src || fallbackSrc);
         setHasError(false);
+        setLoaded(false);
     }, [src, fallbackSrc]);
-
-    // Auto-detect external URLs — skip Next.js optimization for external CDNs
-    const isExternal = typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'));
-    const shouldUnoptimize = unoptimized || isExternal;
 
     const handleError = useCallback(() => {
         if (!hasError && imageSrc !== fallbackSrc) {
@@ -67,13 +66,18 @@ const AppImage = memo(function AppImage({
 
     const handleLoad = useCallback(() => {
         setHasError(false);
+        setLoaded(true);
     }, []);
 
     const imageClassName = useMemo(() => {
-        const classes = [className];
-        if (onClick) classes.push('cursor-pointer hover:opacity-90 transition-opacity duration-200');
+        const classes = [
+            className,
+            'transition-opacity duration-500 ease-out',
+            loaded ? 'opacity-100' : 'opacity-0',
+        ];
+        if (onClick) classes.push('cursor-pointer hover:opacity-90');
         return classes.filter(Boolean).join(' ');
-    }, [className, onClick]);
+    }, [className, onClick, loaded]);
 
     const imageProps = useMemo(() => {
         const baseProps: any = {
@@ -81,9 +85,9 @@ const AppImage = memo(function AppImage({
             alt,
             className: imageClassName,
             quality,
-            unoptimized: shouldUnoptimize,
+            unoptimized,
             onError: handleError,
-            onLoad: handleLoad,
+            onLoadingComplete: handleLoad,
             onClick,
         };
 
@@ -94,20 +98,14 @@ const AppImage = memo(function AppImage({
             baseProps.loading = loading;
         }
 
-        // Always provide blur placeholder for smoother loading
-        if (placeholder === 'blur') {
-            baseProps.placeholder = 'blur';
-            baseProps.blurDataURL = blurDataURL || BLUR_DATA_URL;
-        } else {
-            baseProps.placeholder = 'empty';
-        }
+        baseProps.placeholder = placeholder;
+        baseProps.blurDataURL = blurDataURL || BLUR_DATA_URL;
 
         return baseProps;
-    }, [imageSrc, fallbackSrc, alt, imageClassName, quality, shouldUnoptimize, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
+    }, [imageSrc, fallbackSrc, alt, imageClassName, quality, unoptimized, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
 
-    // Render nothing until client-side hydration is complete to avoid mismatch
     if (!imageSrc) {
-        const placeholderClass = [className, 'bg-gray-900/20'].filter(Boolean).join(' ');
+        const placeholderClass = [className, 'animate-pulse bg-muted/30'].filter(Boolean).join(' ');
         if (fill) {
             return <div className={placeholderClass} style={{ position: 'absolute', inset: 0 }} />;
         }
@@ -123,6 +121,7 @@ const AppImage = memo(function AppImage({
         return (
             <Image
                 {...imageProps}
+                ref={imgRef}
                 fill
                 sizes={sizes || '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'}
                 style={{ objectFit: 'cover' }}
@@ -134,6 +133,7 @@ const AppImage = memo(function AppImage({
     return (
         <Image
             {...imageProps}
+            ref={imgRef}
             width={width || 400}
             height={height || 300}
             sizes={sizes}

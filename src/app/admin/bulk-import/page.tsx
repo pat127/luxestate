@@ -31,13 +31,12 @@ interface ValidationError {
   message: string;
 }
 
-// localStorage keys for each import type
-export const IMPORT_STORAGE_KEYS: Record<ImportType, string> = {
-  leads: 'imported_leads',
-  contacts: 'imported_contacts',
-  properties: 'imported_properties',
-  projects: 'imported_projects',
-  blogs: 'imported_blogs',
+const IMPORT_TABLE_MAP: Record<ImportType, string> = {
+  leads: 'leads',
+  contacts: 'contacts',
+  properties: 'properties',
+  projects: 'projects',
+  blogs: 'blog_posts',
 };
 
 const importConfigs: Record<ImportType, ImportConfig> = {
@@ -261,6 +260,21 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
       featured: false,
     };
   }
+  if (type === 'blogs') {
+    const slug = fieldMap['slug'] || (fieldMap['title'] || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const tagsRaw = fieldMap['tags'] || '';
+    const tags = tagsRaw ? tagsRaw.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+    return {
+      title: fieldMap['title'] || 'Imported Post',
+      slug,
+      content: fieldMap['content'] || '',
+      category: fieldMap['category'] || 'Market Insights',
+      author: fieldMap['author'] || 'Admin',
+      status: fieldMap['status'] || 'Draft',
+      publish_date: fieldMap['publish_date'] || null,
+      tags,
+    };
+  }
   return { ...fieldMap };
 }
 
@@ -356,22 +370,7 @@ export default function BulkImportPage() {
     }, 150);
 
     try {
-      let tableName: string;
-      if (activeType === 'properties') {
-        tableName = 'properties';
-      } else if (activeType === 'projects') {
-        tableName = 'projects';
-      } else if (activeType === 'leads') {
-        tableName = 'leads';
-      } else {
-        // For contacts/blogs not yet in Supabase, fall back gracefully
-        clearInterval(progressInterval);
-        setImportProgress(100);
-        setImporting(false);
-        setStep('done');
-        return;
-      }
-
+      const tableName = IMPORT_TABLE_MAP[activeType];
       const { error } = await supabase.from(tableName).insert(records as any[]);
 
       clearInterval(progressInterval);

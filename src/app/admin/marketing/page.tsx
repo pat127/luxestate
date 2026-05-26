@@ -1,32 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from 'recharts';
 
-const initialCampaigns = [
-  { id: 1, name: 'Q2 Luxury Listings Campaign', channel: 'Email', status: 'Active', sent: 1240, opens: 486, clicks: 124, date: 'May 1, 2026', subject: 'Exclusive Luxury Properties Available Now', budget: 5000, spent: 3200, startDate: '2026-05-01', endDate: '2026-05-31' },
-  { id: 2, name: 'Palm Jumeirah Instagram Push', channel: 'Social', status: 'Active', sent: 0, opens: 8400, clicks: 620, date: 'Apr 28, 2026', subject: '', budget: 8000, spent: 5600, startDate: '2026-04-28', endDate: '2026-05-28' },
-  { id: 3, name: 'Off-Plan Investment Newsletter', channel: 'Email', status: 'Completed', sent: 2100, opens: 840, clicks: 210, date: 'Apr 15, 2026', subject: 'Top Off-Plan Investment Opportunities', budget: 3000, spent: 3000, startDate: '2026-04-01', endDate: '2026-04-30' },
-  { id: 4, name: 'DIFC Commercial Outreach', channel: 'Email', status: 'Draft', sent: 0, opens: 0, clicks: 0, date: 'May 5, 2026', subject: 'Premium Commercial Spaces in DIFC', budget: 4000, spent: 0, startDate: '2026-05-05', endDate: '2026-05-25' },
-  { id: 5, name: 'WhatsApp Lead Nurture Sequence', channel: 'WhatsApp', status: 'Active', sent: 380, opens: 320, clicks: 95, date: 'Apr 20, 2026', subject: '', budget: 2000, spent: 1100, startDate: '2026-04-20', endDate: '2026-06-20' },
-];
+interface Campaign {
+  id: string;
+  name: string;
+  channel: string;
+  status: string;
+  subject: string;
+  audience: string;
+  sent: number;
+  opens: number;
+  clicks: number;
+  budget: number;
+  spent: number;
+  start_date: string;
+  end_date: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
 
-const budgetMonthlyData = [
-  { month: 'Dec', budget: 15000, spent: 12000, leads: 55 },
-  { month: 'Jan', budget: 18000, spent: 16500, leads: 80 },
-  { month: 'Feb', budget: 20000, spent: 19200, leads: 110 },
-  { month: 'Mar', budget: 22000, spent: 21000, leads: 165 },
-  { month: 'Apr', budget: 25000, spent: 22000, leads: 220 },
-  { month: 'May', budget: 22000, spent: 13900, leads: 190 },
-];
+interface ScheduledCampaign {
+  id: string;
+  name: string;
+  channel: string;
+  scheduled_date: string;
+  audience: string;
+  status: string;
+  budget: number;
+  created_at: string;
+}
 
-const scheduledCampaigns = [
-  { id: 1, name: 'June Luxury Showcase', channel: 'Email', scheduledDate: '2026-06-01', audience: 'HNW Investors', status: 'Scheduled', budget: 6000 },
-  { id: 2, name: 'Eid Special Offers', channel: 'Social', scheduledDate: '2026-06-05', audience: 'All Leads', status: 'Scheduled', budget: 10000 },
-  { id: 3, name: 'Q3 Off-Plan Launch', channel: 'Email', scheduledDate: '2026-07-01', audience: 'Off-Plan Leads', status: 'Planned', budget: 8000 },
-  { id: 4, name: 'Summer Rental Push', channel: 'WhatsApp', scheduledDate: '2026-06-15', audience: 'Rental Leads', status: 'Planned', budget: 3000 },
-];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
@@ -83,17 +92,83 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function MarketingPage() {
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
-  const [scheduled, setScheduled] = useState(scheduledCampaigns);
+  const supabase = useMemo(() => createClient(), []);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [scheduled, setScheduled] = useState<ScheduledCampaign[]>([]);
   const [activeTab, setActiveTab] = useState<'campaigns' | 'budget' | 'scheduler' | 'analytics'>('campaigns');
   const [showModal, setShowModal] = useState(false);
-  const [editCampaign, setEditCampaign] = useState<typeof initialCampaigns[0] | null>(null);
+  const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
 
-  // Budget management state
   const [totalBudget, setTotalBudget] = useState(100000);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [newBudget, setNewBudget] = useState('');
+  const [budgetMonthlyData, setBudgetMonthlyData] = useState<{ month: string; budget: number; spent: number; leads: number }[]>([]);
+
+  const loadCampaigns = useCallback(async () => {
+    const { data } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false });
+    if (data) setCampaigns(data);
+  }, [supabase]);
+
+  const loadScheduled = useCallback(async () => {
+    const { data } = await supabase.from('scheduled_campaigns').select('*').order('scheduled_date', { ascending: true });
+    if (data) setScheduled(data);
+  }, [supabase]);
+
+  const loadBudget = useCallback(async () => {
+    const { data } = await supabase.from('site_settings').select('data').eq('key', 'marketing_budget').single();
+    if (data?.data && typeof data.data === 'number') setTotalBudget(data.data);
+  }, [supabase]);
+
+  const saveBudget = useCallback(async (amount: number) => {
+    setTotalBudget(amount);
+    await supabase.from('site_settings').upsert(
+      { key: 'marketing_budget', data: amount, updated_at: new Date().toISOString() },
+      { onConflict: 'key' },
+    );
+  }, [supabase]);
+
+  const loadMonthlyData = useCallback(async () => {
+    const { data: allCampaigns } = await supabase.from('campaigns').select('budget, spent, start_date, created_at');
+    const { data: allLeads } = await supabase.from('leads').select('created_at');
+
+    const monthMap: Record<string, { budget: number; spent: number; leads: number }> = {};
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthMap[key] = { budget: 0, spent: 0, leads: 0 };
+    }
+
+    (allCampaigns || []).forEach((c: any) => {
+      const dateStr = c.start_date || c.created_at;
+      if (!dateStr) return;
+      const key = dateStr.substring(0, 7);
+      if (monthMap[key]) {
+        monthMap[key].budget += c.budget || 0;
+        monthMap[key].spent += c.spent || 0;
+      }
+    });
+
+    (allLeads || []).forEach((l: any) => {
+      if (!l.created_at) return;
+      const key = l.created_at.substring(0, 7);
+      if (monthMap[key]) monthMap[key].leads += 1;
+    });
+
+    const result = Object.entries(monthMap).map(([key, val]) => ({
+      month: MONTH_NAMES[parseInt(key.split('-')[1]) - 1],
+      ...val,
+    }));
+    setBudgetMonthlyData(result);
+  }, [supabase]);
+
+  useEffect(() => {
+    loadCampaigns();
+    loadScheduled();
+    loadBudget();
+    loadMonthlyData();
+  }, [loadCampaigns, loadScheduled, loadBudget, loadMonthlyData]);
 
   const openNew = () => {
     setEditCampaign(null);
@@ -101,53 +176,46 @@ export default function MarketingPage() {
     setShowModal(true);
   };
 
-  const openEdit = (c: typeof initialCampaigns[0]) => {
+  const openEdit = (c: Campaign) => {
     setEditCampaign(c);
-    setForm({ name: c.name, channel: c.channel, status: c.status, subject: c.subject || '', audience: '', startDate: c.startDate || '', endDate: c.endDate || '', content: '', budget: c.budget.toString() });
+    setForm({ name: c.name, channel: c.channel, status: c.status, subject: c.subject || '', audience: c.audience || '', startDate: c.start_date || '', endDate: c.end_date || '', content: c.content || '', budget: String(c.budget) });
     setShowModal(true);
   };
 
-  const syncCampaignToCalendar = (campaign: typeof initialCampaigns[0]) => {
-    // Convert campaign to a marketing calendar event and store in localStorage
-    if (typeof window === 'undefined' || !campaign.startDate) return;
-    try {
-      const d = new Date(campaign.startDate);
-      const calEvent = {
-        id: campaign.id + 100000, // offset to avoid id collision
-        title: campaign.name,
-        date: d.getDate(),
-        month: d.getMonth(),
-        time: '9:00 AM',
-        campaign: campaign.name,
-        channel: campaign.channel,
-        budget: campaign.budget > 0 ? `AED ${campaign.budget.toLocaleString()}` : '',
-        notes: campaign.subject || '',
-      };
-      const stored = localStorage.getItem('marketing_calendar_events');
-      const existing: typeof calEvent[] = stored ? JSON.parse(stored) : [];
-      // Remove old version of this campaign event if exists
-      const filtered = existing.filter((e) => e.id !== calEvent.id);
-      localStorage.setItem('marketing_calendar_events', JSON.stringify([...filtered, calEvent]));
-    } catch { /* ignore */ }
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name) return;
     if (editCampaign) {
-      const updated = campaigns.map((c) => c.id === editCampaign.id ? { ...c, name: form.name, channel: form.channel, status: form.status, subject: form.subject, budget: parseInt(form.budget) || 0, startDate: form.startDate, endDate: form.endDate } : c);
-      setCampaigns(updated);
-      const updatedCampaign = updated.find((c) => c.id === editCampaign.id);
-      if (updatedCampaign) syncCampaignToCalendar(updatedCampaign);
+      await supabase.from('campaigns').update({
+        name: form.name, channel: form.channel, status: form.status, subject: form.subject,
+        audience: form.audience, budget: parseInt(form.budget) || 0, start_date: form.startDate || null,
+        end_date: form.endDate || null, content: form.content,
+      }).eq('id', editCampaign.id);
+    } else if (form.status === 'Scheduled' || form.status === 'Planned') {
+      await supabase.from('scheduled_campaigns').insert({
+        name: form.name, channel: form.channel, status: form.status,
+        audience: form.audience, budget: parseInt(form.budget) || 0,
+        scheduled_date: form.startDate || null,
+      });
+      await loadScheduled();
     } else {
-      const newCampaign = { id: Date.now(), name: form.name, channel: form.channel, status: form.status, sent: 0, opens: 0, clicks: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), subject: form.subject, budget: parseInt(form.budget) || 0, spent: 0, startDate: form.startDate, endDate: form.endDate };
-      setCampaigns([...campaigns, newCampaign]);
-      syncCampaignToCalendar(newCampaign);
+      await supabase.from('campaigns').insert({
+        name: form.name, channel: form.channel, status: form.status, subject: form.subject,
+        audience: form.audience, budget: parseInt(form.budget) || 0, start_date: form.startDate || null,
+        end_date: form.endDate || null, content: form.content,
+      });
+      await loadCampaigns();
     }
     setShowModal(false);
   };
 
-  const handleDelete = (id: number) => {
-    setCampaigns(campaigns.filter((c) => c.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('campaigns').delete().eq('id', id);
+    await loadCampaigns();
+  };
+
+  const handleDeleteScheduled = async (id: string) => {
+    await supabase.from('scheduled_campaigns').delete().eq('id', id);
+    await loadScheduled();
   };
 
   const totalSpent = campaigns.reduce((s, c) => s + c.spent, 0);
@@ -241,7 +309,7 @@ export default function MarketingPage() {
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.sent.toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.opens.toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.clicks.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.date}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Icon name="PencilIcon" size={13} /></button>
@@ -362,8 +430,8 @@ export default function MarketingPage() {
               {scheduled.map((sc) => (
                 <div key={sc.id} className="flex items-center gap-4 p-3 border border-border hover:border-primary/30 transition-colors">
                   <div className="w-16 text-center flex-shrink-0">
-                    <p className="text-xs text-muted-foreground">{new Date(sc.scheduledDate).toLocaleDateString('en-US', { month: 'short' })}</p>
-                    <p className="text-2xl font-bold text-primary">{new Date(sc.scheduledDate).getDate()}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(sc.scheduled_date).toLocaleDateString('en-US', { month: 'short' })}</p>
+                    <p className="text-2xl font-bold text-primary">{new Date(sc.scheduled_date).getDate()}</p>
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{sc.name}</p>
@@ -377,7 +445,7 @@ export default function MarketingPage() {
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 ${statusColors[sc.status] || ''}`}>{sc.status}</span>
                   </div>
                   <button
-                    onClick={() => setScheduled(scheduled.filter((s) => s.id !== sc.id))}
+                    onClick={() => handleDeleteScheduled(sc.id)}
                     className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0"
                   >
                     <Icon name="TrashIcon" size={13} />
@@ -391,9 +459,9 @@ export default function MarketingPage() {
           <div className="bg-card border border-border p-5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Active Campaign Timeline</h4>
             <div className="space-y-3">
-              {campaigns.filter((c) => c.status === 'Active' && c.startDate && c.endDate).map((c) => {
-                const start = new Date(c.startDate);
-                const end = new Date(c.endDate);
+              {campaigns.filter((c) => c.status === 'Active' && c.start_date && c.end_date).map((c) => {
+                const start = new Date(c.start_date);
+                const end = new Date(c.end_date);
                 const now = new Date('2026-05-01');
                 const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
                 const elapsed = Math.max(0, (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -406,7 +474,7 @@ export default function MarketingPage() {
                       <div className="h-full bg-primary absolute left-0 top-0 transition-all duration-700" style={{ width: `${progress}%` }} />
                       <span className="absolute inset-0 flex items-center px-2 text-[10px] font-bold text-foreground">{progress.toFixed(0)}% elapsed</span>
                     </div>
-                    <span className="text-xs text-muted-foreground w-20 text-right flex-shrink-0">{c.endDate}</span>
+                    <span className="text-xs text-muted-foreground w-20 text-right flex-shrink-0">{c.end_date}</span>
                   </div>
                 );
               })}
@@ -560,7 +628,7 @@ export default function MarketingPage() {
             <div className="flex gap-3 px-6 py-4 border-t border-border">
               <button onClick={() => setShowBudgetModal(false)} className="flex-1 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
               <button
-                onClick={() => { setTotalBudget(parseInt(newBudget) || totalBudget); setShowBudgetModal(false); }}
+                onClick={() => { saveBudget(parseInt(newBudget) || totalBudget); setShowBudgetModal(false); }}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold hover:bg-accent transition-colors"
               >
                 Save Budget

@@ -174,22 +174,13 @@ export default function PropertiesPage() {
       .order('name', { ascending: true });
     const dbNames: string[] = data ? data.map((a: any) => a.name as string) : [];
 
-    // Also pull names from Users (localStorage) for super_admin/admin roles
-    // so the CEO's actual name (as edited in Users page) appears in the dropdown
-    let extraNames: string[] = [];
-    try {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem('admin_users') : null;
-      if (stored) {
-        const users: Array<{ name: string; role: string; status: string }> = JSON.parse(stored);
-        extraNames = users
-          .filter((u) => (u.role === 'super_admin' || u.role === 'admin') && u.status === 'Active')
-          .map((u) => u.name);
-      }
-    } catch {
-      // ignore
-    }
+    const { data: userData } = await supabase
+      .from('user_profiles')
+      .select('full_name, role, status')
+      .in('role', ['super_admin', 'admin'])
+      .eq('status', 'Active');
+    const extraNames: string[] = userData ? userData.map((u: any) => u.full_name).filter(Boolean) : [];
 
-    // Merge: extra names first (they override DB names for same email/person), deduplicate
     const merged = Array.from(new Set([...extraNames, ...dbNames])).sort((a, b) => a.localeCompare(b));
     setAgentNames(merged);
   }, [supabase]);
@@ -428,30 +419,27 @@ export default function PropertiesPage() {
     }
 
     if (!error && formData.ownerName) {
-      // Auto-save owner to contacts (localStorage)
       try {
-        const CONTACTS_KEY = 'admin_contacts';
-        const existing: any[] = JSON.parse(localStorage.getItem(CONTACTS_KEY) || '[]');
-        const ownerExists = existing.some(
-          (c) => c.name === formData.ownerName && (c.phone === formData.ownerContact || c.email === formData.ownerEmail)
-        );
-        if (!ownerExists) {
-          const newContact = {
-            id: Date.now(),
+        const { data: existingContacts } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('name', formData.ownerName)
+          .or(`phone.eq.${formData.ownerContact || ''},email.eq.${formData.ownerEmail || ''}`)
+          .limit(1);
+
+        if (!existingContacts || existingContacts.length === 0) {
+          await supabase.from('contacts').insert({
             name: formData.ownerName,
             email: formData.ownerEmail || '',
             phone: formData.ownerContact || '',
             type: 'Seller',
             status: 'Active',
-            lastContact: 'Just now',
-            deals: 0,
+            last_contact: 'Just now',
             nationality: '',
-            assignedAgent: formData.agentName || '',
+            assigned_agent: formData.agentName || '',
             source: 'Property Listing',
             notes: `Owner of property: ${formData.title}${formData.referenceNumber ? ` (${formData.referenceNumber})` : ''}`,
-          };
-          existing.push(newContact);
-          localStorage.setItem(CONTACTS_KEY, JSON.stringify(existing));
+          });
         }
       } catch {
         // silently ignore contact save errors

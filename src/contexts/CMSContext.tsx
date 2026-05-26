@@ -906,7 +906,7 @@ interface CMSContextValue {
 }
 
 const CMSContext = createContext<CMSContextValue>({
-  pages: DEFAULT_PAGES,
+  pages: [],
   branding: DEFAULT_BRANDING,
   propertyDetail: DEFAULT_PROPERTY_DETAIL,
   projectDetail: DEFAULT_PROJECT_DETAIL,

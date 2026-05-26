@@ -1,38 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
   description: string;
   assignee: string;
   priority: string;
   status: string;
-  due: string;
   category: string;
-  dueDate?: string;
-}
-
-const TASKS_STORAGE_KEY = 'admin_tasks';
-
-const initialTasks: Task[] = [];
-
-function loadTasks(): Task[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(TASKS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveTasks(tasks: Task[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+  due_date?: string;
 }
 
 const priorityColors: Record<string, string> = {
@@ -87,8 +68,8 @@ function checkTaskReminders(tasks: Task[]) {
 
   tasks.forEach((task) => {
     if (task.status === 'Completed') return;
-    if (task.dueDate) {
-      const due = new Date(task.dueDate);
+    if (task.due_date) {
+      const due = new Date(task.due_date);
       due.setHours(0, 0, 0, 0);
       if (due.getTime() === today.getTime()) {
         sendNotification(
@@ -101,21 +82,15 @@ function checkTaskReminders(tasks: Task[]) {
           `"${task.title}" is due tomorrow. Assigned to ${task.assignee}.`
         );
       }
-    } else if (task.due === 'Today') {
-      sendNotification(
-        `Task Reminder: ${task.priority} Priority`,
-        `"${task.title}" is due today. Assigned to ${task.assignee}.`
-      );
     }
   });
 }
 
 export default function TasksPage() {
   const { currentUser, isAgentScoped } = useRole();
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const all = loadTasks();
-    return all;
-  });
+  const supabase = useMemo(() => createClient(), []);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -125,44 +100,35 @@ export default function TasksPage() {
 
   const statuses = ['All', 'Todo', 'In Progress', 'Completed'];
 
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    if (isAgentScoped) query = query.eq('assignee', currentUser.name);
+    const { data } = await query;
+    if (data) setTasks(data);
+    setLoading(false);
+  }, [supabase, isAgentScoped, currentUser.name]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotifPermission(Notification.permission);
       if (Notification.permission === 'default') {
         Notification.requestPermission().then((perm) => setNotifPermission(perm));
       } else if (Notification.permission === 'granted') {
-        // Check reminders on load
         checkTaskReminders(tasks);
       }
     }
   }, []);
 
-  // Re-check reminders whenever tasks change
   useEffect(() => {
     if (notifPermission === 'granted') {
       checkTaskReminders(tasks.filter(t => t.status !== 'Completed'));
     }
   }, [tasks, notifPermission]);
-
-  // Persist tasks to localStorage whenever they change
-  useEffect(() => {
-    // Only persist full list for non-agents
-    if (!isAgentScoped) {
-      saveTasks(tasks);
-    }
-  }, [tasks, isAgentScoped]);
-
-  // Load tasks filtered by agent scope
-  useEffect(() => {
-    const all = loadTasks();
-    if (isAgentScoped) {
-      setTasks(all.filter(t =>
-        (t.assignee || '').toLowerCase().trim() === currentUser.name.toLowerCase().trim()
-      ));
-    } else {
-      setTasks(all);
-    }
-  }, [isAgentScoped, currentUser.name]);
 
   const filtered = tasks.filter((t) => {
     const matchFilter = filter === 'All' || t.status === filter;
@@ -185,35 +151,33 @@ export default function TasksPage() {
       priority: task.priority,
       status: task.status,
       category: task.category,
-      dueDate: task.dueDate || '',
+      dueDate: task.due_date || '',
     });
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title) return;
     if (editTask) {
-      const updated = tasks.map(t => t.id === editTask.id ? { ...t, title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, category: form.category, dueDate: form.dueDate } : t);
-      setTasks(updated);
-      if (isAgentScoped) {
-        // Merge back into full list
-        const all = loadTasks();
-        const others = all.filter(t => (t.assignee || '').toLowerCase().trim() !== currentUser.name.toLowerCase().trim());
-        saveTasks([...others, ...updated]);
-      } else {
-        saveTasks(updated);
-      }
+      await supabase.from('tasks').update({
+        title: form.title,
+        description: form.description,
+        assignee: form.assignee,
+        priority: form.priority,
+        status: form.status,
+        category: form.category,
+        due_date: form.dueDate || null,
+      }).eq('id', editTask.id);
     } else {
-      const newTask: Task = { id: Date.now(), title: form.title, description: form.description, assignee: form.assignee, priority: form.priority, status: form.status, due: form.dueDate || 'TBD', category: form.category, dueDate: form.dueDate };
-      const updated = [...tasks, newTask];
-      setTasks(updated);
-      if (isAgentScoped) {
-        const all = loadTasks();
-        saveTasks([...all, newTask]);
-      } else {
-        saveTasks(updated);
-      }
-      // Notify on new high-priority task
+      await supabase.from('tasks').insert({
+        title: form.title,
+        description: form.description,
+        assignee: form.assignee,
+        priority: form.priority,
+        status: form.status,
+        category: form.category,
+        due_date: form.dueDate || null,
+      });
       if (form.priority === 'High' && notifPermission === 'granted') {
         sendNotification(
           'New High Priority Task Added',
@@ -221,29 +185,21 @@ export default function TasksPage() {
         );
       }
     }
+    await loadTasks();
     setShowModal(false);
   };
 
-  const handleDelete = (id: number) => {
-    const updated = tasks.filter(t => t.id !== id);
-    setTasks(updated);
-    if (isAgentScoped) {
-      const all = loadTasks();
-      saveTasks(all.filter(t => t.id !== id));
-    } else {
-      saveTasks(updated);
-    }
+  const handleDelete = async (id: string) => {
+    await supabase.from('tasks').delete().eq('id', id);
+    await loadTasks();
   };
 
-  const toggleComplete = (id: number) => {
-    const updated = tasks.map(t => t.id === id ? { ...t, status: t.status === 'Completed' ? 'Todo' : 'Completed' } : t);
-    setTasks(updated);
-    if (isAgentScoped) {
-      const all = loadTasks();
-      saveTasks(all.map(t => t.id === id ? { ...t, status: t.status === 'Completed' ? 'Todo' : 'Completed' } : t));
-    } else {
-      saveTasks(updated);
-    }
+  const toggleComplete = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const newStatus = task.status === 'Completed' ? 'Todo' : 'Completed';
+    await supabase.from('tasks').update({ status: newStatus }).eq('id', id);
+    await loadTasks();
   };
 
   return (
@@ -328,7 +284,7 @@ export default function TasksPage() {
                 <p className="text-xs text-muted-foreground mb-2">{task.description}</p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Icon name="UserIcon" size={11} />{task.assignee}</span>
-                  <span className="flex items-center gap-1"><Icon name="ClockIcon" size={11} />{task.dueDate || task.due}</span>
+                  <span className="flex items-center gap-1"><Icon name="ClockIcon" size={11} />{task.due_date || '—'}</span>
                   <span className="flex items-center gap-1"><Icon name="TagIcon" size={11} />{task.category}</span>
                 </div>
               </div>

@@ -1,58 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 interface CalEvent {
-  id: number;
+  id: string;
   title: string;
-  date: number;
-  month: number;
+  event_date: string;
   time: string;
   type: string;
-  owner: 'ceo' | 'team'; // owner determines which calendar it belongs to
+  owner: 'ceo' | 'team';
   attendees: string[];
   location?: string;
   notes?: string;
 }
 
 interface MarketingEvent {
-  id: number;
+  id: string;
   title: string;
-  date: number;
-  month: number;
+  event_date: string;
   time: string;
   campaign: string;
   channel: string;
   budget?: string;
   notes?: string;
 }
-
-const MARKETING_EVENTS_KEY = 'marketing_calendar_events';
-
-const initialEvents: CalEvent[] = [
-  { id: 1, title: 'Property Viewing — Obsidian Penthouse', date: 3, month: 4, time: '10:00 AM', type: 'Viewing', owner: 'team', attendees: ['Sarah M.', 'James H.'], location: 'Downtown Dubai' },
-  { id: 2, title: 'Team Standup', date: 5, month: 4, time: '9:00 AM', type: 'Meeting', owner: 'team', attendees: ['All Team'], location: 'Office' },
-  { id: 3, title: 'CEO Strategy Review', date: 8, month: 4, time: '2:00 PM', type: 'Strategy', owner: 'ceo', attendees: ['CEO', 'Sarah M.'], location: 'Boardroom' },
-  { id: 4, title: 'Client Consultation — Sofia A.', date: 12, month: 4, time: '11:30 AM', type: 'Consultation', owner: 'team', attendees: ['Omar H.', 'Sofia A.'], location: 'DIFC Office' },
-  { id: 5, title: 'Deal Closing — Marina Bay', date: 15, month: 4, time: '3:00 PM', type: 'Deal', owner: 'team', attendees: ['James C.', 'Marcus C.'], location: 'Dubai Marina' },
-  { id: 6, title: 'Marketing Campaign Review', date: 20, month: 4, time: '10:00 AM', type: 'Meeting', owner: 'team', attendees: ['Marketing Team'], location: 'Office' },
-];
-
-const initialMarketingEvents: MarketingEvent[] = [
-  { id: 1, title: 'Instagram Luxury Properties Campaign Launch', date: 2, month: 4, time: '9:00 AM', campaign: 'Q2 Luxury Push', channel: 'Instagram', budget: 'AED 15,000', notes: 'Target HNW audience in UAE & KSA' },
-  { id: 2, title: 'Google Ads — Off-Plan Projects', date: 5, month: 4, time: '10:00 AM', campaign: 'Off-Plan Awareness', channel: 'Google Ads', budget: 'AED 25,000', notes: 'Focus on Skyline Residences & Marina Bay Towers' },
-  { id: 3, title: 'Email Newsletter — May Edition', date: 10, month: 4, time: '8:00 AM', campaign: 'Monthly Newsletter', channel: 'Email', budget: 'AED 2,000', notes: 'Segment: Active leads + past clients' },
-  { id: 4, title: 'LinkedIn B2B Campaign — Commercial', date: 14, month: 4, time: '11:00 AM', campaign: 'Commercial Outreach', channel: 'LinkedIn', budget: 'AED 8,000', notes: 'Target corporate decision makers' },
-  { id: 5, title: 'Property Finder Premium Listing Renewal', date: 18, month: 4, time: '9:00 AM', campaign: 'Portal Listings', channel: 'Property Finder', budget: 'AED 12,000' },
-  { id: 6, title: 'YouTube Virtual Tour Series — Episode 3', date: 22, month: 4, time: '2:00 PM', campaign: 'Video Content', channel: 'YouTube', budget: 'AED 5,000', notes: 'Palm Grove Villas walkthrough' },
-  { id: 7, title: 'WhatsApp Broadcast — New Launches', date: 25, month: 4, time: '10:00 AM', campaign: 'Direct Outreach', channel: 'WhatsApp', budget: 'AED 1,000', notes: 'Send to qualified leads list' },
-  { id: 8, title: 'Q2 Marketing Performance Review', date: 28, month: 4, time: '3:00 PM', campaign: 'Internal Review', channel: 'Internal', notes: 'Review ROI across all channels' },
-];
 
 const typeColors: Record<string, string> = {
   Viewing: 'bg-blue-400/20 text-blue-400 border-blue-400/30',
@@ -100,20 +77,6 @@ const emptyMarketingForm: MarketingEventForm = { title: '', date: '', time: '', 
 
 type CalendarTab = 'team' | 'ceo' | 'marketing';
 
-function loadMarketingEventsFromStorage(base: MarketingEvent[]): MarketingEvent[] {
-  if (typeof window === 'undefined') return base;
-  try {
-    const stored = localStorage.getItem(MARKETING_EVENTS_KEY);
-    if (stored) {
-      const parsed: MarketingEvent[] = JSON.parse(stored);
-      const baseIds = new Set(base.map((e) => e.id));
-      const newEvents = parsed.filter((e) => !baseIds.has(e.id));
-      return [...base, ...newEvents];
-    }
-  } catch { /* ignore */ }
-  return base;
-}
-
 function sendNotification(title: string, body: string) {
   if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
     new Notification(title, { body, icon: '/favicon.ico' });
@@ -126,8 +89,11 @@ function checkCalendarReminders(events: CalEvent[], currentMonth: number, curren
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   events.forEach((ev) => {
-    if (ev.month !== currentMonth) return;
-    const evDate = new Date(currentYear, ev.month, ev.date);
+    const d = new Date(ev.event_date);
+    const evMonth = d.getMonth();
+    const evDay = d.getDate();
+    if (evMonth !== currentMonth) return;
+    const evDate = new Date(currentYear, evMonth, evDay);
     evDate.setHours(0, 0, 0, 0);
     const todayMidnight = new Date(today);
     todayMidnight.setHours(0, 0, 0, 0);
@@ -145,12 +111,10 @@ function checkCalendarReminders(events: CalEvent[], currentMonth: number, curren
 export default function CalendarPage() {
   const { isRole, currentUser, isAgentScoped } = useRole();
   const canViewMarketing = isRole('super_admin', 'marketing');
+  const supabase = useMemo(() => createClient(), []);
 
-  const [events, setEvents] = useState<CalEvent[]>(() => {
-    // Agents see only their own events (where their name appears in attendees or title)
-    return initialEvents;
-  });
-  const [marketingEvents, setMarketingEvents] = useState<MarketingEvent[]>(() => loadMarketingEventsFromStorage(initialMarketingEvents));
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [marketingEvents, setMarketingEvents] = useState<MarketingEvent[]>([]);
   const [activeTab, setActiveTab] = useState<CalendarTab>('team');
   const [currentMonth, setCurrentMonth] = useState(4);
   const [currentYear, setCurrentYear] = useState(2026);
@@ -159,10 +123,30 @@ export default function CalendarPage() {
   const [form, setForm] = useState<EventForm>(emptyForm);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
 
-  // Marketing calendar state
   const [showMarketingModal, setShowMarketingModal] = useState(false);
   const [editMarketingEvent, setEditMarketingEvent] = useState<MarketingEvent | null>(null);
   const [marketingForm, setMarketingForm] = useState<MarketingEventForm>(emptyMarketingForm);
+
+  const loadEvents = useCallback(async () => {
+    const { data } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .order('event_date', { ascending: true });
+    if (data) setEvents(data as CalEvent[]);
+  }, [supabase]);
+
+  const loadMarketingEvents = useCallback(async () => {
+    const { data } = await supabase
+      .from('marketing_events')
+      .select('*')
+      .order('event_date', { ascending: true });
+    if (data) setMarketingEvents(data as MarketingEvent[]);
+  }, [supabase]);
+
+  useEffect(() => {
+    loadEvents();
+    loadMarketingEvents();
+  }, [loadEvents, loadMarketingEvents]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -171,17 +155,16 @@ export default function CalendarPage() {
         Notification.requestPermission().then((perm) => {
           setNotifPermission(perm);
           if (perm === 'granted') {
-            checkCalendarReminders(initialEvents, currentMonth, currentYear);
+            checkCalendarReminders(events, currentMonth, currentYear);
           }
         });
       } else if (Notification.permission === 'granted') {
-        checkCalendarReminders(initialEvents, currentMonth, currentYear);
+        checkCalendarReminders(events, currentMonth, currentYear);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-check reminders when events or month changes
   useEffect(() => {
     if (notifPermission === 'granted') {
       checkCalendarReminders(events, currentMonth, currentYear);
@@ -191,8 +174,6 @@ export default function CalendarPage() {
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  // CEO view: events owned by CEO. Team view: events owned by team.
-  // Agents: only see events where they are an attendee
   const visibleEvents = (() => {
     let base: CalEvent[];
     if (activeTab === 'ceo') {
@@ -211,9 +192,15 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: number) => {
     if (activeTab === 'marketing') {
-      return marketingEvents.filter(e => e.date === day && e.month === currentMonth);
+      return marketingEvents.filter(e => {
+        const d = new Date(e.event_date);
+        return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
     }
-    return visibleEvents.filter((e) => e.date === day && e.month === currentMonth);
+    return visibleEvents.filter((e) => {
+      const d = new Date(e.event_date);
+      return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
   };
 
   const prevMonth = () => {
@@ -247,7 +234,7 @@ export default function CalendarPage() {
     setEditEvent(ev);
     setForm({
       title: ev.title,
-      date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(ev.date).padStart(2, '0')}`,
+      date: ev.event_date,
       time: ev.time,
       type: ev.type,
       attendees: ev.attendees.join(', '),
@@ -261,7 +248,7 @@ export default function CalendarPage() {
     setEditMarketingEvent(ev);
     setMarketingForm({
       title: ev.title,
-      date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(ev.date).padStart(2, '0')}`,
+      date: ev.event_date,
       time: ev.time,
       campaign: ev.campaign,
       channel: ev.channel,
@@ -271,83 +258,85 @@ export default function CalendarPage() {
     setShowMarketingModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title || !form.date) return;
-    const d = new Date(form.date);
-    const day = d.getDate();
-    const month = d.getMonth();
     const attendeeList = form.attendees.split(',').map(a => a.trim()).filter(Boolean);
     const owner: 'ceo' | 'team' = activeTab === 'ceo' ? 'ceo' : 'team';
     if (editEvent) {
-      setEvents(events.map(e => e.id === editEvent.id ? {
-        ...e,
-        title: form.title,
-        date: day,
-        month,
-        time: form.time,
-        type: form.type,
-        attendees: attendeeList,
-        location: form.location,
-        notes: form.notes,
-        owner: e.owner,
-      } : e));
+      await supabase
+        .from('calendar_events')
+        .update({
+          title: form.title,
+          event_date: form.date,
+          time: form.time,
+          type: form.type,
+          attendees: attendeeList,
+          location: form.location,
+          notes: form.notes,
+        })
+        .eq('id', editEvent.id);
     } else {
-      const newEvent: CalEvent = {
-        id: Date.now(),
-        title: form.title,
-        date: day,
-        month,
-        time: form.time,
-        type: form.type,
-        owner,
-        attendees: attendeeList,
-        location: form.location,
-        notes: form.notes,
-      };
-      setEvents([...events, newEvent]);
-      // Notify for new event
+      await supabase
+        .from('calendar_events')
+        .insert({
+          title: form.title,
+          event_date: form.date,
+          time: form.time,
+          type: form.type,
+          owner,
+          attendees: attendeeList,
+          location: form.location,
+          notes: form.notes,
+        });
       if (notifPermission === 'granted') {
         sendNotification('New Calendar Event Added', `"${form.title}" on ${form.date} at ${form.time || 'TBD'}`);
       }
     }
     setShowModal(false);
+    await loadEvents();
   };
 
-  const handleSaveMarketing = () => {
+  const handleSaveMarketing = async () => {
     if (!marketingForm.title || !marketingForm.date) return;
-    const d = new Date(marketingForm.date);
-    const day = d.getDate();
-    const month = d.getMonth();
     if (editMarketingEvent) {
-      setMarketingEvents(marketingEvents.map(e => e.id === editMarketingEvent.id ? {
-        ...e,
-        title: marketingForm.title,
-        date: day,
-        month,
-        time: marketingForm.time,
-        campaign: marketingForm.campaign,
-        channel: marketingForm.channel,
-        budget: marketingForm.budget,
-        notes: marketingForm.notes,
-      } : e));
+      await supabase
+        .from('marketing_events')
+        .update({
+          title: marketingForm.title,
+          event_date: marketingForm.date,
+          time: marketingForm.time,
+          campaign: marketingForm.campaign,
+          channel: marketingForm.channel,
+          budget: marketingForm.budget,
+          notes: marketingForm.notes,
+        })
+        .eq('id', editMarketingEvent.id);
     } else {
-      setMarketingEvents([...marketingEvents, {
-        id: Date.now(),
-        title: marketingForm.title,
-        date: day,
-        month,
-        time: marketingForm.time,
-        campaign: marketingForm.campaign,
-        channel: marketingForm.channel,
-        budget: marketingForm.budget,
-        notes: marketingForm.notes,
-      }]);
+      await supabase
+        .from('marketing_events')
+        .insert({
+          title: marketingForm.title,
+          event_date: marketingForm.date,
+          time: marketingForm.time,
+          campaign: marketingForm.campaign,
+          channel: marketingForm.channel,
+          budget: marketingForm.budget,
+          notes: marketingForm.notes,
+        });
     }
     setShowMarketingModal(false);
+    await loadMarketingEvents();
   };
 
-  const handleDelete = (id: number) => setEvents(events.filter(e => e.id !== id));
-  const handleDeleteMarketing = (id: number) => setMarketingEvents(marketingEvents.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('calendar_events').delete().eq('id', id);
+    await loadEvents();
+  };
+
+  const handleDeleteMarketing = async (id: string) => {
+    await supabase.from('marketing_events').delete().eq('id', id);
+    await loadMarketingEvents();
+  };
 
   const isMarketing = activeTab === 'marketing';
 
@@ -478,17 +467,23 @@ export default function CalendarPage() {
         </div>
         <div className="divide-y divide-border">
           {(isMarketing ? marketingEvents : visibleEvents)
-            .filter(e => e.month === currentMonth)
-            .sort((a, b) => a.date - b.date)
+            .filter(e => {
+              const d = new Date(e.event_date);
+              return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            })
+            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
             .map((ev) => {
+              const evDate = new Date(ev.event_date);
+              const evDay = evDate.getDate();
+              const evMonth = evDate.getMonth();
               if (isMarketing) {
                 const me = ev as MarketingEvent;
                 return (
                   <div key={me.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/2 transition-colors">
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="text-center flex-shrink-0 w-10">
-                        <p className="text-lg font-bold text-foreground leading-none">{me.date}</p>
-                        <p className="text-[10px] text-muted-foreground">{MONTHS[me.month]?.slice(0, 3)}</p>
+                        <p className="text-lg font-bold text-foreground leading-none">{evDay}</p>
+                        <p className="text-[10px] text-muted-foreground">{MONTHS[evMonth]?.slice(0, 3)}</p>
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{me.title}</p>
@@ -512,8 +507,8 @@ export default function CalendarPage() {
                 <div key={ce.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/2 transition-colors">
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="text-center flex-shrink-0 w-10">
-                      <p className="text-lg font-bold text-foreground leading-none">{ce.date}</p>
-                      <p className="text-[10px] text-muted-foreground">{MONTHS[ce.month]?.slice(0, 3)}</p>
+                      <p className="text-lg font-bold text-foreground leading-none">{evDay}</p>
+                      <p className="text-[10px] text-muted-foreground">{MONTHS[evMonth]?.slice(0, 3)}</p>
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{ce.title}</p>
@@ -531,7 +526,10 @@ export default function CalendarPage() {
                 </div>
               );
             })}
-          {(isMarketing ? marketingEvents : visibleEvents).filter(e => e.month === currentMonth).length === 0 && (
+          {(isMarketing ? marketingEvents : visibleEvents).filter(e => {
+            const d = new Date(e.event_date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          }).length === 0 && (
             <div className="px-5 py-8 text-center text-sm text-muted-foreground">No events this month.</div>
           )}
         </div>
