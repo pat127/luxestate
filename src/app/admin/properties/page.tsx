@@ -139,7 +139,7 @@ function generateRefNumber() {
 export default function PropertiesPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { isAgentScoped, isAssignedAgent, canViewAll } = useRole();
+  const { isAgentScoped, isAssignedAgent, canViewAll, canEditProperty } = useRole();
   const pf = usePropertyFields();
   const comm = useCommunities();
 
@@ -678,7 +678,9 @@ export default function PropertiesPage() {
                       ) : null}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
+                      {canEditProperty(property.agentName) && (
+                        <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
+                      )}
                       <button onClick={() => router.push(`/admin/properties/${property.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View</button>
                       <button
                         onClick={() => handleToggleFeatured(property.id, property.featured)}

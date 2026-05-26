@@ -23,6 +23,10 @@ interface RoleContextType {
   canViewAll: boolean;
   /** Returns true if the current user is the listing/assigned agent for a record */
   isAssignedAgent: (recordAgentName: string | undefined | null) => boolean;
+  /** Returns true if the current user can edit a property (non-agents always can; agents only if assigned) */
+  canEditProperty: (recordAgentName: string | undefined | null) => boolean;
+  /** Returns true if the current user can edit a project (agents cannot edit any project) */
+  canEditProject: boolean;
 }
 
 export type Permission =
@@ -91,8 +95,15 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return recordAgentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim();
   };
 
+  const canEditProperty = (recordAgentName: string | undefined | null): boolean => {
+    if (!isAgentScoped) return true; // marketing, admin, super_admin can always edit
+    return isAssignedAgent(recordAgentName); // agents only if assigned
+  };
+
+  const canEditProject = currentUser.role !== 'agent'; // agents cannot edit any project
+
   return (
-    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent }}>
+    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent, canEditProperty, canEditProject }}>
       {children}
     </RoleContext.Provider>
   );

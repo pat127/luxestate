@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
@@ -20,6 +21,7 @@ export default function ProjectDetailsPage() {
   const router = useRouter();
   const id = params?.id as string;
   const supabase = createClient();
+  const { canEditProject } = useRole();
 
   const [project, setProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,9 +119,11 @@ export default function ProjectDetailsPage() {
           <button onClick={handleDownloadPDF} disabled={pdfGenerating} className="flex items-center gap-2 px-4 py-2 border border-primary/40 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/10 transition-colors disabled:opacity-60">
             <Icon name="DocumentArrowDownIcon" size={13} />{pdfGenerating ? 'Generating...' : 'PDF Brochure'}
           </button>
-          <button onClick={() => router.push('/admin/projects')} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-            <Icon name="PencilIcon" size={13} />Edit Project
-          </button>
+          {canEditProject && (
+            <button onClick={() => router.push('/admin/projects')} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+              <Icon name="PencilIcon" size={13} />Edit Project
+            </button>
+          )}
         </div>
       </div>
 
@@ -340,9 +344,11 @@ export default function ProjectDetailsPage() {
               <button onClick={handleDownloadPDF} disabled={pdfGenerating} className="w-full flex items-center gap-2 px-4 py-2.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors disabled:opacity-60">
                 <Icon name="DocumentArrowDownIcon" size={13} className="text-primary" />{pdfGenerating ? 'Generating...' : 'Download PDF Brochure'}
               </button>
-              <button onClick={() => router.push('/admin/projects')} className="w-full flex items-center gap-2 px-4 py-2.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
-                <Icon name="PencilIcon" size={13} className="text-primary" />Edit Project
-              </button>
+              {canEditProject && (
+                <button onClick={() => router.push('/admin/projects')} className="w-full flex items-center gap-2 px-4 py-2.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
+                  <Icon name="PencilIcon" size={13} className="text-primary" />Edit Project
+                </button>
+              )}
             </div>
           </div>
         </div>

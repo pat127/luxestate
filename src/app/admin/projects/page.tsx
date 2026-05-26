@@ -60,7 +60,7 @@ export default function ProjectsPage() {
 function ProjectsPageInner() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { isAgentScoped, canViewAll } = useRole();
+  const { isAgentScoped, canViewAll, canEditProject } = useRole();
   const pf = usePropertyFields();
   const comm = useCommunities();
   const PROPERTY_TYPES = pf.loaded ? pf.types : PROPERTY_TYPES_FALLBACK;
@@ -415,7 +415,9 @@ function ProjectsPageInner() {
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(project.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
+                      {canEditProject && (
+                        <button onClick={() => openEdit(project.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
+                      )}
                       <button onClick={() => router.push(`/admin/projects/${project.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View Details</button>
                       <button onClick={() => handleDelete(project.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={13} /></button>
                     </div>
