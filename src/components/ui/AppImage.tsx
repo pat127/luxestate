@@ -87,7 +87,7 @@ const AppImage = memo(function AppImage({
             quality,
             unoptimized,
             onError: handleError,
-            onLoadingComplete: handleLoad,
+            onLoad: handleLoad,
             onClick,
         };
 
