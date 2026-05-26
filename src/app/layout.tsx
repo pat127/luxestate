@@ -7,6 +7,7 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import DynamicSEO from '@/components/DynamicSEO';
+import CMSLoadGate from '@/components/CMSLoadGate';
 import { Suspense } from 'react';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -193,7 +194,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <DynamicSEO />
           <CurrencyProvider defaultCurrency="AED">
             <LanguageProvider>
-              {children}
+              <CMSLoadGate>
+                {children}
+              </CMSLoadGate>
             </LanguageProvider>
           </CurrencyProvider>
         </CMSProvider>
