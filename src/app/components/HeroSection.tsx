@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { useCMSPage, DEFAULT_HERO_STATS } from '@/contexts/CMSContext';
+import { useCMSPage } from '@/contexts/CMSContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCommunities } from '@/hooks/useCommunities';
@@ -99,14 +99,14 @@ export default function HeroSection() {
   };
 
   const heroImage = page?.hero_image || '';
-  const heroEyebrow = page?.hero_eyebrow || 'Curated Luxury Properties';
+  const heroEyebrow = page?.hero_eyebrow || '';
   const heroHeadline = page?.hero_headline || '';
-  const heroDescription = page?.hero_description ?? 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.';
-  const ctaPrimaryText = page?.cta_primary_text || 'Explore Properties';
+  const heroDescription = page?.hero_description || '';
+  const ctaPrimaryText = page?.cta_primary_text || '';
   const ctaPrimaryLink = page?.cta_primary_link || '/residential';
-  const ctaSecondaryText = page?.cta_secondary_text || 'Book Consultation';
+  const ctaSecondaryText = page?.cta_secondary_text || '';
   const ctaSecondaryLink = page?.cta_secondary_link || '/#contact';
-  const stats = page?.hero_stats ?? DEFAULT_HERO_STATS;
+  const stats = page?.hero_stats || [];
 
   const headlineWords = heroHeadline.split(' ');
   const lastWord = headlineWords.pop();
@@ -116,13 +116,15 @@ export default function HeroSection() {
     <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 z-0">
-        <AppImage
-          src={heroImage}
-          alt="Dramatic modern mansion at dusk, dark glass facade, infinity pool reflecting city lights"
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw" />
+        {heroImage && (
+          <AppImage
+            src={heroImage}
+            alt={heroHeadline || 'Hero background'}
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw" />
+        )}
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />
       </div>

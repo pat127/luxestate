@@ -150,11 +150,12 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 md:px-10 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <AppLogo
-              src={logoSrc}
-              size={108}
-              className="transition-transform duration-300 group-hover:scale-105"
-            />
+            <span className="block md:hidden">
+              <AppLogo src={logoSrc} size={72} className="transition-transform duration-300 group-hover:scale-105" />
+            </span>
+            <span className="hidden md:block">
+              <AppLogo src={logoSrc} size={108} className="transition-transform duration-300 group-hover:scale-105" />
+            </span>
           </Link>
 
           {/* Desktop Nav - centered */}

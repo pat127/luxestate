@@ -5,6 +5,7 @@ import Icon from '@/components/ui/AppIcon';
 import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, DEFAULT_ABOUT_CONTENT, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
+import { CMS_IMAGE_FOLDERS, extractCmsImageUrls, getSiteAssetsPath, isSiteAssetsUrl } from '@/lib/cmsImages';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
 
@@ -309,7 +310,15 @@ function PropertiesEditor({ properties, onChange }: { properties: PropertyItem[]
                 <InputField label="Price" value={prop.price} onChange={(v) => update(i, 'price', v)} />
                 <InputField label="Tag" value={prop.tag} onChange={(v) => update(i, 'tag', v)} />
                 <InputField label="Link" value={prop.href} onChange={(v) => update(i, 'href', v)} />
-                <div className="col-span-2"><InputField label="Image URL" value={prop.image} onChange={(v) => update(i, 'image', v)} /></div>
+                <div className="col-span-2">
+                  <SiteImageUpload
+                    label="Property Image"
+                    folder={CMS_IMAGE_FOLDERS.cms}
+                    fileKey={`featured_property_${prop.id}`}
+                    currentUrl={prop.image}
+                    onChange={(v) => update(i, 'image', v)}
+                  />
+                </div>
                 <div className="col-span-2"><InputField label="Image Alt Text" value={prop.alt} onChange={(v) => update(i, 'alt', v)} /></div>
                 <InputField label="Beds" value={String(prop.beds)} onChange={(v) => update(i, 'beds', Number(v))} />
                 <InputField label="Baths" value={String(prop.baths)} onChange={(v) => update(i, 'baths', Number(v))} />
@@ -365,7 +374,15 @@ function ProjectsEditor({ projects, onChange }: { projects: ProjectItem[]; onCha
                 <InputField label="Completion" value={proj.completion} onChange={(v) => update(i, 'completion', v)} />
                 <InputField label="Units" value={String(proj.units)} onChange={(v) => update(i, 'units', Number(v))} />
                 <InputField label="% Sold" value={String(proj.sold)} onChange={(v) => update(i, 'sold', Number(v))} />
-                <div className="col-span-2"><InputField label="Image URL" value={proj.image} onChange={(v) => update(i, 'image', v)} /></div>
+                <div className="col-span-2">
+                  <SiteImageUpload
+                    label="Project Image"
+                    folder={CMS_IMAGE_FOLDERS.cms}
+                    fileKey={`featured_project_${proj.id}`}
+                    currentUrl={proj.image}
+                    onChange={(v) => update(i, 'image', v)}
+                  />
+                </div>
                 <div className="col-span-2"><InputField label="Image Alt Text" value={proj.alt} onChange={(v) => update(i, 'alt', v)} /></div>
               </div>
             )}
@@ -416,7 +433,13 @@ function WhyStepsEditor({ steps, onChange }: { steps: WhyStep[]; onChange: (s: W
                 </div>
                 <InputField label="Title" value={step.title} onChange={(v) => update(i, 'title', v)} />
                 <TextareaField label="Description" value={step.description} onChange={(v) => update(i, 'description', v)} rows={3} />
-                <InputField label="Image URL" value={step.image} onChange={(v) => update(i, 'image', v)} />
+                <SiteImageUpload
+                  label="Step Image"
+                  folder={CMS_IMAGE_FOLDERS.cms}
+                  fileKey={`why_step_${step.id}`}
+                  currentUrl={step.image}
+                  onChange={(v) => update(i, 'image', v)}
+                />
                 <InputField label="Image Alt Text" value={step.imageAlt} onChange={(v) => update(i, 'imageAlt', v)} />
               </div>
             )}
@@ -470,7 +493,13 @@ function TestimonialsEditor({ testimonials, onChange }: { testimonials: Testimon
                 </div>
                 <InputField label="Location" value={t.location} onChange={(v) => update(i, 'location', v)} />
                 <TextareaField label="Quote" value={t.quote} onChange={(v) => update(i, 'quote', v)} rows={2} />
-                <InputField label="Image URL" value={t.image} onChange={(v) => update(i, 'image', v)} />
+                <SiteImageUpload
+                  label="Client Photo"
+                  folder={CMS_IMAGE_FOLDERS.cms}
+                  fileKey={`testimonial_${i}`}
+                  currentUrl={t.image}
+                  onChange={(v) => update(i, 'image', v)}
+                />
                 <InputField label="Image Alt Text" value={t.imageAlt} onChange={(v) => update(i, 'imageAlt', v)} />
                 <div className="flex items-center gap-2 pt-1">
                   <button onClick={() => setCenter(i)} className={`px-3 py-1.5 text-xs font-bold border transition-colors ${t.isCenter ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`}>
@@ -547,6 +576,159 @@ function ContactDetailsEditor({ details, onChange }: { details: ContactDetail[];
             <button onClick={() => remove(i)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Site image upload (Supabase site-assets bucket) ───────────────────────────
+function SiteImageUpload({
+  label = 'Image',
+  currentUrl,
+  onChange,
+  folder = CMS_IMAGE_FOLDERS.cms,
+  fileKey = 'cms',
+  variant = 'cms',
+  pageKey,
+}: {
+  label?: string;
+  currentUrl: string;
+  onChange: (url: string) => void;
+  folder?: string;
+  fileKey?: string;
+  variant?: 'hero' | 'cms';
+  pageKey?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [urlUploading, setUrlUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [pasteUrl, setPasteUrl] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const uploadEndpoint = variant === 'hero' ? '/api/admin/upload-hero-image' : '/api/admin/upload-site-image';
+  const oldPath = getSiteAssetsPath(currentUrl);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (variant === 'hero' && pageKey) {
+        fd.append('pageKey', pageKey);
+        if (oldPath) fd.append('oldPath', oldPath);
+      } else {
+        fd.append('folder', folder);
+        fd.append('fileKey', fileKey);
+        if (oldPath) fd.append('oldPath', oldPath);
+      }
+      const res = await fetch(uploadEndpoint, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) { onChange(data.url); setPasteUrl(''); }
+      else if (data.error) console.error('Image upload error:', data.error);
+    } catch (err) {
+      console.error('Image upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUrlUpload = async () => {
+    const url = pasteUrl.trim();
+    if (!url) return;
+    setUrlUploading(true);
+    try {
+      const body =
+        variant === 'hero' && pageKey
+          ? { sourceUrl: url, pageKey, oldPath }
+          : { sourceUrl: url, folder, fileKey, oldPath };
+      const res = await fetch(uploadEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.url) { onChange(data.url); setPasteUrl(''); }
+      else if (data.error) console.error('URL upload error:', data.error);
+    } catch (err) {
+      console.error('URL upload failed:', err);
+    } finally {
+      setUrlUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const isUploading = uploading || urlUploading;
+
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</label>
+      {currentUrl ? (
+        <div className="relative group border border-border bg-card overflow-hidden">
+          <img src={currentUrl} alt="Hero preview" className="w-full h-40 object-cover" />
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            <button onClick={() => fileRef.current?.click()} disabled={isUploading} className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+              {uploading ? 'Uploading...' : 'Replace'}
+            </button>
+          </div>
+          <div className="px-3 py-2 bg-card border-t border-border">
+            <p className="text-xs text-muted-foreground truncate">{currentUrl}</p>
+          </div>
+        </div>
+      ) : (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => !isUploading && fileRef.current?.click()}
+          className={`border-2 border-dashed p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}
+        >
+          {isUploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin" />
+              <p className="text-xs text-muted-foreground">{urlUploading ? 'Downloading & uploading...' : 'Uploading...'}</p>
+            </div>
+          ) : (
+            <>
+              <Icon name="PhotoIcon" size={28} className="text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Drop an image here or click to upload</p>
+              <p className="text-xs text-muted-foreground/60">JPG, PNG, WebP — recommended 1920×1080 or larger</p>
+            </>
+          )}
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+
+      <div className="mt-3 border border-border bg-card p-3">
+        <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Paste Image URL & Upload to Storage</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={pasteUrl}
+            onChange={(e) => setPasteUrl(e.target.value)}
+            placeholder="https://images.unsplash.com/..."
+            className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleUrlUpload(); }}
+          />
+          <button
+            onClick={handleUrlUpload}
+            disabled={!pasteUrl.trim() || isUploading}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-40 flex-shrink-0"
+          >
+            {urlUploading ? (
+              <><div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent animate-spin" /> Uploading...</>
+            ) : (
+              <><Icon name="CloudArrowUpIcon" size={14} /> Upload to Storage</>
+            )}
+          </button>
+        </div>
+        <p className="text-[10px] text-muted-foreground/60 mt-1.5">Paste any image URL — it will be downloaded and saved to Supabase storage</p>
       </div>
     </div>
   );
@@ -635,7 +817,15 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
               <TextareaField label="Hero Description" value={page.hero_description} onChange={(v) => onChange({ ...page, hero_description: v })} />
             </div>
             <div className="sm:col-span-2">
-              <InputField label="Hero Background Image URL" value={page.hero_image ?? ''} onChange={(v) => onChange({ ...page, hero_image: v })} placeholder="https://..." />
+              <SiteImageUpload
+                label="Hero Background Image"
+                variant="hero"
+                pageKey={page.key}
+                folder={CMS_IMAGE_FOLDERS.hero}
+                fileKey={`${page.key}_hero`}
+                currentUrl={page.hero_image ?? ''}
+                onChange={(v) => onChange({ ...page, hero_image: v })}
+              />
             </div>
             <InputField label="Primary CTA Text" value={page.cta_primary_text} onChange={(v) => onChange({ ...page, cta_primary_text: v })} />
             <InputField label="Primary CTA Link" value={page.cta_primary_link} onChange={(v) => onChange({ ...page, cta_primary_link: v })} />
@@ -747,7 +937,13 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
               <InputField label="Name" value={ab.ceo.name} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, name: v } } })} />
               <InputField label="Role / Title" value={ab.ceo.role} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, role: v } } })} />
               <div className="col-span-2">
-                <InputField label="Photo URL" value={ab.ceo.image} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, image: v } } })} placeholder="https://..." />
+                <SiteImageUpload
+                  label="CEO Photo"
+                  folder={CMS_IMAGE_FOLDERS.cms}
+                  fileKey="about_ceo"
+                  currentUrl={ab.ceo.image}
+                  onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, image: v } } })}
+                />
               </div>
               <div className="col-span-2">
                 <InputField label="Photo Alt Text" value={ab.ceo.alt} onChange={(v) => onChange({ ...page, about_content: { ...ab, ceo: { ...ab.ceo, alt: v } } })} />
@@ -1489,11 +1685,8 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const oldUrl = branding.logo_url;
-      if (oldUrl && oldUrl.includes('/site-assets/')) {
-        const oldPath = oldUrl.split('/site-assets/').pop();
-        if (oldPath) formData.append('oldPath', oldPath);
-      }
+      const oldPath = getSiteAssetsPath(branding.logo_url);
+      if (oldPath) formData.append('oldPath', oldPath);
 
       const res = await fetch('/api/admin/upload-logo', { method: 'POST', body: formData });
       const result = await res.json();
@@ -1511,11 +1704,219 @@ export default function SettingsPage() {
     }
   };
 
+  const migrateExternalUrl = async (
+    url: string,
+    opts: { endpoint: string; body: Record<string, string> },
+  ): Promise<string | null> => {
+    if (!url || isSiteAssetsUrl(url)) return url;
+    try {
+      const res = await fetch(opts.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceUrl: url, ...opts.body }),
+      });
+      const data = await res.json();
+      return data.url || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const migrateAllCmsImages = async (
+    pagesToSave: PageConfig[],
+    brandingToSave: BrandingConfig,
+    pd: PropertyDetailContent,
+    prd: ProjectDetailContent,
+  ) => {
+    const migratedPages = [...pagesToSave];
+
+    for (let i = 0; i < migratedPages.length; i++) {
+      let p = migratedPages[i];
+      if (p.hero_image && !isSiteAssetsUrl(p.hero_image)) {
+        const url = await migrateExternalUrl(p.hero_image, {
+          endpoint: '/api/admin/upload-hero-image',
+          body: { pageKey: p.key },
+        });
+        if (url) {
+          p = { ...p, hero_image: url };
+          migratedPages[i] = p;
+        }
+      }
+
+      const fp = p.featured_properties_content;
+      if (fp?.properties?.length) {
+        const props = await Promise.all(
+          fp.properties.map(async (item) => {
+            if (!item.image || isSiteAssetsUrl(item.image)) return item;
+            const url = await migrateExternalUrl(item.image, {
+              endpoint: '/api/admin/upload-site-image',
+              body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `featured_property_${item.id}` },
+            });
+            return url ? { ...item, image: url } : item;
+          }),
+        );
+        migratedPages[i] = { ...p, featured_properties_content: { ...fp, properties: props } };
+      }
+
+      const fj = migratedPages[i].featured_projects_content;
+      if (fj?.projects?.length) {
+        const projects = await Promise.all(
+          fj.projects.map(async (item) => {
+            if (!item.image || isSiteAssetsUrl(item.image)) return item;
+            const url = await migrateExternalUrl(item.image, {
+              endpoint: '/api/admin/upload-site-image',
+              body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `featured_project_${item.id}` },
+            });
+            return url ? { ...item, image: url } : item;
+          }),
+        );
+        migratedPages[i] = { ...migratedPages[i], featured_projects_content: { ...fj, projects } };
+      }
+
+      const wy = migratedPages[i].why_luxestate_content;
+      if (wy?.steps?.length) {
+        const steps = await Promise.all(
+          wy.steps.map(async (step) => {
+            if (!step.image || isSiteAssetsUrl(step.image)) return step;
+            const url = await migrateExternalUrl(step.image, {
+              endpoint: '/api/admin/upload-site-image',
+              body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `why_step_${step.id}` },
+            });
+            return url ? { ...step, image: url } : step;
+          }),
+        );
+        migratedPages[i] = { ...migratedPages[i], why_luxestate_content: { ...wy, steps } };
+      }
+
+      const tm = migratedPages[i].testimonials_content;
+      if (tm?.testimonials?.length) {
+        const testimonials = await Promise.all(
+          tm.testimonials.map(async (t, idx) => {
+            if (!t.image || isSiteAssetsUrl(t.image)) return t;
+            const url = await migrateExternalUrl(t.image, {
+              endpoint: '/api/admin/upload-site-image',
+              body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `testimonial_${idx}` },
+            });
+            return url ? { ...t, image: url } : t;
+          }),
+        );
+        migratedPages[i] = { ...migratedPages[i], testimonials_content: { ...tm, testimonials } };
+      }
+
+      const ab = migratedPages[i].about_content;
+      if (ab?.ceo?.image && !isSiteAssetsUrl(ab.ceo.image)) {
+        const url = await migrateExternalUrl(ab.ceo.image, {
+          endpoint: '/api/admin/upload-site-image',
+          body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: 'about_ceo' },
+        });
+        if (url) {
+          migratedPages[i] = {
+            ...migratedPages[i],
+            about_content: { ...ab, ceo: { ...ab.ceo, image: url } },
+          };
+        }
+      }
+    }
+
+    let nextBranding = { ...brandingToSave };
+    if (nextBranding.logo_url && !isSiteAssetsUrl(nextBranding.logo_url)) {
+      const url = await migrateExternalUrl(nextBranding.logo_url, {
+        endpoint: '/api/admin/upload-site-image',
+        body: { folder: CMS_IMAGE_FOLDERS.logos, fileKey: 'logo' },
+      });
+      if (url) nextBranding = { ...nextBranding, logo_url: url };
+    }
+
+    let nextPd = { ...pd };
+    if (nextPd.agent?.avatar && !isSiteAssetsUrl(nextPd.agent.avatar)) {
+      const url = await migrateExternalUrl(nextPd.agent.avatar, {
+        endpoint: '/api/admin/upload-site-image',
+        body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `property_agent_${nextPd.id}` },
+      });
+      if (url) nextPd = { ...nextPd, agent: { ...nextPd.agent, avatar: url } };
+    }
+    const pdImages = await Promise.all(
+      nextPd.images.map(async (img, idx) => {
+        if (!img.src || isSiteAssetsUrl(img.src)) return img;
+        const url = await migrateExternalUrl(img.src, {
+          endpoint: '/api/admin/upload-site-image',
+          body: { folder: CMS_IMAGE_FOLDERS.property, fileKey: `property_detail_${nextPd.id}_${idx}` },
+        });
+        return url ? { ...img, src: url } : img;
+      }),
+    );
+    nextPd = { ...nextPd, images: pdImages };
+
+    let nextPrd = { ...prd };
+    if (nextPrd.agent?.avatar && !isSiteAssetsUrl(nextPrd.agent.avatar)) {
+      const url = await migrateExternalUrl(nextPrd.agent.avatar, {
+        endpoint: '/api/admin/upload-site-image',
+        body: { folder: CMS_IMAGE_FOLDERS.cms, fileKey: `project_agent_${nextPrd.id}` },
+      });
+      if (url) nextPrd = { ...nextPrd, agent: { ...nextPrd.agent, avatar: url } };
+    }
+    const prdImages = await Promise.all(
+      nextPrd.images.map(async (img, idx) => {
+        if (!img.src || isSiteAssetsUrl(img.src)) return img;
+        const url = await migrateExternalUrl(img.src, {
+          endpoint: '/api/admin/upload-site-image',
+          body: { folder: CMS_IMAGE_FOLDERS.property, fileKey: `project_detail_${nextPrd.id}_${idx}` },
+        });
+        return url ? { ...img, src: url } : img;
+      }),
+    );
+    nextPrd = { ...nextPrd, images: prdImages };
+
+    return { migratedPages, nextBranding, nextPd, nextPrd };
+  };
+
+  const cleanupReplacedAssets = async (
+    prevUrls: string[],
+    nextUrls: string[],
+  ) => {
+    const nextSet = new Set(nextUrls);
+    for (const prevUrl of prevUrls) {
+      if (!prevUrl || nextSet.has(prevUrl)) continue;
+      const path = getSiteAssetsPath(prevUrl);
+      if (!path) continue;
+      const deleteEndpoint = path.startsWith('hero-images/')
+        ? '/api/admin/upload-hero-image'
+        : path.startsWith('logos/')
+          ? '/api/admin/upload-logo'
+          : '/api/admin/upload-site-image';
+      try {
+        await fetch(deleteEndpoint, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+      } catch {
+        // non-blocking
+      }
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
     try {
-      await saveAll(pages, branding, propertyDetail, projectDetail);
+      const {
+        migratedPages,
+        nextBranding,
+        nextPd,
+        nextPrd,
+      } = await migrateAllCmsImages(pages, branding, propertyDetail, projectDetail);
+
+      setPages(migratedPages);
+      setBranding(nextBranding);
+      setPropertyDetail(nextPd);
+      setProjectDetail(nextPrd);
+
+      const prevUrls = extractCmsImageUrls(cmsPages, cmsBranding, cmsPropertyDetail, cmsProjectDetail);
+      const nextUrls = extractCmsImageUrls(migratedPages, nextBranding, nextPd, nextPrd);
+      await cleanupReplacedAssets(prevUrls, nextUrls);
+
+      await saveAll(migratedPages, nextBranding, nextPd, nextPrd);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
@@ -1906,7 +2307,13 @@ export default function SettingsPage() {
               </div>
               {propertyDetail.images.map((img, idx) => (
                 <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border border-border bg-card">
-                  <InputField label={`Image ${idx + 1} URL`} value={img.src} onChange={(v) => updatePDImage(idx, 'src', v)} placeholder="https://..." />
+                  <SiteImageUpload
+                    label={`Gallery Image ${idx + 1}`}
+                    folder={CMS_IMAGE_FOLDERS.property}
+                    fileKey={`property_detail_${propertyDetail.id}_${idx}`}
+                    currentUrl={img.src}
+                    onChange={(v) => updatePDImage(idx, 'src', v)}
+                  />
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
                       <InputField label="Alt Text" value={img.alt} onChange={(v) => updatePDImage(idx, 'alt', v)} placeholder="Describe the image" />
@@ -2004,10 +2411,16 @@ export default function SettingsPage() {
                 <InputField label="Email" value={propertyDetail.agent.email} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, email: v } })} />
                 <InputField label="Languages" value={propertyDetail.agent.languages} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, languages: v } })} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField label="Avatar Image URL" value={propertyDetail.agent.avatar} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatar: v } })} placeholder="https://..." />
-                <InputField label="Avatar Alt Text" value={propertyDetail.agent.avatarAlt} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatarAlt: v } })} />
+              <div className="col-span-2">
+                <SiteImageUpload
+                  label="Agent Avatar"
+                  folder={CMS_IMAGE_FOLDERS.cms}
+                  fileKey={`property_agent_${propertyDetail.id}`}
+                  currentUrl={propertyDetail.agent.avatar}
+                  onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatar: v } })}
+                />
               </div>
+              <InputField label="Avatar Alt Text" value={propertyDetail.agent.avatarAlt} onChange={(v) => updatePD({ agent: { ...propertyDetail.agent, avatarAlt: v } })} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Listings Count</label>
@@ -2082,7 +2495,13 @@ export default function SettingsPage() {
               </div>
               {projectDetail.images.map((img, idx) => (
                 <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border border-border bg-card">
-                  <InputField label={`Image ${idx + 1} URL`} value={img.src} onChange={(v) => updatePRDImage(idx, 'src', v)} placeholder="https://..." />
+                  <SiteImageUpload
+                    label={`Gallery Image ${idx + 1}`}
+                    folder={CMS_IMAGE_FOLDERS.property}
+                    fileKey={`project_detail_${projectDetail.id}_${idx}`}
+                    currentUrl={img.src}
+                    onChange={(v) => updatePRDImage(idx, 'src', v)}
+                  />
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
                       <InputField label="Alt Text" value={img.alt} onChange={(v) => updatePRDImage(idx, 'alt', v)} placeholder="Describe the image" />
@@ -2244,10 +2663,16 @@ export default function SettingsPage() {
                 <InputField label="Email" value={projectDetail.agent.email} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, email: v } })} />
                 <InputField label="Languages" value={projectDetail.agent.languages} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, languages: v } })} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField label="Avatar Image URL" value={projectDetail.agent.avatar} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatar: v } })} placeholder="https://..." />
-                <InputField label="Avatar Alt Text" value={projectDetail.agent.avatarAlt} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatarAlt: v } })} />
+              <div className="col-span-2">
+                <SiteImageUpload
+                  label="Agent Avatar"
+                  folder={CMS_IMAGE_FOLDERS.cms}
+                  fileKey={`project_agent_${projectDetail.id}`}
+                  currentUrl={projectDetail.agent.avatar}
+                  onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatar: v } })}
+                />
               </div>
+              <InputField label="Avatar Alt Text" value={projectDetail.agent.avatarAlt} onChange={(v) => updatePRD({ agent: { ...projectDetail.agent, avatarAlt: v } })} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Projects Count</label>

@@ -28,13 +28,15 @@ export default function ResidentialHero() {
   return (
     <section className="relative min-h-[70vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <AppImage
-          src={page.hero_image || "https://images.unsplash.com/photo-1585796607580-6a24cd13362c"}
-          alt="Luxury modern residence exterior, dark glass and steel, dramatic dusk lighting, deep shadows, atmospheric architectural photography"
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw" />
+        {page.hero_image && (
+          <AppImage
+            src={page.hero_image}
+            alt={page.hero_headline || 'Residential hero'}
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw" />
+        )}
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/20 to-transparent" />
       </div>
@@ -43,11 +45,11 @@ export default function ResidentialHero() {
         <div ref={contentRef} className="flex flex-col gap-6">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
             <span className="h-px w-10 bg-primary" />
-            {page.hero_subheadline || 'Residential Collection'}
+            {page.hero_subheadline}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
             {(() => {
-              const headline = page.hero_headline || 'Private Residences Worth Living For';
+              const headline = page.hero_headline || '';
               const words = headline.split(' ');
               const lastWord = words.pop();
               const rest = words.join(' ');
@@ -60,7 +62,7 @@ export default function ResidentialHero() {
             })()}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-            {page.hero_description || 'Penthouses, estates, villas, and townhouses — each selected for architectural distinction and lifestyle excellence.'}
+            {page.hero_description}
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             {page.cta_primary_text && (

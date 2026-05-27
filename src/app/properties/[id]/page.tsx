@@ -36,7 +36,7 @@ function PropertyGallery({ images }: { images: string[] }) {
             </button>
           </>
         )}
-        <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-4 py-2 border border-white/20">
+        <div className="absolute bottom-6 right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20">
           <Icon name="PhotoIcon" size={14} />{images.length} Photo{images.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -333,7 +333,7 @@ export default function PropertyDetailPage() {
   return (
     <main className="bg-background overflow-x-hidden">
       <Header />
-      <div className="pt-[72px]">
+      <div className="pt-[100px] md:pt-[72px]">
         <PropertyGallery images={imageList} />
       </div>
 
@@ -346,15 +346,15 @@ export default function PropertyDetailPage() {
             <Icon name="ChevronRightIcon" size={12} />
             <span className="text-foreground">{property.title}</span>
           </nav>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-4xl font-black text-foreground tracking-tight leading-tight">{property.title}</h1>
+              <h1 className="text-xl md:text-4xl font-black text-foreground tracking-tight leading-tight">{property.title}</h1>
               <p className="text-muted-foreground text-sm mt-1.5 flex items-center gap-1.5">
                 <Icon name="MapPinIcon" size={13} className="text-primary" />{address}
               </p>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-3xl md:text-4xl font-black text-primary tracking-tight">
+            <div className="text-left md:text-right flex-shrink-0">
+              <p className="text-2xl md:text-4xl font-black text-primary tracking-tight">
                 {property.price_aed ? `AED ${Number(property.price_aed).toLocaleString()}` : 'Price on Request'}
               </p>
               {property.price_per_sqft && <p className="text-muted-foreground text-xs mt-1">AED {Number(property.price_per_sqft).toLocaleString()} / sqft</p>}

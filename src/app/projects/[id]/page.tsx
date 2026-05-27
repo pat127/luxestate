@@ -98,16 +98,16 @@ function GallerySection({ images, project }: { images: ProjectImage[]; project: 
     return (
       <section className="relative w-full bg-secondary flex items-center justify-center" style={{ height: 'clamp(360px, 65vh, 720px)' }}>
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+        <div className="absolute bottom-0 left-0 right-0 p-5 md:p-12">
           <div className="max-w-7xl mx-auto">
-            <span className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-3 block">{project.developer}</span>
-            <h1 className="text-3xl md:text-6xl font-black text-white tracking-tight leading-none mb-2">{project.name}</h1>
-            <p className="text-white/70 text-sm md:text-base tracking-widest uppercase">{project.tagline}</p>
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-primary mb-2 md:mb-3 block">{project.developer}</span>
+            <h1 className="text-2xl md:text-6xl font-black text-white tracking-tight leading-none mb-2">{project.name}</h1>
+            <p className="text-white/70 text-xs md:text-base tracking-widest uppercase">{project.tagline}</p>
           </div>
         </div>
-        <div className="absolute top-6 left-6 flex gap-2">
-          <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-4 py-1.5">{project.status}</span>
-          {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 border border-border">{project.completion}</span>}
+        <div className="absolute top-20 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
+          <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-3 md:px-4 py-1.5">{project.status}</span>
+          {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 border border-border">{project.completion}</span>}
         </div>
         <Icon name="BuildingOffice2Icon" size={60} className="text-muted-foreground/30" />
       </section>
@@ -119,19 +119,19 @@ function GallerySection({ images, project }: { images: ProjectImage[]; project: 
       <div className="relative w-full cursor-zoom-in" style={{ height: 'clamp(360px, 65vh, 720px)' }} onClick={() => setLightbox(true)}>
         <AppImage src={images[active]?.src ?? ''} alt={images[active]?.alt ?? project.name} fill className="object-cover" sizes="100vw" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+        <div className="absolute bottom-0 left-0 right-0 p-5 md:p-12">
           <div className="max-w-7xl mx-auto">
-            <span className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-3 block">{project.developer}</span>
-            <h1 className="text-3xl md:text-6xl font-black text-white tracking-tight leading-none mb-2">{project.name}</h1>
-            <p className="text-white/70 text-sm md:text-base tracking-widest uppercase">{project.tagline}</p>
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-primary mb-2 md:mb-3 block">{project.developer}</span>
+            <h1 className="text-2xl md:text-6xl font-black text-white tracking-tight leading-none mb-2">{project.name}</h1>
+            <p className="text-white/70 text-xs md:text-base tracking-widest uppercase">{project.tagline}</p>
           </div>
         </div>
-        <div className="absolute top-6 left-6 flex gap-2">
-          <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-4 py-1.5">{project.status}</span>
-          {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 border border-border">{project.completion}</span>}
+        <div className="absolute top-20 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
+          <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-3 md:px-4 py-1.5">{project.status}</span>
+          {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 border border-border">{project.completion}</span>}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setLightbox(true); }} className="absolute top-6 right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-4 py-2 border border-white/20 hover:border-primary transition-colors">
-          <Icon name="PhotoIcon" size={14} />{images.length} Photos
+        <button onClick={(e) => { e.stopPropagation(); setLightbox(true); }} className="absolute top-20 md:top-6 right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20 hover:border-primary transition-colors">
+          <Icon name="PhotoIcon" size={14} />{images.length}
         </button>
         {images.length > 1 && (
           <>
@@ -347,12 +347,12 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const soldPercent = project.units > 0 ? Math.round((project.sold / project.units) * 100) : 0;
+  const soldPercent = 0; // kept for type safety
 
   return (
     <main className="bg-background overflow-x-hidden">
       <Header />
-      <div className="pt-[72px]"><GallerySection images={project.images} project={project} /></div>
+      <div className="pt-[100px] md:pt-[72px]"><GallerySection images={project.images} project={project} /></div>
 
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-5">
@@ -366,23 +366,14 @@ export default function ProjectDetailPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               {project.developer && <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary block mb-2">{project.developer}</span>}
-              <h2 className="text-2xl md:text-4xl font-black text-foreground tracking-tight">{project.name}</h2>
+              <h2 className="text-xl md:text-4xl font-black text-foreground tracking-tight">{project.name}</h2>
               {project.address && <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1.5"><Icon name="MapPinIcon" size={13} className="text-primary" />{project.address}</p>}
             </div>
-            <div className="text-right flex-shrink-0 space-y-1">
-              {project.priceFrom && <p className="text-3xl md:text-4xl font-black text-primary">{project.priceFrom}</p>}
+            <div className="text-left md:text-right flex-shrink-0 space-y-1">
+              {project.priceFrom && <p className="text-2xl md:text-4xl font-black text-primary">{project.priceFrom}</p>}
               <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Ref: {project.reference}</p>
             </div>
           </div>
-          {project.units > 0 && (
-            <div className="mt-5 pt-5 border-t border-border">
-              <div className="flex justify-between text-xs text-muted-foreground uppercase tracking-widest mb-2">
-                <span>{project.sold} of {project.units} Units Reserved</span>
-                <span className="text-primary font-bold">{soldPercent}% Sold</span>
-              </div>
-              <div className="h-1.5 bg-border overflow-hidden"><div className="h-full bg-primary transition-all duration-1000" style={{ width: `${soldPercent}%` }} /></div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -390,7 +381,6 @@ export default function ProjectDetailPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-4">
           <div className="flex gap-3 min-w-max md:min-w-0 flex-wrap">
             {[
-              project.units > 0 ? { icon: 'HomeIcon', label: 'Total Units', value: `${project.units} Residences` } : null,
               project.completion ? { icon: 'CalendarIcon', label: 'Completion', value: project.completion } : null,
               project.location ? { icon: 'MapPinIcon', label: 'Location', value: project.location } : null,
               project.type ? { icon: 'StarIcon', label: 'Type', value: project.type } : null,

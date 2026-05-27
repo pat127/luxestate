@@ -74,16 +74,21 @@ const AppImage = memo(function AppImage({
     const imgRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
-        setImageSrc(sanitizeSrc(src, fallbackSrc));
+        const next = sanitizeSrc(src, fallbackSrc);
+        setImageSrc(next ? next : null);
         setHasError(false);
         setLoaded(false);
     }, [src, fallbackSrc]);
 
     const handleError = useCallback(() => {
-        if (!hasError && imageSrc !== fallbackSrc) {
-            setImageSrc(fallbackSrc);
+        if (hasError) return;
+        if (!fallbackSrc || imageSrc === fallbackSrc) {
+            setImageSrc(null);
             setHasError(true);
+            return;
         }
+        setImageSrc(fallbackSrc);
+        setHasError(true);
     }, [hasError, imageSrc, fallbackSrc]);
 
     const handleLoad = useCallback(() => {
@@ -159,6 +164,7 @@ const AppImage = memo(function AppImage({
             width={width || 400}
             height={height || 300}
             sizes={sizes}
+            style={{ width: 'auto', height: 'auto' }}
             {...props}
         />
     );

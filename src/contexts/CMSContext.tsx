@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-export type PageKey = 'home' | 'residential' | 'commercial' | 'projects' | 'about' | 'blog' | 'contact';
+export type PageKey = 'home' | 'residential' | 'commercial' | 'projects' | 'about' | 'blog' | 'contact' | 'international';
 
 export interface HomepageBlock {
   key: string;
@@ -810,6 +810,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Private Residences Worth Living For',
   hero_subheadline: "Villas, penthouses & luxury apartments in Dubai's finest locations",
   hero_description: 'Discover our curated portfolio of ultra-premium residential properties, from beachfront villas to sky-high penthouses.',
+  hero_image: 'https://images.unsplash.com/photo-1585796607580-6a24cd13362c',
   cta_primary_text: 'View All Properties',
   cta_primary_link: '/residential#listings',
   cta_secondary_text: 'Book Viewing',
@@ -824,6 +825,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Premium Commercial Real Estate',
   hero_subheadline: "Office spaces, retail units & investment-grade commercial properties",
   hero_description: "Strategic commercial properties in Dubai's most sought-after business districts, offering exceptional yields and capital appreciation.",
+  hero_image: 'https://images.unsplash.com/photo-1715568162669-1772f6e7a81d',
   cta_primary_text: 'View Commercial',
   cta_primary_link: '/commercial#listings',
   cta_secondary_text: 'Get Investment Report',
@@ -838,6 +840,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Off-Plan & New Developments',
   hero_subheadline: "Exclusive access to Dubai's most anticipated new projects",
   hero_description: "Invest in tomorrow's landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai's leading developers.",
+  hero_image: 'https://img.rocket.new/generatedImages/rocket_gen_img_11f0f8934-1772201742256.png',
   cta_primary_text: 'View Projects',
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
@@ -852,6 +855,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Redefining Luxury Real Estate',
   hero_subheadline: "A legacy of excellence in Dubai's premium property market",
   hero_description: 'Cove Estates was founded with a singular vision: to provide ultra-high-net-worth individuals with unparalleled access to the world\'s most exclusive properties.',
+  hero_image: 'https://images.unsplash.com/photo-1571907761804-27e376886f3d',
   cta_primary_text: 'Meet Our Team',
   cta_primary_link: '/about#team',
   cta_secondary_text: 'Our Story',
@@ -866,6 +870,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Market Insights & News',
   hero_subheadline: "Expert analysis on Dubai's luxury real estate market",
   hero_description: "Stay informed with the latest market trends, investment insights, and property news from Cove Estates's expert team.",
+  hero_image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab',
   cta_primary_text: 'Read Latest',
   cta_primary_link: '/blog#latest',
   cta_secondary_text: 'Subscribe',
@@ -887,6 +892,21 @@ export const DEFAULT_PAGES: PageConfig[] = [
   meta_title: 'Contact Cove Estates — Luxury Real Estate Dubai',
   meta_description: "Contact Cove Estates's team of luxury property specialists in Dubai.",
   sections: { contact_form: true, map_section: true, office_details: true, whatsapp_button: true }
+},
+{
+  key: 'international',
+  label: 'International',
+  hero_headline: 'World-Class Properties, Every Continent',
+  hero_subheadline: 'Global Portfolio',
+  hero_description: "Curated international developments from the world's most sought-after cities — exclusively sourced for UAE-based investors seeking global diversification.",
+  hero_image: 'https://images.unsplash.com/photo-1690219292358-88f9a3cdbfb8',
+  cta_primary_text: 'Explore Global',
+  cta_primary_link: '/international#gallery',
+  cta_secondary_text: 'Register Interest',
+  cta_secondary_link: '/#contact',
+  meta_title: 'International Properties — Cove Estates',
+  meta_description: 'Curated international luxury properties for UAE-based investors seeking global diversification.',
+  sections: { gallery: true, inquiry: true }
 }];
 
 
@@ -920,14 +940,17 @@ const CMSContext = createContext<CMSContextValue>({
 });
 
 function mergeWithDefaults(stored: PageConfig): PageConfig {
+  const defaultPage = DEFAULT_PAGES.find((p) => p.key === stored.key);
   if (stored.key !== 'home') {
-    // Merge sections: default page sections provide fallback values,
-    // but stored values (including false) always take priority
-    const defaultPage = DEFAULT_PAGES.find((p) => p.key === stored.key);
     const mergedSections = defaultPage ?
     { ...defaultPage.sections, ...stored.sections } :
     stored.sections;
-    return { ...stored, sections: mergedSections };
+    return {
+      ...(defaultPage || {}),
+      ...stored,
+      sections: mergedSections,
+      hero_image: stored.hero_image || defaultPage?.hero_image || '',
+    };
   }
   // Deep merge: stored values take priority, only fill in completely missing keys
   return {
@@ -982,6 +1005,7 @@ export function CMSProvider({ children }: { children: React.ReactNode }) {
   const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const supabaseRef = useRef(createClient());
+  const cmsUpdatedAtRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!branding) return;
@@ -1001,23 +1025,102 @@ export function CMSProvider({ children }: { children: React.ReactNode }) {
 
     supabaseRef.current
       .from('site_settings')
-      .select('data')
+      .select('data, updated_at')
       .eq('key', 'cms_config')
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return;
         if (!error && data?.data && Object.keys(data.data).length > 0) {
           const remote = parseCMSData(data.data as CMSData);
+          cmsUpdatedAtRef.current = (data as any)?.updated_at ?? null;
           setPages(remote.pages);
           setBranding(remote.branding);
           setPropertyDetail(remote.propertyDetail);
           setProjectDetail(remote.projectDetail);
           setLastSaved(remote.lastSaved);
+        } else {
+          const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const seedPayload: CMSData = {
+            pages: DEFAULT_PAGES,
+            branding: DEFAULT_BRANDING,
+            propertyDetail: DEFAULT_PROPERTY_DETAIL,
+            projectDetail: DEFAULT_PROJECT_DETAIL,
+            lastSaved: ts,
+          };
+          await supabaseRef.current
+            .from('site_settings')
+            .upsert({ key: 'cms_config', data: seedPayload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+          if (!cancelled) setLastSaved(ts);
         }
         setLoaded(true);
       });
 
     return () => { cancelled = true; };
+  }, []);
+
+  // Keep CMS data in sync across all open sessions.
+  // When an admin saves changes, visitors should see updated content without refresh.
+  useEffect(() => {
+    const sb = supabaseRef.current;
+    const channel = sb
+      .channel('site_settings_cms_config')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_settings',
+          filter: 'key=eq.cms_config',
+        },
+        (payload) => {
+          const nextData = (payload as any)?.new?.data;
+          const nextUpdatedAt = (payload as any)?.new?.updated_at as string | undefined;
+          if (!nextData || typeof nextData !== 'object') return;
+          const remote = parseCMSData(nextData as CMSData);
+          if (nextUpdatedAt) cmsUpdatedAtRef.current = nextUpdatedAt;
+          setPages(remote.pages);
+          setBranding(remote.branding);
+          setPropertyDetail(remote.propertyDetail);
+          setProjectDetail(remote.projectDetail);
+          setLastSaved(remote.lastSaved);
+          setLoaded(true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, []);
+
+  // Fallback for environments where Realtime replication isn't enabled for the table:
+  // periodically check `updated_at` and refresh if it changed.
+  useEffect(() => {
+    const sb = supabaseRef.current;
+    const interval = setInterval(async () => {
+      try {
+        const { data, error } = await sb
+          .from('site_settings')
+          .select('data, updated_at')
+          .eq('key', 'cms_config')
+          .single();
+        if (error || !data?.data) return;
+        const nextUpdatedAt = (data as any)?.updated_at as string | undefined;
+        if (!nextUpdatedAt || nextUpdatedAt === cmsUpdatedAtRef.current) return;
+        cmsUpdatedAtRef.current = nextUpdatedAt;
+        const remote = parseCMSData(data.data as CMSData);
+        setPages(remote.pages);
+        setBranding(remote.branding);
+        setPropertyDetail(remote.propertyDetail);
+        setProjectDetail(remote.projectDetail);
+        setLastSaved(remote.lastSaved);
+        setLoaded(true);
+      } catch {
+        // ignore transient network errors
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const getPage = useCallback(

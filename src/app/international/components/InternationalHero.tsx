@@ -3,8 +3,11 @@
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { useCMSPage } from '@/contexts/CMSContext';
+import Link from 'next/link';
 
 export default function InternationalHero() {
+  const page = useCMSPage('international');
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,14 +27,15 @@ export default function InternationalHero() {
   return (
     <section className="relative min-h-[75vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <AppImage
-          src="https://images.unsplash.com/photo-1690219292358-88f9a3cdbfb8"
-          alt="Dramatic aerial cityscape of a global metropolis at dusk, glittering skyline reflected in water, cinematic golden hour lighting"
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw" />
-        
+        {page.hero_image && (
+          <AppImage
+            src={page.hero_image}
+            alt={page.hero_headline || 'International hero'}
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw" />
+        )}
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-transparent" />
       </div>
@@ -40,15 +44,37 @@ export default function InternationalHero() {
         <div ref={contentRef} className="flex flex-col gap-6">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
             <span className="h-px w-10 bg-primary" />
-            Global Portfolio
+            {page.hero_subheadline}
           </span>
           <h1 className="text-hero text-foreground max-w-3xl">
-            World-Class Properties,{' '}
-            <span className="text-gold-shimmer">Every Continent</span>
+            {(() => {
+              const headline = page.hero_headline || '';
+              const words = headline.split(' ');
+              const lastWord = words.pop();
+              const rest = words.join(' ');
+              return (
+                <>
+                  {rest && <span>{rest} </span>}
+                  <span className="text-gold-shimmer">{lastWord}</span>
+                </>
+              );
+            })()}
           </h1>
           <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-            Curated international developments from the world's most sought-after cities — exclusively sourced for UAE-based investors seeking global diversification.
+            {page.hero_description}
           </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            {page.cta_primary_text && (
+              <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
+                {page.cta_primary_text}
+              </Link>
+            )}
+            {page.cta_secondary_text && (
+              <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
+                {page.cta_secondary_text}
+              </Link>
+            )}
+          </div>
           <div className="flex flex-wrap gap-6 pt-2">
             {[
             { icon: 'GlobeAltIcon', label: '20+ Countries' },
@@ -64,5 +90,4 @@ export default function InternationalHero() {
         </div>
       </div>
     </section>);
-
 }

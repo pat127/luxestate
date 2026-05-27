@@ -13,9 +13,9 @@ export default function AboutPage() {
   const { getPage, branding } = useCMS();
   const aboutPage = getPage('about');
   const ab: AboutContent = aboutPage.about_content ?? DEFAULT_ABOUT_CONTENT;
-  const bPhone = branding?.phone || '+971 50 886 2683';
-  const bEmail = branding?.email || 'admin@coveestates.com';
-  const bAddress = branding?.address || '8th Level, Moosa Tower 1, Dubai, UAE';
+  const bPhone = branding?.phone || '';
+  const bEmail = branding?.email || '';
+  const bAddress = branding?.address || '';
 
   const heroRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLElement>(null);
@@ -61,14 +61,15 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="relative min-h-[75vh] flex flex-col justify-end overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <AppImage
-            src={aboutPage.hero_image || "https://images.unsplash.com/photo-1571907761804-27e376886f3d"}
-            alt="Aerial view of Dubai skyline at dusk with glittering towers reflected in the water, warm golden light, cinematic atmosphere"
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw" />
-
+          {aboutPage.hero_image && (
+            <AppImage
+              src={aboutPage.hero_image}
+              alt={aboutPage.hero_headline || 'About hero'}
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw" />
+          )}
           <div className="absolute inset-0 hero-overlay" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-transparent" />
         </div>
@@ -76,11 +77,11 @@ export default function AboutPage() {
           <div ref={heroRef} className="flex flex-col gap-6">
             <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
               <span className="h-px w-10 bg-primary" />
-              Our Story
+              {aboutPage.hero_subheadline || 'Our Story'}
             </span>
             <h1 className="text-hero text-foreground max-w-3xl">
               {(() => {
-                const headline = aboutPage.hero_headline || 'Built on Trust, Defined by Excellence';
+                const headline = aboutPage.hero_headline || '';
                 const words = headline.trim().split(' ');
                 const lastWord = words.pop();
                 const rest = words.join(' ');
@@ -93,7 +94,7 @@ export default function AboutPage() {
               })()}
             </h1>
             <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
-              {aboutPage.hero_description || `Since 2006, ${branding?.company_name || 'Cove Estates'} has been the trusted partner for discerning clients seeking the finest properties in Dubai and beyond.`}
+              {aboutPage.hero_description}
             </p>
             <div className="flex flex-wrap gap-6 pt-2">
               {ab.hero_stats.map((stat) =>

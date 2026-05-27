@@ -63,7 +63,6 @@ export default function ProjectDetailsPage() {
   const milestones: any[] = Array.isArray(project.milestones) ? project.milestones : [];
   const amenities: string[] = Array.isArray(project.amenities) ? project.amenities : [];
   const floorPlans: any[] = Array.isArray(project.floor_plans) ? project.floor_plans : [];
-  const soldPct = project.total_units > 0 ? Math.round((project.sold_units / project.total_units) * 100) : 0;
   const shareUrl = `https://coveestate.com/projects/${id}`;
 
   const handleCopyLink = () => {
@@ -185,17 +184,6 @@ export default function ProjectDetailsPage() {
                 <p className="text-xs text-muted-foreground mt-1">Starting From</p>
               </div>
             </div>
-            {project.total_units > 0 && (
-              <div className="pt-3 border-t border-border">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-muted-foreground">Units Sold</span>
-                  <span className="text-foreground font-semibold">{project.sold_units}/{project.total_units} ({soldPct}%)</span>
-                </div>
-                <div className="h-1.5 bg-secondary overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-700" style={{ width: `${soldPct}%` }} />
-                </div>
-              </div>
-            )}
           </div>
 
           {activeTab === 'overview' && (

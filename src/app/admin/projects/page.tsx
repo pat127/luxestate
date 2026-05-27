@@ -361,7 +361,6 @@ function ProjectsPageInner() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filtered.map((project) => {
-              const soldPct = project.totalUnits > 0 ? Math.round(project.soldUnits / project.totalUnits * 100) : 0;
               const coverImg = getProjectCoverImage(project);
               return (
                 <div key={project.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(project.id) ? 'border-primary/40' : 'border-border'}`}>
@@ -393,27 +392,6 @@ function ProjectsPageInner() {
                       <div><p className="text-xs text-muted-foreground">Handover</p><p className="text-sm font-semibold text-foreground mt-0.5">{project.handoverDate || '—'}</p></div>
                       <div><p className="text-xs text-muted-foreground">Starting Price</p><p className="text-sm font-semibold text-primary mt-0.5 truncate">{project.startingPrice ? `AED ${project.startingPrice}` : '—'}</p></div>
                     </div>
-                    {/* Unit availability — restricted to admins only; agents see count but not breakdown */}
-                    {project.totalUnits > 0 && (
-                      <div className="mb-4">
-                        {canViewAll ? (
-                          <>
-                            <div className="flex justify-between text-xs mb-1.5">
-                              <span className="text-muted-foreground">Units Sold</span>
-                              <span className="text-foreground font-semibold">{project.soldUnits}/{project.totalUnits} ({soldPct}%)</span>
-                            </div>
-                            <div className="h-1.5 bg-secondary overflow-hidden">
-                              <div className="h-full bg-primary transition-all duration-700" style={{ width: `${soldPct}%` }} />
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Icon name="LockClosedIcon" size={12} />
-                            <span>Unit details restricted — {project.totalUnits} total units</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                     <div className="flex gap-2">
                       {canEditProject && (
                         <button onClick={() => openEdit(project.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
