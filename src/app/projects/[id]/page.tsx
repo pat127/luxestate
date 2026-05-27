@@ -105,7 +105,7 @@ function GallerySection({ images, project }: { images: ProjectImage[]; project: 
             <p className="text-white/70 text-xs md:text-base tracking-widest uppercase">{project.tagline}</p>
           </div>
         </div>
-        <div className="absolute top-20 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
+        <div className="absolute top-24 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
           <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-3 md:px-4 py-1.5">{project.status}</span>
           {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 border border-border">{project.completion}</span>}
         </div>
@@ -126,11 +126,11 @@ function GallerySection({ images, project }: { images: ProjectImage[]; project: 
             <p className="text-white/70 text-xs md:text-base tracking-widest uppercase">{project.tagline}</p>
           </div>
         </div>
-        <div className="absolute top-20 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
+        <div className="absolute top-24 md:top-6 left-4 md:left-6 flex gap-2 flex-wrap max-w-[calc(100%-80px)]">
           <span className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.25em] px-3 md:px-4 py-1.5">{project.status}</span>
           {project.completion && <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 border border-border">{project.completion}</span>}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setLightbox(true); }} className="absolute top-20 md:top-6 right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20 hover:border-primary transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); setLightbox(true); }} className="absolute top-24 md:top-6 right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20 hover:border-primary transition-colors">
           <Icon name="PhotoIcon" size={14} />{images.length}
         </button>
         {images.length > 1 && (
@@ -287,6 +287,79 @@ function EnquiryForm({ projectName, reference, unitTypes, projectId }: { project
       </button>
       <p className="text-[10px] text-muted-foreground text-center">Download brochure & floor plans sent instantly upon registration</p>
     </form>
+  );
+}
+
+// ─── Project Location Map (English tiles, no API key) ────────────────────────
+function ProjectLocationMap({ lat, lng, address }: { lat: number; lng: number; address?: string }) {
+  const zoom = 14;
+  const mapW = 600;
+  const mapH = 360;
+
+  const lat2tile = (la: number, z: number) =>
+    Math.floor((1 - Math.log(Math.tan(la * Math.PI / 180) + 1 / Math.cos(la * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
+  const lng2tile = (lo: number, z: number) =>
+    Math.floor((lo + 180) / 360 * Math.pow(2, z));
+
+  const latLngToPixel = (la: number, lo: number, cLat: number, cLng: number, z: number, w: number, h: number) => {
+    const scale = Math.pow(2, z) * 256;
+    const toX = (l: number) => (l + 180) / 360 * scale;
+    const toY = (l: number) => {
+      const s = Math.sin(l * Math.PI / 180);
+      return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * scale;
+    };
+    return { x: toX(lo) - toX(cLng) + w / 2, y: toY(la) - toY(cLat) + h / 2 };
+  };
+
+  const centerTileX = lng2tile(lng, zoom);
+  const centerTileY = lat2tile(lat, zoom);
+  const pinPixel = latLngToPixel(lat, lng, lat, lng, zoom, mapW, mapH);
+
+  return (
+    <div
+      className="relative border border-border overflow-hidden bg-secondary"
+      style={{ height: 360 }}
+    >
+      {/* CartoCDN Voyager tiles — English labels, no API key */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[-1, 0, 1].map((dy) =>
+          [-1, 0, 1].map((dx) => {
+            const tx = centerTileX + dx;
+            const ty = centerTileY + dy;
+            const tileSize = 256;
+            const tileLeft = mapW / 2 + dx * tileSize - (mapW / 2 % tileSize);
+            const tileTop = mapH / 2 + dy * tileSize - (mapH / 2 % tileSize);
+            return (
+              <img
+                key={`${dx}-${dy}`}
+                src={`https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/${zoom}/${tx}/${ty}.png`}
+                alt=""
+                style={{ position: 'absolute', left: tileLeft, top: tileTop, width: tileSize, height: tileSize }}
+              />
+            );
+          })
+        )}
+      </div>
+      {/* Pin */}
+      <div
+        className="absolute pointer-events-none z-10"
+        style={{ left: pinPixel.x - 14, top: pinPixel.y - 36 }}
+      >
+        <div className="flex flex-col items-center">
+          <div className="w-7 h-7 bg-primary border-2 border-white rounded-full shadow-xl flex items-center justify-center">
+            <div className="w-2.5 h-2.5 bg-white rounded-full" />
+          </div>
+          <div className="w-0.5 h-5 bg-primary" />
+        </div>
+      </div>
+      {address && (
+        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm border border-border px-4 py-2">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Icon name="MapPinIcon" size={12} className="text-primary" />{address}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -454,10 +527,7 @@ export default function ProjectDetailPage() {
             )}
             <div className="space-y-5">
               <div className="flex items-center gap-4"><span className="text-xs font-black uppercase tracking-[0.3em] text-primary">Location</span><div className="flex-1 h-px bg-border" /></div>
-              <div className="relative border border-border overflow-hidden" style={{ height: 360 }}>
-                <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${project.location_coords.lng - 0.01},${project.location_coords.lat - 0.01},${project.location_coords.lng + 0.01},${project.location_coords.lat + 0.01}&layer=mapnik&marker=${project.location_coords.lat},${project.location_coords.lng}`} width="100%" height="100%" style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) saturate(0.8)' }} loading="lazy" title={`Map showing ${project.address || project.name}`} />
-                {project.address && <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm border border-border px-4 py-2"><p className="text-xs text-muted-foreground flex items-center gap-1.5"><Icon name="MapPinIcon" size={12} className="text-primary" />{project.address}</p></div>}
-              </div>
+              <ProjectLocationMap lat={project.location_coords.lat} lng={project.location_coords.lng} address={project.address} />
             </div>
             <div className="lg:hidden space-y-5">
               <div className="flex items-center gap-4"><span className="text-xs font-black uppercase tracking-[0.3em] text-primary">Register Interest</span><div className="flex-1 h-px bg-border" /></div>

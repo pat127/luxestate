@@ -36,7 +36,7 @@ function PropertyGallery({ images }: { images: string[] }) {
             </button>
           </>
         )}
-        <div className="absolute bottom-6 right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20">
+        <div className="absolute top-24 md:bottom-6 md:top-auto right-4 md:right-6 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-3 md:px-4 py-2 border border-white/20">
           <Icon name="PhotoIcon" size={14} />{images.length} Photo{images.length !== 1 ? 's' : ''}
         </div>
       </div>
