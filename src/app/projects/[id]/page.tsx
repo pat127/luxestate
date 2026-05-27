@@ -320,7 +320,7 @@ function ProjectLocationMap({ lat, lng, address }: { lat: number; lng: number; a
       className="relative border border-border overflow-hidden bg-secondary"
       style={{ height: 360 }}
     >
-      {/* CartoCDN Voyager tiles — English labels, no API key */}
+      {/* Esri World Street Map — English labels globally, no API key required */}
       <div className="absolute inset-0 pointer-events-none">
         {[-1, 0, 1].map((dy) =>
           [-1, 0, 1].map((dx) => {
@@ -332,7 +332,7 @@ function ProjectLocationMap({ lat, lng, address }: { lat: number; lng: number; a
             return (
               <img
                 key={`${dx}-${dy}`}
-                src={`https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/${zoom}/${tx}/${ty}.png`}
+                src={`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${zoom}/${ty}/${tx}`}
                 alt=""
                 style={{ position: 'absolute', left: tileLeft, top: tileTop, width: tileSize, height: tileSize }}
               />

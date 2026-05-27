@@ -56,9 +56,13 @@ export default function ResidentialListings() {
         setListings(data.map((p) => {
           const imgs = Array.isArray(p.image_urls)
             ? p.image_urls
-            : typeof p.image_urls === 'string'
-              ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+            : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
+          const rawCategory = p.prop_category || '';
+          // Use specific unit type; fall back only if category is the generic 'Residential' label
+          const displayTag = (rawCategory && rawCategory.toLowerCase() !== 'residential')
+            ? rawCategory
+            : 'Property';
           return {
             id: p.id,
             name: p.title || '',
@@ -67,7 +71,7 @@ export default function ResidentialListings() {
             beds: p.bedrooms || 0,
             baths: p.bathrooms || 0,
             sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
-            tag: p.prop_category || 'Property',
+            tag: displayTag,
             status: p.availability || 'Available',
             image: imgs.length > 0 ? imgs[0] : '',
             alt: p.title || 'Property image',

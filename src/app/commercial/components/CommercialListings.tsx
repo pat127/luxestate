@@ -51,15 +51,19 @@ export default function CommercialListings() {
         setListings(data.map((p) => {
           const imgs = Array.isArray(p.image_urls)
             ? p.image_urls
-            : typeof p.image_urls === 'string'
-              ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+            : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
+          const rawCategory = p.prop_category || '';
+          // Use specific unit type; fall back only if category is the generic 'Commercial' label
+          const displayType = (rawCategory && rawCategory.toLowerCase() !== 'commercial')
+            ? rawCategory
+            : 'Commercial';
           return {
             id: p.id,
             name: p.title || '',
             location: p.location_area || '',
             price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
-            type: p.prop_category || 'Commercial',
+            type: displayType,
             sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
             capRate: '—',
             occupancy: '—',
