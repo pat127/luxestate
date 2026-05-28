@@ -748,7 +748,12 @@ export default function PropertiesPage() {
                       <div>
                         <label className={labelCls}>Property Type</label>
                         <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
-                          {pf.types.map(t => <option key={t}>{t}</option>)}
+                          <optgroup label="Residential">
+                            {(pf.residentialTypes.length > 0 ? pf.residentialTypes : ['Apartment', 'Villa', 'Townhouse', 'Penthouse']).map(t => <option key={t}>{t}</option>)}
+                          </optgroup>
+                          <optgroup label="Commercial">
+                            {(pf.commercialTypes.length > 0 ? pf.commercialTypes : ['Office', 'Retail', 'Warehouse', 'Investment', 'Land']).map(t => <option key={t}>{t}</option>)}
+                          </optgroup>
                         </select>
                       </div>
                       <div>

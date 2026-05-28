@@ -22,7 +22,7 @@ interface CommercialListing {
   featured: boolean;
 }
 
-const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Mixed-Use', 'Hospitality', 'Warehouse'];
+const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
 
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
@@ -30,8 +30,8 @@ export default function CommercialListings() {
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
   const supabase = createClient();
-  const commercialTypes = pf.types.filter(t => ['Office', 'Retail', 'Warehouse', 'Land'].includes(t) || !['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'].includes(t));
-  const types = ['All', ...commercialTypes];
+  const commercialTypeList = pf.commercialTypes.length > 0 ? pf.commercialTypes : ['Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
+  const types = ['All', ...commercialTypeList];
 
   useEffect(() => {
     const loadCommercial = async () => {

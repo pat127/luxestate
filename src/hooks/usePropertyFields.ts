@@ -17,11 +17,35 @@ export interface PropertyFieldGroup {
 const KNOWN_KEYS = new Set([
   'statuses', 'types', 'categories', 'furnishing',
   'completion', 'amenities', 'views', 'payment_plans',
+  'residential_types', 'commercial_types',
 ]);
 
 const DEFAULT_PROPERTY_FIELDS: PropertyFieldGroup[] = [
   { key: 'statuses', label: 'Property Statuses', options: [{ id: 1, value: 'Available' }, { id: 2, value: 'Under Offer' }, { id: 3, value: 'Sold' }, { id: 4, value: 'Rented' }, { id: 5, value: 'Off Market' }, { id: 6, value: 'Coming Soon' }] },
-  { key: 'types', label: 'Property Types', options: [{ id: 1, value: 'Apartment' }, { id: 2, value: 'Villa' }, { id: 3, value: 'Townhouse' }, { id: 4, value: 'Penthouse' }, { id: 5, value: 'Duplex' }, { id: 6, value: 'Studio' }, { id: 7, value: 'Office' }, { id: 8, value: 'Retail' }, { id: 9, value: 'Warehouse' }, { id: 10, value: 'Land' }] },
+  { key: 'types', label: 'Property Types', options: [
+    { id: 1, value: 'Apartment' },
+    { id: 2, value: 'Villa' },
+    { id: 3, value: 'Townhouse' },
+    { id: 4, value: 'Penthouse' },
+    { id: 5, value: 'Office' },
+    { id: 6, value: 'Retail' },
+    { id: 7, value: 'Warehouse' },
+    { id: 8, value: 'Investment' },
+    { id: 9, value: 'Land' },
+  ]},
+  { key: 'residential_types', label: 'Residential Types', options: [
+    { id: 1, value: 'Apartment' },
+    { id: 2, value: 'Villa' },
+    { id: 3, value: 'Townhouse' },
+    { id: 4, value: 'Penthouse' },
+  ]},
+  { key: 'commercial_types', label: 'Commercial Types', options: [
+    { id: 1, value: 'Office' },
+    { id: 2, value: 'Retail' },
+    { id: 3, value: 'Warehouse' },
+    { id: 4, value: 'Investment' },
+    { id: 5, value: 'Land' },
+  ]},
   { key: 'categories', label: 'Listing Categories', options: [{ id: 1, value: 'Residential' }, { id: 2, value: 'Commercial' }, { id: 3, value: 'Off-Plan' }, { id: 4, value: 'Investment' }] },
   { key: 'furnishing', label: 'Furnishing Status', options: [{ id: 1, value: 'Furnished' }, { id: 2, value: 'Semi-Furnished' }, { id: 3, value: 'Unfurnished' }] },
   { key: 'completion', label: 'Completion Status', options: [{ id: 1, value: 'Ready' }, { id: 2, value: 'Off-Plan' }, { id: 3, value: 'Under Construction' }] },
@@ -76,6 +100,8 @@ export function usePropertyFields() {
   const amenities = useMemo(() => valuesOf(groups, 'amenities'), [groups]);
   const views = useMemo(() => valuesOf(groups, 'views'), [groups]);
   const paymentPlans = useMemo(() => valuesOf(groups, 'payment_plans'), [groups]);
+  const residentialTypes = useMemo(() => valuesOf(groups, 'residential_types'), [groups]);
+  const commercialTypes = useMemo(() => valuesOf(groups, 'commercial_types'), [groups]);
   const customGroups = useMemo(() => groups.filter((g) => !KNOWN_KEYS.has(g.key)), [groups]);
 
   return {
@@ -88,6 +114,8 @@ export function usePropertyFields() {
     amenities,
     views,
     paymentPlans,
+    residentialTypes,
+    commercialTypes,
     customGroups,
     loaded,
   };

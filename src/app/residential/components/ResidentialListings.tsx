@@ -23,7 +23,7 @@ interface Property {
   featured: boolean;
 }
 
-const RESIDENTIAL_CATEGORIES = ['Residential', 'Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Duplex', 'Studio'];
+const RESIDENTIAL_CATEGORIES = ['Residential', 'Apartment', 'Villa', 'Townhouse', 'Penthouse'];
 
 type SortKey = 'default' | 'price-asc' | 'price-desc' | 'newest';
 
@@ -36,7 +36,7 @@ export default function ResidentialListings() {
   const pf = usePropertyFields();
   const supabase = createClient();
 
-  const filters = ['All', ...pf.types];
+  const filters = ['All', ...( pf.residentialTypes.length > 0 ? pf.residentialTypes : ['Apartment', 'Villa', 'Townhouse', 'Penthouse'])];
 
   useEffect(() => {
     const loadProperties = async () => {
