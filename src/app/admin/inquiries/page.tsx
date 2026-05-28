@@ -18,10 +18,12 @@ interface Inquiry {
   assigned_agent: string;
   follow_up_date: string;
   created_at: string;
+  form_type: string;
 }
 
 const STATUS_OPTIONS = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
 const SOURCE_OPTIONS = ['All', 'Website', 'Contact Form', 'Property Enquiry', 'Project Registration', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'Other'];
+const FORM_TYPE_OPTIONS = ['All', 'contact', 'property_inquiry', 'project_registration'];
 
 const statusBadge: Record<string, string> = {
   New: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
@@ -45,6 +47,12 @@ const sourceBadge: Record<string, string> = {
   Bayut: 'text-orange-400',
 };
 
+const formTypeBadge: Record<string, { label: string; cls: string }> = {
+  contact: { label: 'Contact Form', cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+  property_inquiry: { label: 'Property Enquiry', cls: 'bg-primary/10 text-primary border border-primary/20' },
+  project_registration: { label: 'Project Registration', cls: 'bg-purple-500/10 text-purple-400 border border-purple-500/20' },
+};
+
 function formatDate(iso: string) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -65,6 +73,7 @@ export default function InquiriesPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterSource, setFilterSource] = useState('All');
+  const [filterFormType, setFilterFormType] = useState('All');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -101,9 +110,10 @@ export default function InquiriesPage() {
         i.notes?.toLowerCase().includes(q);
       const matchStatus = filterStatus === 'All' || i.status === filterStatus;
       const matchSource = filterSource === 'All' || i.source === filterSource;
+      const matchFormType = filterFormType === 'All' || i.form_type === filterFormType;
       const matchFrom = !filterDateFrom || new Date(i.created_at) >= new Date(filterDateFrom);
       const matchTo = !filterDateTo || new Date(i.created_at) <= new Date(filterDateTo + 'T23:59:59');
-      return matchSearch && matchStatus && matchSource && matchFrom && matchTo;
+      return matchSearch && matchStatus && matchSource && matchFormType && matchFrom && matchTo;
     })
     .sort((a, b) => {
       let valA: string = a[sortField] ?? '';
@@ -121,6 +131,9 @@ export default function InquiriesPage() {
     const now = new Date();
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
   }).length;
+  const contactFormCount = inquiries.filter((i) => i.form_type === 'contact').length;
+  const propertyInquiryCount = inquiries.filter((i) => i.form_type === 'property_inquiry').length;
+  const projectRegCount = inquiries.filter((i) => i.form_type === 'project_registration').length;
 
   // Selection
   const allSelected = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
@@ -175,11 +188,12 @@ export default function InquiriesPage() {
     setSearch('');
     setFilterStatus('All');
     setFilterSource('All');
+    setFilterFormType('All');
     setFilterDateFrom('');
     setFilterDateTo('');
   };
 
-  const hasActiveFilters = search || filterStatus !== 'All' || filterSource !== 'All' || filterDateFrom || filterDateTo;
+  const hasActiveFilters = search || filterStatus !== 'All' || filterSource !== 'All' || filterFormType !== 'All' || filterDateFrom || filterDateTo;
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <Icon name="ChevronUpDownIcon" size={12} className="text-muted-foreground/40" />;
@@ -208,7 +222,7 @@ export default function InquiriesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {[
           { label: 'Total Inquiries', value: totalCount, icon: 'InboxIcon', color: 'text-foreground', bg: 'bg-foreground/5' },
           { label: 'New Today', value: todayCount, icon: 'SparklesIcon', color: 'text-blue-400', bg: 'bg-blue-400/5' },
@@ -224,6 +238,29 @@ export default function InquiriesPage() {
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Form Type Breakdown */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[
+          { label: 'Contact Forms', value: contactFormCount, formType: 'contact', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-500/20' },
+          { label: 'Property Enquiries', value: propertyInquiryCount, formType: 'property_inquiry', color: 'text-primary', bg: 'bg-primary/5', border: 'border-primary/20' },
+          { label: 'Project Registrations', value: projectRegCount, formType: 'project_registration', color: 'text-purple-400', bg: 'bg-purple-400/5', border: 'border-purple-500/20' },
+        ].map(({ label, value, formType, color, bg, border }) => (
+          <button
+            key={formType}
+            onClick={() => setFilterFormType(filterFormType === formType ? 'All' : formType)}
+            className={`bg-card border p-3 flex items-center justify-between transition-colors hover:border-primary/30 ${filterFormType === formType ? `${border} ${bg}` : 'border-border'}`}
+          >
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-left">{label}</p>
+              <p className={`text-xl font-bold ${color}`}>{value}</p>
+            </div>
+            {filterFormType === formType && (
+              <Icon name="FunnelIcon" size={14} className={color} />
+            )}
+          </button>
         ))}
       </div>
 
@@ -255,6 +292,18 @@ export default function InquiriesPage() {
             <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Source</label>
             <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className={inputCls}>
               {SOURCE_OPTIONS.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* Form Type filter */}
+          <div className="min-w-[180px]">
+            <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Form Type</label>
+            <select value={filterFormType} onChange={(e) => setFilterFormType(e.target.value)} className={inputCls}>
+              {FORM_TYPE_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'All' ? 'All Types' : s === 'contact' ? 'Contact Form' : s === 'property_inquiry' ? 'Property Enquiry' : 'Project Registration'}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -385,6 +434,9 @@ export default function InquiriesPage() {
                     Source
                   </th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Form Type
+                  </th>
+                  <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Interest / Property
                   </th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -453,6 +505,17 @@ export default function InquiriesPage() {
                         <span className={`text-xs font-semibold ${sourceBadge[inquiry.source] || 'text-muted-foreground'}`}>
                           {inquiry.source || '—'}
                         </span>
+                      </td>
+
+                      {/* Form Type */}
+                      <td className="px-4 py-3">
+                        {inquiry.form_type && formTypeBadge[inquiry.form_type] ? (
+                          <span className={`text-[11px] font-bold px-2 py-1 ${formTypeBadge[inquiry.form_type].cls}`}>
+                            {formTypeBadge[inquiry.form_type].label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
 
                       {/* Interest */}
@@ -530,7 +593,7 @@ export default function InquiriesPage() {
                     {/* Expanded row */}
                     {expandedId === inquiry.id && (
                       <tr className="bg-background/40">
-                        <td colSpan={9} className="px-6 py-4">
+                        <td colSpan={10} className="px-6 py-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {inquiry.notes && (
                               <div className="md:col-span-2">

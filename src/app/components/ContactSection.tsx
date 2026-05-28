@@ -57,11 +57,12 @@ export default function ContactSection({ content }: Props) {
         name: form.name,
         email: form.email,
         phone: form.phone || null,
-        source: 'Website',
+        source: 'Contact Form',
         status: 'New',
         budget: form.budget || null,
         interest: form.propertyType || null,
         notes: form.message || null,
+        form_type: 'contact',
       });
     } catch {
       // silent fail — form still shows success to user

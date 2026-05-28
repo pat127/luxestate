@@ -50,11 +50,12 @@ export default function ProjectInquiry() {
       name: form.name,
       email: form.email,
       phone: form.phone,
-      source: 'Website',
+      source: 'Project Registration',
       status: 'New',
       budget: form.budget,
       interest: selectedProject ? selectedProject.name : form.project,
       notes: form.message,
+      form_type: 'project_registration',
     });
     await sendInquiryEmail({
       name: form.name,

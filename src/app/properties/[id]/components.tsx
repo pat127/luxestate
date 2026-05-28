@@ -189,10 +189,11 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
         name: form.name,
         email: form.email,
         phone: form.phone || null,
-        source: 'Website',
+        source: 'Property Enquiry',
         status: 'New',
         interest: propertyName,
         notes: form.message || null,
+        form_type: 'property_inquiry',
       });
     } catch {
       // silent fail
