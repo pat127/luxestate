@@ -54,10 +54,7 @@ export default function CommercialListings() {
             : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
           const rawCategory = p.prop_category || '';
-          // Use specific unit type; fall back only if category is the generic 'Commercial' label
-          const displayType = (rawCategory && rawCategory.toLowerCase() !== 'commercial')
-            ? rawCategory
-            : 'Commercial';
+          const displayType = rawCategory || 'Commercial';
           return {
             id: p.id,
             name: p.title || '',

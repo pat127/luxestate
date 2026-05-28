@@ -425,7 +425,7 @@ export default function ProjectDetailPage() {
   return (
     <main className="bg-background overflow-x-hidden">
       <Header />
-      <div className="pt-[100px] md:pt-[72px]"><GallerySection images={project.images} project={project} /></div>
+      <div className="pt-[112px] md:pt-[96px]"><GallerySection images={project.images} project={project} /></div>
 
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-5">

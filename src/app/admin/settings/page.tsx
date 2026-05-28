@@ -1662,6 +1662,8 @@ export default function SettingsPage() {
   const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(cmsProjectDetail);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPasteUrl, setLogoPasteUrl] = useState('');
+  const [logoUrlUploading, setLogoUrlUploading] = useState(false);
   const logoInputRef = React.useRef<HTMLInputElement>(null);
   const initializedRef = React.useRef(false);
 
@@ -1701,6 +1703,36 @@ export default function SettingsPage() {
     } finally {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleLogoUrlUpload = async () => {
+    const sourceUrl = logoPasteUrl.trim();
+    if (!sourceUrl || logoUrlUploading || logoUploading) return;
+
+    setLogoUrlUploading(true);
+    try {
+      const res = await fetch('/api/admin/upload-site-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceUrl,
+          folder: CMS_IMAGE_FOLDERS.logos,
+          fileKey: 'logo_manual',
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.url) throw new Error(result.error || 'Upload failed');
+
+      setLogoPreview(result.url);
+      setBranding((prev) => ({ ...prev, logo_url: result.url }));
+      setLogoPasteUrl('');
+    } catch (err: any) {
+      console.error('Logo URL upload failed:', err);
+      setSaveError(err?.message || 'Failed to upload logo URL');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setLogoUrlUploading(false);
     }
   };
 
@@ -2138,17 +2170,40 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Logo URL (ImageKit / CDN)</label>
-              <input
-                type="text"
-                value={branding.logo_url ?? ''}
-                onChange={(e) => {
-                  const url = e.target.value.trim();
-                  setLogoPreview(null);
-                  setBranding((prev) => ({ ...prev, logo_url: url || undefined }));
-                }}
-                placeholder="https://ik.imagekit.io/your-id/logo.png"
-                className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
-              />
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={branding.logo_url ?? ''}
+                  onChange={(e) => {
+                    const url = e.target.value.trim();
+                    setLogoPreview(null);
+                    setBranding((prev) => ({ ...prev, logo_url: url || undefined }));
+                  }}
+                  placeholder="https://ik.imagekit.io/your-id/logo.png"
+                  className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={logoPasteUrl}
+                    onChange={(e) => setLogoPasteUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLogoUrlUpload(); }}
+                    placeholder="Paste image URL and upload to storage"
+                    className="flex-1 px-3 py-2 bg-input border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                  />
+                  <button
+                    onClick={handleLogoUrlUpload}
+                    disabled={!logoPasteUrl.trim() || logoUrlUploading || logoUploading}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-40 flex-shrink-0"
+                  >
+                    {logoUrlUploading ? (
+                      <><div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent animate-spin" /> Uploading...</>
+                    ) : (
+                      <><Icon name="CloudArrowUpIcon" size={14} /> Upload to Storage</>
+                    )}
+                  </button>
+                </div>
+              </div>
               <p className="text-[10px] text-muted-foreground/60 mt-1">Paste an ImageKit or any CDN URL directly. This takes priority over the uploaded file above.</p>
             </div>
           </div>

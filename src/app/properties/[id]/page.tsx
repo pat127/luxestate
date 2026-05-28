@@ -333,7 +333,7 @@ export default function PropertyDetailPage() {
   return (
     <main className="bg-background overflow-x-hidden">
       <Header />
-      <div className="pt-[100px] md:pt-[72px]">
+      <div className="pt-[112px] md:pt-[96px]">
         <PropertyGallery images={imageList} />
       </div>
 

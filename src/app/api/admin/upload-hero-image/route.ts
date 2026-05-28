@@ -98,6 +98,41 @@ function getExtFromContentType(ct: string): string {
   return map[ct] || 'png';
 }
 
+async function fetchRemoteImage(sourceUrl: string) {
+  const normalizedSourceUrl = encodeURI(sourceUrl.trim());
+  const attempts: Array<RequestInit> = [
+    {
+      signal: AbortSignal.timeout(30000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+    },
+    {
+      signal: AbortSignal.timeout(30000),
+      headers: { Accept: 'image/*,*/*;q=0.8' },
+    },
+    { signal: AbortSignal.timeout(30000) },
+  ];
+
+  let lastResponse: Response | null = null;
+  let lastError: unknown = null;
+  for (const init of attempts) {
+    try {
+      const res = await fetch(normalizedSourceUrl, init);
+      if (res.ok) return { ok: true as const, res };
+      lastResponse = res;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastResponse) {
+    return { ok: false as const, status: lastResponse.status, statusText: lastResponse.statusText };
+  }
+  return { ok: false as const, error: lastError };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -115,12 +150,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'No sourceUrl provided' }, { status: 400 });
       }
 
-      const imgRes = await fetch(sourceUrl, { signal: AbortSignal.timeout(30000) });
-      if (!imgRes.ok) {
-        return NextResponse.json({ error: `Failed to fetch image: ${imgRes.status}` }, { status: 400 });
+      const isHttp = /^https?:\/\//i.test(sourceUrl.trim());
+      if (!isHttp) {
+        return NextResponse.json({ error: 'sourceUrl must be an absolute http(s) URL' }, { status: 400 });
       }
 
-      const imgContentType = imgRes.headers.get('content-type') || 'image/png';
+      const fetched = await fetchRemoteImage(sourceUrl);
+      if (!fetched.ok) {
+        if ('status' in fetched) {
+          return NextResponse.json({ error: `Failed to fetch image: ${fetched.status} ${fetched.statusText || ''}`.trim() }, { status: 400 });
+        }
+        const msg = fetched.error instanceof Error ? fetched.error.message : 'request failed';
+        return NextResponse.json({ error: `Failed to fetch image: ${msg}` }, { status: 400 });
+      }
+      const imgRes = fetched.res;
+
+      const imgContentType = imgRes.headers.get('content-type')?.split(';')[0]?.trim() || 'image/png';
       const ext = getExtFromContentType(imgContentType);
       const buffer = await imgRes.arrayBuffer();
 

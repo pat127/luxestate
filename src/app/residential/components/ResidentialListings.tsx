@@ -59,10 +59,7 @@ export default function ResidentialListings() {
             : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
           const rawCategory = p.prop_category || '';
-          // Use specific unit type; fall back only if category is the generic 'Residential' label
-          const displayTag = (rawCategory && rawCategory.toLowerCase() !== 'residential')
-            ? rawCategory
-            : 'Property';
+          const displayTag = rawCategory || 'Residential';
           return {
             id: p.id,
             name: p.title || '',

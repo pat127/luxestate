@@ -31,6 +31,26 @@ interface ValidationError {
   message: string;
 }
 
+function normalizeHeader(value: string): string {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+const BLOG_FIELD_ALIASES: Record<string, string[]> = {
+  title: ['title', 'post_title', 'blog_title', 'headline'],
+  content: ['content', 'body', 'post_content', 'description', 'article'],
+  slug: ['slug', 'url_slug', 'permalink'],
+  category: ['category', 'post_category', 'blog_category'],
+  author: ['author', 'author_name', 'writer'],
+  status: ['status', 'post_status'],
+  publish_date: ['publish_date', 'published_date', 'date', 'published_at'],
+  tags: ['tags', 'tag_list', 'keywords'],
+  excerpt: ['excerpt', 'summary', 'short_description'],
+  featured_image: ['featured_image', 'featured_image_url', 'image', 'image_url', 'thumbnail'],
+  views: ['views', 'view_count'],
+  meta_title: ['meta_title', 'seo_title'],
+  meta_desc: ['meta_desc', 'meta_description', 'seo_description'],
+};
+
 const IMPORT_TABLE_MAP: Record<ImportType, string> = {
   leads: 'leads',
   contacts: 'contacts',
@@ -117,16 +137,21 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   blogs: {
     label: 'Blog Posts',
     icon: 'DocumentDuplicateIcon',
-    description: 'Import blog posts from CSV. Required fields: Title, Content.',
+    description: 'Import blog posts from CSV. Required fields: Title.',
     fields: [
       { key: 'title', label: 'Post Title', required: true, type: 'text' },
-      { key: 'content', label: 'Content', required: true, type: 'text' },
+      { key: 'content', label: 'Content', required: false, type: 'text' },
       { key: 'slug', label: 'URL Slug', required: false, type: 'text' },
       { key: 'category', label: 'Category', required: false, type: 'select' },
       { key: 'author', label: 'Author', required: false, type: 'text' },
       { key: 'status', label: 'Status', required: false, type: 'select' },
       { key: 'publish_date', label: 'Publish Date', required: false, type: 'text' },
       { key: 'tags', label: 'Tags', required: false, type: 'text' },
+      { key: 'excerpt', label: 'Excerpt', required: false, type: 'text' },
+      { key: 'featured_image', label: 'Featured Image URL', required: false, type: 'text' },
+      { key: 'views', label: 'Views', required: false, type: 'number' },
+      { key: 'meta_title', label: 'Meta Title', required: false, type: 'text' },
+      { key: 'meta_desc', label: 'Meta Description', required: false, type: 'text' },
     ],
   },
 };
@@ -263,16 +288,21 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
   if (type === 'blogs') {
     const slug = fieldMap['slug'] || (fieldMap['title'] || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const tagsRaw = fieldMap['tags'] || '';
-    const tags = tagsRaw ? tagsRaw.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+    const tags = tagsRaw ? tagsRaw.split(/[;,|]/).map((t: string) => t.trim()).filter(Boolean) : [];
     return {
       title: fieldMap['title'] || 'Imported Post',
       slug,
       content: fieldMap['content'] || '',
+      excerpt: fieldMap['excerpt'] || '',
       category: fieldMap['category'] || 'Market Insights',
       author: fieldMap['author'] || 'Admin',
       status: fieldMap['status'] || 'Draft',
+      views: fieldMap['views'] ? parseInt(fieldMap['views'], 10) || 0 : 0,
+      featured_image: fieldMap['featured_image'] || '',
       publish_date: fieldMap['publish_date'] || null,
       tags,
+      meta_title: fieldMap['meta_title'] || '',
+      meta_desc: fieldMap['meta_desc'] || '',
     };
   }
   return { ...fieldMap };
@@ -314,16 +344,28 @@ export default function BulkImportPage() {
       // Auto-map columns
       const autoMap: MappingState = {};
       data.headers.forEach((header) => {
-        const match = config.fields.find((f) =>
-          f.label.toLowerCase() === header.toLowerCase() ||
-          f.key.toLowerCase() === header.toLowerCase().replace(/\s+/g, '_')
+        const normalizedHeader = normalizeHeader(header);
+        let match = config.fields.find((f) =>
+          normalizeHeader(f.label) === normalizedHeader || normalizeHeader(f.key) === normalizedHeader
         );
+
+        // Blog imports accept common alternate header names (post_title, body, date, etc.)
+        if (!match && activeType === 'blogs') {
+          const aliasMatch = Object.entries(BLOG_FIELD_ALIASES).find(([, aliases]) =>
+            aliases.some((alias) => normalizeHeader(alias) === normalizedHeader)
+          );
+          if (aliasMatch) {
+            const matchedKey = aliasMatch[0];
+            match = config.fields.find((f) => f.key === matchedKey);
+          }
+        }
+
         if (match) autoMap[header] = match.key;
       });
       setMapping(autoMap);
     };
     reader.readAsText(file);
-  }, [config.fields]);
+  }, [activeType, config.fields]);
 
   const handleDownloadTemplate = () => {
     const csv = generateCSVTemplate(activeType);
