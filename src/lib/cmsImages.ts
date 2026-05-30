@@ -1,4 +1,9 @@
-import type { BrandingConfig, PageConfig, ProjectDetailContent, PropertyDetailContent } from '@/contexts/CMSContext';
+import type {
+  BrandingConfig,
+  PageConfig,
+  ProjectDetailContent,
+  PropertyDetailContent,
+} from '@/contexts/CMSContext';
 
 export const SITE_ASSETS_BUCKET = 'site-assets';
 export const CMS_IMAGE_FOLDERS = {
@@ -32,7 +37,7 @@ export function extractCmsImageUrls(
   pages: PageConfig[],
   branding: BrandingConfig,
   propertyDetail?: PropertyDetailContent,
-  projectDetail?: ProjectDetailContent,
+  projectDetail?: ProjectDetailContent
 ): string[] {
   const urls: string[] = [];
 

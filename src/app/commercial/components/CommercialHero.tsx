@@ -3,11 +3,17 @@
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { useCMSPage } from '@/contexts/CMSContext';
+import { useCMSPage, DEFAULT_PAGES } from '@/contexts/CMSContext';
+import { isSiteAssetsUrl } from '@/lib/cmsImages';
 import Link from 'next/link';
+
+const DEFAULT_COMMERCIAL_HERO =
+  DEFAULT_PAGES.find((p) => p.key === 'commercial')?.hero_image ||
+  'https://images.unsplash.com/photo-1715568162669-1772f6e7a81d?auto=format&fit=crop&w=1920&q=80';
 
 export default function CommercialHero() {
   const page = useCMSPage('commercial');
+  const heroSrc = page.hero_image?.trim() || DEFAULT_COMMERCIAL_HERO;
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,15 +33,16 @@ export default function CommercialHero() {
   return (
     <section className="relative min-h-[70vh] flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 z-0">
-        {page.hero_image && (
-          <AppImage
-            src={page.hero_image}
-            alt={page.hero_headline || 'Commercial hero'}
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw" />
-        )}
+        <AppImage
+          src={heroSrc}
+          alt={page.hero_headline || 'Commercial hero'}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+          fallbackSrc={DEFAULT_COMMERCIAL_HERO}
+          unoptimized={isSiteAssetsUrl(heroSrc)}
+        />
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/20 to-transparent" />
       </div>

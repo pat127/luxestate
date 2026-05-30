@@ -3,21 +3,24 @@ import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 const BUCKET = 'site-assets';
-const FOLDER = 'property-images';
+const PROPERTY_FOLDER = 'property-images';
+const PROJECT_FOLDER = 'project-images';
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB per image
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
 
 function serviceClient() {
   return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
 async function getAuthUser() {
   try {
     const supabaseAuth = await createServerClient();
-    const { data: { user } } = await supabaseAuth.auth.getUser();
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser();
     return user;
   } catch {
     return null;
@@ -43,7 +46,8 @@ async function fetchAndUploadOne(
   sb: ReturnType<typeof serviceClient>,
   url: string,
   index: number,
-  subfolder: string,
+  baseFolder: string,
+  subfolder: string
 ): Promise<{ original: string; uploaded: string } | { original: string; error: string }> {
   try {
     const res = await fetch(url, {
@@ -66,7 +70,7 @@ async function fetchAndUploadOne(
     }
 
     const ext = extFromContentType(contentType);
-    const filePath = `${FOLDER}/${subfolder}/${index + 1}_${Date.now()}.${ext}`;
+    const filePath = `${baseFolder}/${subfolder}/${index + 1}_${Date.now()}.${ext}`;
 
     const { error: uploadError } = await sb.storage
       .from(BUCKET)
@@ -94,14 +98,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: { urls: string[]; propertyId?: string; referenceNumber?: string };
+    let body: {
+      urls: string[];
+      propertyId?: string;
+      referenceNumber?: string;
+      projectId?: string;
+      projectName?: string;
+    };
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { urls, propertyId, referenceNumber } = body;
+    const { urls, propertyId, referenceNumber, projectId, projectName } = body;
     if (!Array.isArray(urls) || urls.length === 0) {
       return NextResponse.json({ error: 'No URLs provided' }, { status: 400 });
     }
@@ -110,11 +120,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Maximum 20 images per batch' }, { status: 400 });
     }
 
-    const subfolder = sanitizeFolder(propertyId || referenceNumber || `unlinked_${Date.now()}`);
+    const isProject = !!(projectId || projectName);
+    const baseFolder = isProject ? PROJECT_FOLDER : PROPERTY_FOLDER;
+    const subfolder = sanitizeFolder(
+      projectId || projectName || propertyId || referenceNumber || `unlinked_${Date.now()}`
+    );
 
     const sb = serviceClient();
     const results = await Promise.all(
-      urls.map((url, i) => fetchAndUploadOne(sb, url.trim(), i, subfolder)),
+      urls.map((url, i) => fetchAndUploadOne(sb, url.trim(), i, baseFolder, subfolder))
     );
 
     return NextResponse.json({ results });

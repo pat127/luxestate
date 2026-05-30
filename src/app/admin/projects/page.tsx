@@ -76,6 +76,8 @@ function ProjectsPageInner() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
 
   // Basic tab
   const [name, setName] = useState('');
@@ -200,6 +202,7 @@ function ProjectsPageInner() {
     setAvailableAreas(comm.getAreasForEmirate('Dubai')); setAvailableCommunities([]);
     setPaymentPlanSummary(''); setPostHandoverPlan(''); setMilestones([]);
     setImageUrlsText(''); setFloorPlans([]); setMasterPlanUrl(''); setVideoUrl(''); setVirtualTourUrl('');
+    setUploadProgress({ done: 0, total: 0, errors: [] });
     setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
   };
 
@@ -289,6 +292,59 @@ function ProjectsPageInner() {
     resetModal();
     setEditId(null);
     loadProjects();
+  };
+
+  const handleUploadToStorage = async () => {
+    const urls = imageUrlsText.split(',').map(u => u.trim()).filter(Boolean);
+    if (urls.length === 0) return;
+
+    const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const externalUrls = urls.filter(u => !u.includes(supabaseHost));
+    const alreadyUploaded = urls.filter(u => u.includes(supabaseHost));
+
+    if (externalUrls.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress({ done: 0, total: externalUrls.length, errors: [] });
+
+    try {
+      const res = await fetch('/api/admin/upload-property-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          urls: externalUrls,
+          projectId: editId || undefined,
+          projectName: name || undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setUploadProgress(prev => ({ ...prev, errors: [data.error || 'Upload failed'] }));
+        setUploading(false);
+        return;
+      }
+
+      const newUrls: string[] = [...alreadyUploaded];
+      const errors: string[] = [];
+
+      for (const result of data.results) {
+        if ('uploaded' in result) {
+          newUrls.push(result.uploaded);
+        } else {
+          errors.push(`${result.original.slice(0, 40)}... — ${result.error}`);
+          newUrls.push(result.original);
+        }
+      }
+
+      setImageUrlsText(newUrls.join(', '));
+      setUploadProgress({ done: externalUrls.length - errors.length, total: externalUrls.length, errors });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setUploadProgress(prev => ({ ...prev, errors: [msg] }));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
@@ -558,42 +614,113 @@ function ProjectsPageInner() {
                 </div>
               )}
 
-              {activeTab === 'media' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className={labelCls}>Image URLs (comma-separated)</label>
-                    <textarea className={inputCls} rows={5} value={imageUrlsText} onChange={(e) => setImageUrlsText(e.target.value)} placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, ..." />
-                    <p className="text-xs text-[#555] mt-1">Paste multiple image URLs separated by commas</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className={labelCls}>Floor Plans</label>
-                      <button onClick={() => setFloorPlans([...floorPlans, { id: Date.now(), url: '', label: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Floor Plan</button>
-                    </div>
-                    {floorPlans.map((fp) => (
-                      <div key={fp.id} className="grid grid-cols-3 gap-2 mb-2">
-                        <input className={`${inputCls} col-span-2`} value={fp.url} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, url: e.target.value } : x))} placeholder="Floor plan URL" />
-                        <input className={inputCls} value={fp.label} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, label: e.target.value } : x))} placeholder="Label" />
+              {activeTab === 'media' && (() => {
+                const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                const imageList = imageUrlsText.split(',').map(u => u.trim()).filter(Boolean);
+                const externalCount = imageList.filter(u => !u.includes(supabaseHost)).length;
+
+                return (
+                  <div className="space-y-6">
+                    <section>
+                      <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Images</p>
+                      <textarea
+                        className={inputCls}
+                        rows={5}
+                        value={imageUrlsText}
+                        onChange={(e) => setImageUrlsText(e.target.value)}
+                        placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, ..."
+                      />
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-[#555]">Paste image URLs separated by commas</p>
+                        {imageList.length > 0 && externalCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleUploadToStorage}
+                            disabled={uploading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a84c] text-black text-[11px] font-bold uppercase tracking-wider hover:bg-[#d4b86a] transition-colors disabled:opacity-50"
+                          >
+                            {uploading ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                Uploading {uploadProgress.done}/{uploadProgress.total}...
+                              </>
+                            ) : (
+                              <>
+                                <Icon name="CloudArrowUpIcon" size={13} />
+                                Upload {externalCount} to Storage
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <div><label className={labelCls}>Master Plan URL</label><input className={inputCls} value={masterPlanUrl} onChange={(e) => setMasterPlanUrl(e.target.value)} /></div>
-                  <div><label className={labelCls}>Video URL</label><input className={inputCls} value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} /></div>
-                  <div><label className={labelCls}>Virtual Tour URL</label><input className={inputCls} value={virtualTourUrl} onChange={(e) => setVirtualTourUrl(e.target.value)} /></div>
-                  {imageUrlsText && (
-                    <div>
-                      <p className="text-xs text-[#aaa] mb-2">Preview</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {imageUrlsText.split(',').map(u => u.trim()).filter(Boolean).slice(0, 6).map((url, i) => (
-                          <div key={i} className="relative w-20 h-14 border border-[#333] overflow-hidden">
-                            <AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" />
+
+                      {uploadProgress.done > 0 && !uploading && (
+                        <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+                          <Icon name="CheckCircleIcon" size={13} />
+                          {uploadProgress.done} image{uploadProgress.done > 1 ? 's' : ''} uploaded to Supabase Storage
+                        </div>
+                      )}
+
+                      {uploadProgress.errors.length > 0 && !uploading && (
+                        <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400 space-y-1">
+                          <p className="font-semibold flex items-center gap-1.5">
+                            <Icon name="ExclamationTriangleIcon" size={13} />
+                            Some uploads failed:
+                          </p>
+                          {uploadProgress.errors.map((err, i) => (
+                            <p key={i} className="text-[11px] pl-5">{err}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      {imageList.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex gap-2 flex-wrap">
+                            {imageList.slice(0, 12).map((url, i) => {
+                              const isStored = url.includes(supabaseHost);
+                              return (
+                                <div key={i} className="relative group">
+                                  <div className={`relative w-20 h-14 border overflow-hidden ${isStored ? 'border-emerald-500/40' : 'border-[#333]'}`}>
+                                    <AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" />
+                                  </div>
+                                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold ${isStored ? 'bg-emerald-500 text-white' : 'bg-[#333] text-[#888]'}`}>
+                                    {isStored ? <Icon name="CheckIcon" size={9} /> : i + 1}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {imageList.length > 12 && (
+                              <div className="w-20 h-14 border border-[#333] flex items-center justify-center text-xs text-[#666]">
+                                +{imageList.length - 12}
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="pt-5 border-t border-[#2a3040]">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider">Floor Plans</p>
+                        <button type="button" onClick={() => setFloorPlans([...floorPlans, { id: Date.now(), url: '', label: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Floor Plan</button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                      {floorPlans.map((fp) => (
+                        <div key={fp.id} className="grid grid-cols-3 gap-2 mb-2">
+                          <input className={`${inputCls} col-span-2`} value={fp.url} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, url: e.target.value } : x))} placeholder="Floor plan URL" />
+                          <input className={inputCls} value={fp.label} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, label: e.target.value } : x))} placeholder="Label" />
+                        </div>
+                      ))}
+                    </section>
+
+                    <section className="pt-5 border-t border-[#2a3040] space-y-4">
+                      <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider">Plans & Tours</p>
+                      <div><label className={labelCls}>Master Plan URL</label><input className={inputCls} value={masterPlanUrl} onChange={(e) => setMasterPlanUrl(e.target.value)} /></div>
+                      <div><label className={labelCls}>Video URL</label><input className={inputCls} value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="YouTube or Vimeo URL" /></div>
+                      <div><label className={labelCls}>Virtual Tour URL</label><input className={inputCls} value={virtualTourUrl} onChange={(e) => setVirtualTourUrl(e.target.value)} placeholder="Matterport or 360 tour URL" /></div>
+                    </section>
+                  </div>
+                );
+              })()}
 
               {activeTab === 'docs' && (
                 <div className="space-y-4">

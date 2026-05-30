@@ -137,6 +137,48 @@ function generateRefNumber(listingType?: string) {
   return prefix + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+const FALLBACK_RESIDENTIAL_TYPES = ['Apartment', 'Villa', 'Townhouse', 'Penthouse'];
+const FALLBACK_COMMERCIAL_TYPES = ['Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
+
+type PropertyTypeFilter = 'residential' | 'commercial' | 'all';
+
+function resolvePropertyTypesForCategory(
+  category: string,
+  residentialTypes: string[],
+  commercialTypes: string[],
+  allTypes: string[],
+): { filter: PropertyTypeFilter; types: string[]; residential: string[]; commercial: string[] } {
+  const residential =
+    residentialTypes.length > 0 ? residentialTypes : FALLBACK_RESIDENTIAL_TYPES;
+  const commercial =
+    commercialTypes.length > 0 ? commercialTypes : FALLBACK_COMMERCIAL_TYPES;
+
+  if (category === 'Commercial') {
+    return { filter: 'commercial', types: commercial, residential, commercial };
+  }
+  if (category === 'Residential') {
+    return { filter: 'residential', types: residential, residential, commercial };
+  }
+  if (category === 'Investment') {
+    const types =
+      allTypes.length > 0
+        ? allTypes
+        : [...residential, ...commercial.filter((t) => !residential.includes(t))];
+    return { filter: 'all', types, residential, commercial };
+  }
+  // Off-Plan and other categories default to residential types
+  return { filter: 'residential', types: residential, residential, commercial };
+}
+
+function defaultPropertyTypeForCategory(
+  category: string,
+  residentialTypes: string[],
+  commercialTypes: string[],
+  allTypes: string[],
+): string {
+  return resolvePropertyTypesForCategory(category, residentialTypes, commercialTypes, allTypes).types[0] ?? 'Apartment';
+}
+
 export default function PropertiesPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -151,6 +193,18 @@ export default function PropertiesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ModalTab>('basic');
   const [formData, setFormData] = useState<PropertyFormData>(defaultFormData);
+
+  const propertyTypeOptions = useMemo(
+    () =>
+      resolvePropertyTypesForCategory(
+        formData.propCategory,
+        pf.residentialTypes,
+        pf.commercialTypes,
+        pf.types,
+      ),
+    [formData.propCategory, pf.residentialTypes, pf.commercialTypes, pf.types],
+  );
+
   const [propertyList, setPropertyList] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -742,19 +796,45 @@ export default function PropertiesPage() {
                       </div>
                       <div>
                         <label className={labelCls}>Category</label>
-                        <select className={inputCls} value={formData.propCategory} onChange={(e) => setFormData({ ...formData, propCategory: e.target.value })}>
+                        <select
+                          className={inputCls}
+                          value={formData.propCategory}
+                          onChange={(e) => {
+                            const newCategory = e.target.value;
+                            const { types } = resolvePropertyTypesForCategory(
+                              newCategory,
+                              pf.residentialTypes,
+                              pf.commercialTypes,
+                              pf.types,
+                            );
+                            const propertyType = types.includes(formData.propertyType)
+                              ? formData.propertyType
+                              : defaultPropertyTypeForCategory(
+                                  newCategory,
+                                  pf.residentialTypes,
+                                  pf.commercialTypes,
+                                  pf.types,
+                                );
+                            setFormData({ ...formData, propCategory: newCategory, propertyType });
+                          }}>
                           {pf.categories.map(c => <option key={c}>{c}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className={labelCls}>Property Type</label>
                         <select className={inputCls} value={formData.propertyType} onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}>
-                          <optgroup label="Residential">
-                            {(pf.residentialTypes.length > 0 ? pf.residentialTypes : ['Apartment', 'Villa', 'Townhouse', 'Penthouse']).map(t => <option key={t}>{t}</option>)}
-                          </optgroup>
-                          <optgroup label="Commercial">
-                            {(pf.commercialTypes.length > 0 ? pf.commercialTypes : ['Office', 'Retail', 'Warehouse', 'Investment', 'Land']).map(t => <option key={t}>{t}</option>)}
-                          </optgroup>
+                          {propertyTypeOptions.filter === 'all' ? (
+                            <>
+                              <optgroup label="Residential">
+                                {propertyTypeOptions.residential.map(t => <option key={`r-${t}`}>{t}</option>)}
+                              </optgroup>
+                              <optgroup label="Commercial">
+                                {propertyTypeOptions.commercial.map(t => <option key={`c-${t}`}>{t}</option>)}
+                              </optgroup>
+                            </>
+                          ) : (
+                            propertyTypeOptions.types.map(t => <option key={t}>{t}</option>)
+                          )}
                         </select>
                       </div>
                       <div>

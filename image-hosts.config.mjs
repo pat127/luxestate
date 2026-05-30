@@ -2,6 +2,18 @@
  * Image Hosts Configuration (add your image hosts here)
  */
 
+function supabaseStoragePattern() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return null;
+  try {
+    return { protocol: 'https', hostname: new URL(url).hostname, pathname: '/storage/**' };
+  } catch {
+    return null;
+  }
+}
+
+const supabasePattern = supabaseStoragePattern();
+
 export const imageHosts = [
     {
         protocol: 'https',
@@ -34,4 +46,5 @@ export const imageHosts = [
         hostname: 'hkxstgyxmxiiccstmbnj.supabase.co',
         pathname: '/storage/**',
     },
+    ...(supabasePattern ? [supabasePattern] : []),
 ];

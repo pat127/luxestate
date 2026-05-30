@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
@@ -27,9 +27,10 @@ const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Warehouse', 'I
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
   const [listings, setListings] = useState<CommercialListing[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const commercialTypeList = pf.commercialTypes.length > 0 ? pf.commercialTypes : ['Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
   const types = ['All', ...commercialTypeList];
 
@@ -40,7 +41,7 @@ export default function CommercialListings() {
           .from('properties')
           .select('id, title, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured')
           .eq('published', true)
-          .eq('prop_category', 'Commercial')
+          .in('prop_category', COMMERCIAL_CATEGORIES)
           .order('created_at', { ascending: false });
 
         if (error || !data) {
@@ -72,6 +73,8 @@ export default function CommercialListings() {
         }));
       } catch {
         setListings([]);
+      } finally {
+        setLoaded(true);
       }
     };
 
@@ -81,21 +84,34 @@ export default function CommercialListings() {
   const filtered = listings.filter((l) => activeType === 'All' || l.type === activeType);
 
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const reveal = () => {
+      section.querySelectorAll('.animate-on-scroll').forEach((el) => {
+        (el as HTMLElement).classList.add('visible');
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.animate-on-scroll').forEach((el) => {
-              (el as HTMLElement).classList.add('visible');
-            });
-          }
+          if (entry.isIntersecting) reveal();
         });
       },
       { threshold: 0.05 }
     );
-    if (sectionRef.current) observer.observe(sectionRef.current);
+    observer.observe(section);
+
+    if (loaded) {
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        requestAnimationFrame(reveal);
+      }
+    }
+
     return () => observer.disconnect();
-  }, []);
+  }, [loaded, filtered.length]);
 
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
@@ -124,8 +140,14 @@ export default function CommercialListings() {
         </div>
       </div>
 
+      {!loaded && (
+        <div className="flex items-center justify-center py-24">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {loaded && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-on-scroll">
           <div className="w-16 h-16 border border-border flex items-center justify-center mb-6">
             <Icon name="BuildingOfficeIcon" size={28} className="text-muted-foreground" />
@@ -138,13 +160,13 @@ export default function CommercialListings() {
       )}
 
       {/* Listings Grid */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+      {loaded && filtered.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children animate-on-scroll">
           {filtered.map((listing, i) =>
           <Link
             key={listing.id}
             href={`/properties/${listing.id}`}
-            className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block"
+            className="property-card bg-card border border-border group cursor-pointer block"
             style={{ transitionDelay: `${i * 70}ms` }}>
 
               <div className="relative h-56 overflow-hidden">

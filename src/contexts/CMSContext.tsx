@@ -949,7 +949,7 @@ function mergeWithDefaults(stored: PageConfig): PageConfig {
       ...(defaultPage || {}),
       ...stored,
       sections: mergedSections,
-      hero_image: stored.hero_image || defaultPage?.hero_image || '',
+      hero_image: stored.hero_image?.trim() || defaultPage?.hero_image || '',
     };
   }
   // Deep merge: stored values take priority, only fill in completely missing keys

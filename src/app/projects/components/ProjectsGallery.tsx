@@ -49,63 +49,92 @@ export default function ProjectsGallery() {
   const types = ['All', 'Residential', 'Commercial', 'Mixed-Use'];
 
   useEffect(() => {
-    supabase
-      .from('projects')
-      .select('id, name, developer, location_area, handover_date, total_units, starting_price, status, sold_units, project_type, images, description, featured, published, international')
-      .eq('published', true)
-      .eq('international', false)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) {
-          const mapped: DisplayProject[] = data.map((p: any) => {
-            const imgs = Array.isArray(p.images) ? p.images : [];
-            const coverImage = imgs[0]?.url || imgs[0]?.src || '';
-            const coverAlt = imgs[0]?.caption || imgs[0]?.alt || p.name || '';
-            let displayType = p.project_type || 'Residential';
-            if (displayType === 'Off-Plan' || displayType === 'Under Construction') displayType = 'Residential';
-            return {
-              id: p.id,
-              name: p.name || '',
-              developer: p.developer || '',
-              location: p.location_area || '',
-              completion: p.handover_date || '',
-              units: p.total_units || 0,
-              priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '',
-              status: p.status || 'Active',
-              statusColor: getStatusColor(p.status),
-              sold: p.sold_units || 0,
-              type: displayType,
-              image: coverImage,
-              alt: coverAlt,
-              description: p.description || '',
-              featured: p.featured === true,
-              colSpan: p.featured === true ? 'md:col-span-2' : 'md:col-span-1',
-            };
-          });
-          setDisplayProjects(mapped);
+    let cancelled = false;
+
+    const loadProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, name, developer, location_area, handover_date, total_units, starting_price, status, sold_units, project_type, images, description, featured, published, international')
+          .eq('published', true)
+          .eq('international', false)
+          .order('created_at', { ascending: false });
+
+        if (cancelled) return;
+
+        if (error || !data) {
+          setDisplayProjects([]);
+          return;
         }
-        setLoaded(true);
-      });
-  }, []);
+
+        const mapped: DisplayProject[] = data.map((p: any) => {
+          const imgs = Array.isArray(p.images) ? p.images : [];
+          const coverImage = imgs[0]?.url || imgs[0]?.src || '';
+          const coverAlt = imgs[0]?.caption || imgs[0]?.alt || p.name || '';
+          let displayType = p.project_type || 'Residential';
+          if (displayType === 'Off-Plan' || displayType === 'Under Construction') displayType = 'Residential';
+          return {
+            id: p.id,
+            name: p.name || '',
+            developer: p.developer || '',
+            location: p.location_area || '',
+            completion: p.handover_date || '',
+            units: p.total_units || 0,
+            priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '',
+            status: p.status || 'Active',
+            statusColor: getStatusColor(p.status),
+            sold: p.sold_units || 0,
+            type: displayType,
+            image: coverImage,
+            alt: coverAlt,
+            description: p.description || '',
+            featured: p.featured === true,
+            colSpan: p.featured === true ? 'md:col-span-2' : 'md:col-span-1',
+          };
+        });
+        setDisplayProjects(mapped);
+      } catch {
+        if (!cancelled) setDisplayProjects([]);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    };
+
+    loadProjects();
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   const filtered = displayProjects.filter((p) => activeType === 'All' || p.type === activeType);
 
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const reveal = () => {
+      section.querySelectorAll('.animate-on-scroll').forEach((el) => {
+        (el as HTMLElement).classList.add('visible');
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.animate-on-scroll').forEach((el) => {
-              (el as HTMLElement).classList.add('visible');
-            });
-          }
+          if (entry.isIntersecting) reveal();
         });
       },
       { threshold: 0.05 }
     );
-    if (sectionRef.current) observer.observe(sectionRef.current);
+    observer.observe(section);
+
+    if (loaded) {
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        requestAnimationFrame(reveal);
+      }
+    }
+
     return () => observer.disconnect();
-  }, []);
+  }, [loaded, filtered.length]);
 
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
@@ -32,13 +32,16 @@ export default function ResidentialListings() {
   const [sortBy, setSortBy] = useState<SortKey>('default');
   const [activeFilter, setActiveFilter] = useState('All');
   const [listings, setListings] = useState<Property[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const filters = ['All', ...( pf.residentialTypes.length > 0 ? pf.residentialTypes : ['Apartment', 'Villa', 'Townhouse', 'Penthouse'])];
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadProperties = async () => {
       try {
         const { data, error } = await supabase
@@ -47,6 +50,8 @@ export default function ResidentialListings() {
           .eq('published', true)
           .in('prop_category', RESIDENTIAL_CATEGORIES)
           .order('created_at', { ascending: false });
+
+        if (cancelled) return;
 
         if (error || !data) {
           setListings([]);
@@ -76,31 +81,47 @@ export default function ResidentialListings() {
           };
         }));
       } catch {
-        setListings([]);
+        if (!cancelled) setListings([]);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     };
 
     loadProperties();
+    return () => { cancelled = true; };
   }, [supabase]);
 
+  const filtered = listings.filter((l) => activeFilter === 'All' || l.tag === activeFilter);
+
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const reveal = () => {
+      section.querySelectorAll('.animate-on-scroll').forEach((el) => {
+        (el as HTMLElement).classList.add('visible');
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.animate-on-scroll').forEach((el) => {
-              (el as HTMLElement).classList.add('visible');
-            });
-          }
+          if (entry.isIntersecting) reveal();
         });
       },
       { threshold: 0.05 }
     );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+    observer.observe(section);
 
-  const filtered = listings.filter((l) => activeFilter === 'All' || l.tag === activeFilter);
+    if (loaded) {
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        requestAnimationFrame(reveal);
+      }
+    }
+
+    return () => observer.disconnect();
+  }, [loaded, filtered.length]);
 
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
@@ -164,8 +185,14 @@ export default function ResidentialListings() {
         </div>
       </div>
 
+      {!loaded && (
+        <div className="flex items-center justify-center py-24">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {loaded && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-on-scroll">
           <div className="w-16 h-16 border border-border flex items-center justify-center mb-6">
             <Icon name="HomeIcon" size={28} className="text-muted-foreground" />
@@ -178,7 +205,7 @@ export default function ResidentialListings() {
       )}
 
       {/* Grid View */}
-      {viewMode === 'grid' && filtered.length > 0 &&
+      {loaded && viewMode === 'grid' && filtered.length > 0 &&
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
           {filtered.map((property, i) =>
         <Link key={property.id} href={`/properties/${property.id}`} className="animate-on-scroll property-card bg-card border border-border group cursor-pointer block" style={{ transitionDelay: `${i * 60}ms` }}>
@@ -232,7 +259,7 @@ export default function ResidentialListings() {
       }
 
       {/* List View */}
-      {viewMode === 'list' && filtered.length > 0 &&
+      {loaded && viewMode === 'list' && filtered.length > 0 &&
       <div className="space-y-3 stagger-children">
           {filtered.map((property, i) =>
         <Link key={property.id} href={`/properties/${property.id}`} className="animate-on-scroll flex flex-col md:flex-row bg-card border border-border group hover:border-primary/30 transition-all duration-300 cursor-pointer block" style={{ transitionDelay: `${i * 40}ms` }}>
