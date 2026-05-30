@@ -132,8 +132,9 @@ const statusColors: Record<string, string> = {
   Sold: 'text-red-400 bg-red-400/10',
 };
 
-function generateRefNumber() {
-  return 'LUX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+function generateRefNumber(listingType?: string) {
+  const prefix = listingType === 'For Rent' ? 'CR-' : 'CS-';
+  return prefix + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 export default function PropertiesPage() {
@@ -288,7 +289,7 @@ export default function PropertiesPage() {
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({ ...defaultFormData, referenceNumber: generateRefNumber() });
+    setFormData({ ...defaultFormData, referenceNumber: generateRefNumber(defaultFormData.listingType) });
     setActiveTab('basic');
     loadAgentNames();
     setShowModal(true);
@@ -758,7 +759,11 @@ export default function PropertiesPage() {
                       </div>
                       <div>
                         <label className={labelCls}>Listing Type</label>
-                        <select className={inputCls} value={formData.listingType} onChange={(e) => setFormData({ ...formData, listingType: e.target.value })}>
+                        <select className={inputCls} value={formData.listingType} onChange={(e) => {
+                          const newListingType = e.target.value;
+                          const newRef = !editingId ? generateRefNumber(newListingType) : formData.referenceNumber;
+                          setFormData({ ...formData, listingType: newListingType, referenceNumber: newRef });
+                        }}>
                           <option>For Sale</option><option>For Rent</option><option>Off-Plan</option>
                         </select>
                       </div>
