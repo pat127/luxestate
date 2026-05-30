@@ -38,9 +38,9 @@ export default function CommercialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, availability, area_sqft, image_urls, featured')
+          .select('id, title, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured')
           .eq('published', true)
-          .in('prop_category', COMMERCIAL_CATEGORIES)
+          .eq('prop_category', 'Commercial')
           .order('created_at', { ascending: false });
 
         if (error || !data) {
@@ -54,7 +54,7 @@ export default function CommercialListings() {
             : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
           const rawCategory = p.prop_category || '';
-          const displayType = rawCategory || 'Commercial';
+          const displayType = p.property_type || rawCategory || 'Commercial';
           return {
             id: p.id,
             name: p.title || '',
