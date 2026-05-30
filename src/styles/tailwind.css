@@ -385,3 +385,10 @@ input[type="range"]::-moz-range-thumb {
   min-width: 16px;
   min-height: 16px;
 }
+
+@layer utilities {
+  @keyframes shimmer {
+    0% { transform: skewX(-12deg) translateX(-150%); }
+    100% { transform: skewX(-12deg) translateX(350%); }
+  }
+}

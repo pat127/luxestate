@@ -13,7 +13,6 @@ const NAV_KEYS = [
   { key: 'nav.residential', href: '/residential' },
   { key: 'nav.commercial', href: '/commercial' },
   { key: 'nav.projects', href: '/projects' },
-  { key: 'nav.blog', href: '/blog' },
 ];
 
 const MOBILE_NAV_KEYS = [
@@ -22,7 +21,6 @@ const MOBILE_NAV_KEYS = [
   { key: 'nav.projects', href: '/projects' },
   { key: 'nav.international', href: '/international' },
   { key: 'nav.about', href: '/about' },
-  { key: 'nav.blog', href: '/blog' },
 ];
 
 const CURRENCIES: Currency[] = ['AED', 'USD', 'GBP', 'EUR'];

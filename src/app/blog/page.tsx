@@ -49,18 +49,12 @@ function BlogCard({ post, featured = false }: { post: BlogPost; featured?: boole
         <div className="grid md:grid-cols-2 min-h-[420px]">
           {/* Image */}
           <div className="relative overflow-hidden bg-muted min-h-[260px] md:min-h-0">
-            {post.featured_image ? (
-              <AppImage
-                src={post.featured_image}
-                alt={`Featured image for blog post: ${post.title}`}
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-background flex items-center justify-center">
-                <Icon name="NewspaperIcon" size={64} className="text-primary/20" />
-              </div>
-            )}
+            <AppImage
+              src={post.featured_image || '/assets/images/no_image.png'}
+              alt={`Featured image for blog post: ${post.title}`}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-transparent to-card/60 hidden md:block" />
           </div>
           {/* Content */}
@@ -101,18 +95,12 @@ function BlogCard({ post, featured = false }: { post: BlogPost; featured?: boole
     <Link href={`/blog/${post.slug}`} className="group block border border-border hover:border-primary/40 transition-all duration-500 bg-card overflow-hidden flex flex-col">
       {/* Image */}
       <div className="relative overflow-hidden bg-muted aspect-[16/9]">
-        {post.featured_image ? (
-          <AppImage
-            src={post.featured_image}
-            alt={`Blog post image: ${post.title}`}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-background flex items-center justify-center">
-            <Icon name="NewspaperIcon" size={40} className="text-primary/20" />
-          </div>
-        )}
+        <AppImage
+          src={post.featured_image || '/assets/images/no_image.png'}
+          alt={`Blog post image: ${post.title}`}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
+        />
         <div className="absolute top-3 left-3">
           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-2.5 py-1 border backdrop-blur-sm ${catClass}`}>
             {post.category}
@@ -188,7 +176,18 @@ export default function BlogPage() {
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4">Insights & News</p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.05] mb-5">
               The Cove<br />
-              <span className="text-primary">Journal</span>
+              <span className="relative inline-block text-primary">
+                <span className="relative z-10">Journal</span>
+                <span
+                  className="absolute inset-0 z-20 overflow-hidden"
+                  aria-hidden="true"
+                >
+                  <span
+                    className="absolute inset-0 -skew-x-12 translate-x-[-150%] animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    style={{ animationDelay: '0.5s' }}
+                  />
+                </span>
+              </span>
             </h1>
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-xl">
               Expert perspectives on Dubai real estate — market trends, investment insights, and lifestyle guides from our team.
