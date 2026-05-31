@@ -78,19 +78,28 @@ const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
   { value: 'EUR', label: 'EUR — Euro' },
 ];
 
-function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+function FooterColumn({ title, links, onLinkClick }: { title: string; links: { label: string; href: string }[]; onLinkClick?: (label: string) => void }) {
   return (
     <div className="flex flex-col gap-3">
       <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/80">{title}</h4>
       <ul className="space-y-3">
         {links.map((link) => (
           <li key={link.label}>
-            <Link
-              href={link.href}
-              className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
-            >
-              {link.label}
-            </Link>
+            {onLinkClick && link.href === '#careers-popup' ? (
+              <button
+                onClick={() => onLinkClick(link.label)}
+                className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
+              >
+                {link.label}
+              </button>
+            ) : (
+              <Link
+                href={link.href}
+                className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
+              >
+                {link.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
@@ -169,6 +178,7 @@ export default function Footer() {
   const { t } = useLanguage();
   const cms = useCMS();
   const b = cms?.branding;
+  const [careersOpen, setCareersOpen] = useState(false);
 
   const phone = b?.phone || '+971 50 886 2683';
   const email = b?.email || 'admin@coveestates.com';
@@ -186,7 +196,7 @@ export default function Footer() {
     { label: t('footer.company_about'), href: '/about' },
     { label: t('footer.company_blog'), href: '/blog' },
     { label: t('footer.company_team'), href: '/about#team' },
-    { label: t('footer.company_careers'), href: '#' },
+    { label: t('footer.company_careers'), href: '#careers-popup' },
     { label: t('footer.company_contact'), href: '/#contact' },
   ];
 
@@ -258,7 +268,7 @@ export default function Footer() {
           </div>
 
           {/* Company Column */}
-          <FooterColumn title={t('footer.company')} links={companyLinks} />
+          <FooterColumn title={t('footer.company')} links={companyLinks} onLinkClick={() => setCareersOpen(true)} />
 
           {/* Properties Column */}
           <FooterColumn title={t('footer.properties')} links={propertyLinks} />
@@ -293,6 +303,43 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      {/* Careers Coming Soon Popup */}
+      {careersOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setCareersOpen(false)}
+        >
+          <div
+            className="bg-card border border-border shadow-2xl max-w-md w-full p-8 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setCareersOpen(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <Icon name="XMarkIcon" size={20} />
+            </button>
+            <div className="text-center">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
+                <Icon name="BriefcaseIcon" size={26} className="text-primary" />
+              </div>
+              <h3 className="text-xl font-bold tracking-wide text-foreground mb-2">Coming Soon</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+                Our careers page is currently under construction. In the meantime, send your resume directly to us and we&apos;ll be in touch.
+              </p>
+              <a
+                href="mailto:admin@coveestate.com"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-sm font-semibold tracking-wide hover:bg-primary/90 transition-colors duration-300"
+              >
+                <Icon name="EnvelopeIcon" size={15} />
+                admin@coveestate.com
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }
