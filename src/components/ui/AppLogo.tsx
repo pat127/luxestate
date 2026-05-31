@@ -27,6 +27,9 @@ const AppLogo = memo(function AppLogo({
     return classes.join(' ');
   }, [onClick, className]);
 
+  // Bypass Next.js image optimization for Supabase storage URLs to prevent 400 errors
+  const isSupabaseUrl = src?.includes('supabase.co/storage') || src?.includes('supabase.co/object');
+
   return (
     <div className={containerClassName} onClick={onClick}>
       {/* Show image if src provided, otherwise show icon */}
@@ -38,7 +41,7 @@ const AppLogo = memo(function AppLogo({
           height={size}
           className="flex-shrink-0"
           priority={true}
-          unoptimized={src.endsWith('.svg')}
+          unoptimized={src.endsWith('.svg') || isSupabaseUrl}
         />
       ) : (
         <AppIcon name={iconName} size={size} className="flex-shrink-0" />
