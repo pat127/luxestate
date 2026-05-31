@@ -16,7 +16,6 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [mapCenter, setMapCenter] = useState({ lat: value.lat || 25.2048, lng: value.lng || 55.2708 });
   const [pinPos, setPinPos] = useState({ lat: value.lat || 25.2048, lng: value.lng || 55.2708 });
-  const [isDragging, setIsDragging] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -72,7 +71,11 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
     if (!search.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}&limit=5&countrycodes=ae`);
+      // Removed countrycodes=ae to support international search; accept-language=en forces English results
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}&limit=5&accept-language=en`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
       const data = await res.json();
       setSuggestions(data);
     } catch {
@@ -107,7 +110,7 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
   const mapHeight = 280;
   const pinPixel = latLngToPixel(pinPos.lat, pinPos.lng, mapCenter.lat, mapCenter.lng, zoom, mapWidth, mapHeight);
 
-  // Build OSM tile URL for the center
+  // Build tile URL for the center
   const tileZoom = zoom;
   const lat2tile = (lat: number, z: number) => Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
   const lng2tile = (lng: number, z: number) => Math.floor((lng + 180) / 360 * Math.pow(2, z));
@@ -125,7 +128,7 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
             type="text"
             value={search}
             onChange={(e) => handleSearchInput(e.target.value)}
-            placeholder="Search location in UAE..."
+            placeholder="Search any city or location worldwide..."
             className="flex-1 bg-secondary border border-border px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
           />
           <button
@@ -161,15 +164,13 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
         style={{ height: 280 }}
         onClick={handleMapClick}
       >
-        {/* OSM Tiles - 3x3 grid around center */}
+        {/* English map tiles using CartoCDN Voyager (English labels globally) */}
         <div className="absolute inset-0 pointer-events-none">
           {[-1, 0, 1].map((dy) =>
             [-1, 0, 1].map((dx) => {
               const tx = centerTileX + dx;
               const ty = centerTileY + dy;
-              // Pixel offset of this tile relative to center
               const tileSize = 256;
-              // Center tile pixel position
               const centerTilePixelX = mapWidth / 2 - (mapWidth / 2 % tileSize);
               const centerTilePixelY = mapHeight / 2 - (mapHeight / 2 % tileSize);
               const tileLeft = centerTilePixelX + dx * tileSize - (mapWidth / 2 % tileSize);
@@ -177,7 +178,8 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
               return (
                 <img
                   key={`${dx}-${dy}`}
-                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager/${tileZoom}/${tx}/${ty}.png`}
+                  // voyager_labels_under uses English-only labels worldwide
+                  src={`https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/${tileZoom}/${tx}/${ty}@2x.png`}
                   alt=""
                   style={{
                     position: 'absolute',
