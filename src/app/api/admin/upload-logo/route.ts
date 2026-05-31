@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 const BUCKET = 'site-assets';
@@ -12,10 +11,59 @@ function serviceClient() {
   );
 }
 
-async function getAuthUser() {
+async function getAuthUser(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerClient();
-    const { data: { user } } = await supabaseAuth.auth.getUser();
+    // Extract the Supabase session token from cookies
+    const cookieHeader = req.headers.get('cookie') || '';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] ?? '';
+
+    // Try to find the auth token cookie
+    const cookiePairs = cookieHeader.split(';').map((c) => c.trim());
+    let accessToken: string | null = null;
+
+    for (const pair of cookiePairs) {
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx === -1) continue;
+      const name = pair.slice(0, eqIdx).trim();
+      const value = pair.slice(eqIdx + 1).trim();
+
+      if (name === `sb-${projectRef}-auth-token`) {
+        try {
+          const decoded = decodeURIComponent(value);
+          const parsed = JSON.parse(decoded);
+          accessToken = parsed?.access_token ?? parsed?.[0]?.access_token ?? null;
+        } catch {
+          accessToken = value;
+        }
+        break;
+      }
+
+      // Also check chunked cookie format
+      if (name === `sb-${projectRef}-auth-token.0`) {
+        try {
+          const decoded = decodeURIComponent(value);
+          accessToken = decoded;
+        } catch {
+          accessToken = value;
+        }
+      }
+    }
+
+    if (!accessToken) {
+      // Try Authorization header as fallback
+      const authHeader = req.headers.get('authorization') || '';
+      if (authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.slice(7);
+      }
+    }
+
+    if (!accessToken) return null;
+
+    // Verify the token using the service client
+    const sb = serviceClient();
+    const { data: { user }, error } = await sb.auth.getUser(accessToken);
+    if (error || !user) return null;
     return user;
   } catch {
     return null;
@@ -24,7 +72,7 @@ async function getAuthUser() {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(req);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -75,7 +123,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(req);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
