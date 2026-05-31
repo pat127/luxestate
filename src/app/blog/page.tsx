@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { useCMS } from '@/contexts/CMSContext';
 
 interface BlogPost {
   id: string;
@@ -23,7 +24,7 @@ interface BlogPost {
   publish_date?: string;
 }
 
-const CATEGORIES = ['All', 'Market Insights', 'Off-Plan', 'Investment', 'Residential', 'Legal', 'Lifestyle'];
+const FALLBACK_CATEGORIES = ['All', 'Market Insights', 'Off-Plan', 'Investment', 'Residential', 'Legal', 'Lifestyle'];
 
 const categoryColors: Record<string, string> = {
   'Market Insights': 'text-primary border-primary/40 bg-primary/10',
@@ -135,10 +136,25 @@ function BlogCard({ post, featured = false }: { post: BlogPost; featured?: boole
 
 export default function BlogPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { getPage } = useCMS();
+  const blogPage = getPage('blog');
+
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
+
+  // CMS-driven content
+  const heroEyebrow = blogPage.hero_subheadline || 'Insights & News';
+  const heroHeadline = blogPage.hero_headline || 'Market Insights & News';
+  const heroDescription = blogPage.hero_description || 'Expert perspectives on Dubai real estate — market trends, investment insights, and lifestyle guides from our team.';
+  const heroImage = blogPage.hero_image || '';
+
+  // CMS-driven section visibility
+  const showCategoriesFilter = blogPage.sections?.categories_filter !== false;
+  const showFeaturedPost = blogPage.sections?.featured_post !== false;
+  const showPostsGrid = blogPage.sections?.posts_grid !== false;
 
   useEffect(() => {
     async function load() {
@@ -148,7 +164,14 @@ export default function BlogPage() {
         .select('id, title, slug, category, author, status, views, created_at, excerpt, featured_image, tags, publish_date')
         .eq('status', 'Published')
         .order('created_at', { ascending: false });
-      if (data) setPosts(data);
+      if (data) {
+        setPosts(data);
+        // Build dynamic category list from actual posts
+        const cats = Array.from(new Set(data.map((p: BlogPost) => p.category).filter(Boolean)));
+        if (cats.length > 0) {
+          setCategories(['All', ...cats]);
+        }
+      }
       setLoading(false);
     }
     load();
@@ -161,7 +184,12 @@ export default function BlogPage() {
   });
 
   const featuredPost = filtered[0];
-  const restPosts = filtered.slice(1);
+  const restPosts = showFeaturedPost ? filtered.slice(1) : filtered;
+
+  // Split headline: first word(s) on first line, last word with shimmer on second line
+  const headlineWords = heroHeadline.trim().split(/\s+/);
+  const shimmerWord = headlineWords.length > 1 ? headlineWords[headlineWords.length - 1] : heroHeadline;
+  const mainWords = headlineWords.length > 1 ? headlineWords.slice(0, -1).join(' ') : '';
 
   return (
     <main className="bg-background overflow-x-hidden">
@@ -169,15 +197,29 @@ export default function BlogPage() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+        {heroImage ? (
+          <>
+            <div className="absolute inset-0">
+              <AppImage
+                src={heroImage}
+                alt="Blog hero background"
+                fill
+                className="object-cover opacity-10"
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background/80 to-background" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+        )}
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 md:px-10">
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4">Insights & News</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4">{heroEyebrow}</p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.05] mb-5">
-              The Cove<br />
+              {mainWords && <>{mainWords}<br /></>}
               <span className="relative inline-block text-primary">
-                <span className="relative z-10">Journal</span>
+                <span className="relative z-10">{shimmerWord}</span>
                 <span
                   className="absolute inset-0 z-20 overflow-hidden"
                   aria-hidden="true"
@@ -190,44 +232,46 @@ export default function BlogPage() {
               </span>
             </h1>
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-xl">
-              Expert perspectives on Dubai real estate — market trends, investment insights, and lifestyle guides from our team.
+              {heroDescription}
             </p>
           </div>
         </div>
       </section>
 
       {/* Filters */}
-      <section className="sticky top-[60px] z-30 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 md:px-10 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          {/* Category tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 pb-1 sm:pb-0">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`flex-shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 border ${
-                  activeCategory === cat
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border text-muted-foreground hover:text-primary hover:border-primary/40'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+      {showCategoriesFilter && (
+        <section className="sticky top-[60px] z-30 bg-background/95 backdrop-blur-md border-b border-border">
+          <div className="max-w-7xl mx-auto px-4 md:px-10 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            {/* Category tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 pb-1 sm:pb-0">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`flex-shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 border ${
+                    activeCategory === cat
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-primary hover:border-primary/40'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {/* Search */}
+            <div className="relative w-full sm:w-64 flex-shrink-0">
+              <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search articles..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors duration-300"
+              />
+            </div>
           </div>
-          {/* Search */}
-          <div className="relative w-full sm:w-64 flex-shrink-0">
-            <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search articles..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors duration-300"
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Content */}
       <section className="max-w-7xl mx-auto px-4 md:px-10 py-12 md:py-16">
@@ -265,13 +309,13 @@ export default function BlogPage() {
         ) : (
           <div className="space-y-8">
             {/* Featured post */}
-            {featuredPost && (
+            {showFeaturedPost && featuredPost && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <BlogCard post={featuredPost} featured />
               </div>
             )}
-            {/* Rest of posts */}
-            {restPosts.length > 0 && (
+            {/* Posts grid */}
+            {showPostsGrid && restPosts.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {restPosts.map((post) => (
                   <BlogCard key={post.id} post={post} />
