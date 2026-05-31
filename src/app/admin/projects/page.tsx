@@ -35,6 +35,30 @@ interface FloorPlan { id: number; url: string; label: string; }
 const PROPERTY_TYPES_FALLBACK = ['Apartment', 'Villa', 'Townhouse', 'Penthouse', 'Studio', 'Duplex'];
 const AMENITIES_LIST_FALLBACK = ['Swimming Pool', 'Gym', 'Kids Play Area', 'Parks', 'Retail', 'Mosque', 'School', 'Concierge', 'Security', 'Parking', 'Beach Access', 'Golf Course'];
 
+const ALL_COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria',
+  'Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan',
+  'Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia',
+  'Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica',
+  'Croatia','Cuba','Cyprus','Czech Republic','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt',
+  'El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon',
+  'Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana',
+  'Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel',
+  'Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos',
+  'Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi',
+  'Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova',
+  'Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands',
+  'New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau',
+  'Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania',
+  'Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino',
+  'Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia',
+  'Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan',
+  'Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo',
+  'Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates',
+  'United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam',
+  'Yemen','Zambia','Zimbabwe',
+];
+
 const statusColors: Record<string, string> = {
   Active: 'text-emerald-400 bg-emerald-400/10',
   Completed: 'text-blue-400 bg-blue-400/10',
@@ -91,6 +115,12 @@ function ProjectsPageInner() {
   const [published, setPublished] = useState(false);
   const [international, setInternational] = useState(false);
   const [country, setCountry] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
+  const countrySuggestions = useMemo(() => {
+    if (!countrySearch.trim()) return ALL_COUNTRIES.slice(0, 8);
+    return ALL_COUNTRIES.filter(c => c.toLowerCase().includes(countrySearch.toLowerCase())).slice(0, 8);
+  }, [countrySearch]);
 
   // Units tab
   const [totalUnits, setTotalUnits] = useState('');
@@ -194,7 +224,7 @@ function ProjectsPageInner() {
   const resetModal = () => {
     setName(''); setDeveloper(''); setDescription(''); setProjectType('Off-Plan'); setStatus('Active');
     setStartingPrice(''); setHandoverDate(''); setFeatured(false); setPublished(false);
-    setInternational(false); setCountry('');
+    setInternational(false); setCountry(''); setCountrySearch('');
     setTotalUnits(''); setAvailableUnits(''); setMinBedrooms('0'); setMaxBedrooms('6');
     setSizeRange(''); setSelectedPropertyTypes([]); setSelectedAmenities([]); setUnitTypes([]);
     setEmirate('Dubai'); setLocationArea(''); setCommunity(''); setSubCommunity('');
@@ -215,7 +245,7 @@ function ProjectsPageInner() {
     setProjectType(data.project_type || 'Off-Plan'); setStatus(data.status || 'Active');
     setStartingPrice(data.starting_price || ''); setHandoverDate(data.handover_date || '');
     setFeatured(data.featured ?? false); setPublished(data.published ?? false);
-    setInternational(data.international ?? false); setCountry(data.country || '');
+    setInternational(data.international ?? false); setCountry(data.country || ''); setCountrySearch(data.country || '');
     setTotalUnits(String(data.total_units || '')); setAvailableUnits(String(data.available_units || ''));
     setMinBedrooms(String(data.min_bedrooms ?? 0)); setMaxBedrooms(String(data.max_bedrooms ?? 6));
     setSizeRange(data.size_range || '');
@@ -500,7 +530,34 @@ function ProjectsPageInner() {
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">Published</span></label>
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={international} onChange={(e) => setInternational(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">International</span></label>
                   </div>
-                  {international && <div className="col-span-2"><label className={labelCls}>Country</label><input className={inputCls} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. Saudi Arabia" /></div>}
+                  {international && (
+                    <div className="col-span-2 relative">
+                      <label className={labelCls}>Country</label>
+                      <input
+                        className={inputCls}
+                        value={countrySearch}
+                        onChange={(e) => { setCountrySearch(e.target.value); setCountry(e.target.value); setShowCountrySuggestions(true); }}
+                        onFocus={() => setShowCountrySuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowCountrySuggestions(false), 150)}
+                        placeholder="Type to search country..."
+                        autoComplete="off"
+                      />
+                      {showCountrySuggestions && countrySuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full bg-[#1a1a1a] border border-[#444] shadow-xl max-h-48 overflow-y-auto">
+                          {countrySuggestions.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onMouseDown={() => { setCountry(c); setCountrySearch(c); setShowCountrySuggestions(false); }}
+                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-[#c9a84c]/20 hover:text-[#c9a84c] transition-colors"
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -558,38 +615,70 @@ function ProjectsPageInner() {
 
               {activeTab === 'location' && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className={labelCls}>Emirate</label>
-                    <select className={inputCls} value={emirate} onChange={(e) => { const em = e.target.value; setEmirate(em); setLocationArea(''); setCommunity(''); setAvailableAreas(comm.getAreasForEmirate(em)); setAvailableCommunities([]); }}>
-                      {comm.emirates.map(em => <option key={em}>{em}</option>)}
-                    </select>
-                  </div>
-                  <div><label className={labelCls}>Area</label>
-                    <select className={inputCls} value={locationArea} onChange={(e) => { const area = e.target.value; setLocationArea(area); setCommunity(''); setAvailableCommunities(comm.getCommunitiesForArea(area)); }}>
-                      <option value="">Select area...</option>
-                      {availableAreas.map(a => <option key={a}>{a}</option>)}
-                    </select>
-                  </div>
-                  <div><label className={labelCls}>Community</label>
-                    <select className={inputCls} value={community} onChange={(e) => setCommunity(e.target.value)}>
-                      <option value="">Select community...</option>
-                      {availableCommunities.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div><label className={labelCls}>Sub-Community</label><input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} /></div>
-                  <div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
-                  <div className="col-span-2">
-                    <PinLocationMap
-                      label="Pin Location on Map"
-                      value={{
-                        lat: parseFloat(latitude) || 25.0657,
-                        lng: parseFloat(longitude) || 55.1713,
-                        address: fullAddress,
-                      }}
-                      onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
-                    />
-                  </div>
-                  <div><label className={labelCls}>Latitude</label><input className={inputCls} value={latitude} onChange={(e) => setLatitude(e.target.value)} /></div>
-                  <div><label className={labelCls}>Longitude</label><input className={inputCls} value={longitude} onChange={(e) => setLongitude(e.target.value)} /></div>
+                  {international && (
+                    <div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
+                  )}
+                  {international && (
+                    <div className="col-span-2">
+                      <PinLocationMap
+                        label="Pin Location on Map"
+                        value={{
+                          lat: parseFloat(latitude) || 25.0657,
+                          lng: parseFloat(longitude) || 55.1713,
+                          address: fullAddress,
+                        }}
+                        onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
+                      />
+                    </div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Emirate</label>
+                      <select className={inputCls} value={emirate} onChange={(e) => { const em = e.target.value; setEmirate(em); setLocationArea(''); setCommunity(''); setAvailableAreas(comm.getAreasForEmirate(em)); setAvailableCommunities([]); }}>
+                        {comm.emirates.map(em => <option key={em}>{em}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Area</label>
+                      <select className={inputCls} value={locationArea} onChange={(e) => { const area = e.target.value; setLocationArea(area); setCommunity(''); setAvailableCommunities(comm.getCommunitiesForArea(area)); }}>
+                        <option value="">Select area...</option>
+                        {availableAreas.map(a => <option key={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Community</label>
+                      <select className={inputCls} value={community} onChange={(e) => setCommunity(e.target.value)}>
+                        <option value="">Select community...</option>
+                        {availableCommunities.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Sub-Community</label><input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} /></div>
+                  )}
+                  {!international && (
+                    <div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
+                  )}
+                  {!international && (
+                    <div className="col-span-2">
+                      <PinLocationMap
+                        label="Pin Location on Map"
+                        value={{
+                          lat: parseFloat(latitude) || 25.0657,
+                          lng: parseFloat(longitude) || 55.1713,
+                          address: fullAddress,
+                        }}
+                        onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
+                      />
+                    </div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Latitude</label><input className={inputCls} value={latitude} onChange={(e) => setLatitude(e.target.value)} /></div>
+                  )}
+                  {!international && (
+                    <div><label className={labelCls}>Longitude</label><input className={inputCls} value={longitude} onChange={(e) => setLongitude(e.target.value)} /></div>
+                  )}
                 </div>
               )}
 
