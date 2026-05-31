@@ -151,10 +151,10 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <span className="block md:hidden">
-              <AppLogo src={logoSrc} size={32} className="w-auto transition-transform duration-300 group-hover:scale-105" />
+              <AppLogo src={logoSrc} size={64} className="w-auto transition-transform duration-300 group-hover:scale-105" />
             </span>
             <span className="hidden md:block">
-              <AppLogo src={logoSrc} size={38} className="w-auto transition-transform duration-300 group-hover:scale-105" />
+              <AppLogo src={logoSrc} size={76} className="w-auto transition-transform duration-300 group-hover:scale-105" />
             </span>
           </Link>
 

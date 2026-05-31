@@ -45,10 +45,6 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && pathname.startsWith('/admin') && !PUBLIC_ADMIN_ROUTES.some((r) => pathname === r)) {
-    // Don't redirect API routes — they handle auth internally and return JSON
-    if (pathname.startsWith('/api/')) {
-      return supabaseResponse;
-    }
     const url = request.nextUrl.clone();
     url.pathname = '/admin/login';
     return NextResponse.redirect(url);
