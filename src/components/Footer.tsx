@@ -96,6 +96,7 @@ function FooterColumn({ title, links, onLinkClick }: { title: string; links: { l
               <Link
                 href={link.href}
                 className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
+                {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               >
                 {link.label}
               </Link>
@@ -197,6 +198,7 @@ export default function Footer() {
     { label: t('footer.company_blog'), href: '/blog' },
     { label: t('footer.company_careers'), href: '#careers-popup' },
     { label: t('footer.company_contact'), href: '/#contact' },
+    { label: 'Reagle', href: 'https://reagle.ae' },
   ];
 
   const propertyLinks = [
