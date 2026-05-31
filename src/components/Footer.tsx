@@ -195,7 +195,6 @@ export default function Footer() {
   const companyLinks = [
     { label: t('footer.company_about'), href: '/about' },
     { label: t('footer.company_blog'), href: '/blog' },
-    { label: t('footer.company_team'), href: '/about#team' },
     { label: t('footer.company_careers'), href: '#careers-popup' },
     { label: t('footer.company_contact'), href: '/#contact' },
   ];
