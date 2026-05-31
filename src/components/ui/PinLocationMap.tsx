@@ -16,8 +16,29 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [mapCenter, setMapCenter] = useState({ lat: value.lat || 25.2048, lng: value.lng || 55.2708 });
   const [pinPos, setPinPos] = useState({ lat: value.lat || 25.2048, lng: value.lng || 55.2708 });
+  const [mapDimensions, setMapDimensions] = useState({ width: 480, height: 280 });
   const mapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track actual container size
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setMapDimensions({ width, height });
+        }
+      }
+    });
+    observer.observe(mapRef.current);
+    // Set initial size
+    const rect = mapRef.current.getBoundingClientRect();
+    if (rect.width > 0) {
+      setMapDimensions({ width: rect.width, height: rect.height || 280 });
+    }
+    return () => observer.disconnect();
+  }, []);
 
   // Convert lat/lng to pixel position within the map div (simplified Mercator)
   const latLngToPixel = (lat: number, lng: number, centerLat: number, centerLng: number, zoom: number, width: number, height: number) => {
@@ -105,9 +126,11 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
     }
   };
 
+  // Use actual measured dimensions for tile/pin calculations
+  const mapWidth = mapDimensions.width;
+  const mapHeight = mapDimensions.height;
+
   // Compute pin pixel position
-  const mapWidth = 480;
-  const mapHeight = 280;
   const pinPixel = latLngToPixel(pinPos.lat, pinPos.lng, mapCenter.lat, mapCenter.lng, zoom, mapWidth, mapHeight);
 
   // Build tile URL for the center
@@ -116,6 +139,15 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
   const lng2tile = (lng: number, z: number) => Math.floor((lng + 180) / 360 * Math.pow(2, z));
   const centerTileX = lng2tile(mapCenter.lng, tileZoom);
   const centerTileY = lat2tile(mapCenter.lat, tileZoom);
+
+  // Calculate how many tiles we need to cover the full width and height
+  const tileSize = 256;
+  const tilesX = Math.ceil(mapWidth / tileSize / 2) + 1;
+  const tilesY = Math.ceil(mapHeight / tileSize / 2) + 1;
+  const tileRange = {
+    x: Array.from({ length: tilesX * 2 + 1 }, (_, i) => i - tilesX),
+    y: Array.from({ length: tilesY * 2 + 1 }, (_, i) => i - tilesY),
+  };
 
   return (
     <div className="space-y-2">
@@ -160,17 +192,16 @@ export default function PinLocationMap({ value, onChange, label = 'Pin Location'
       {/* Map */}
       <div
         ref={mapRef}
-        className="relative border border-border overflow-hidden cursor-crosshair bg-secondary"
+        className="relative w-full border border-border overflow-hidden cursor-crosshair bg-secondary"
         style={{ height: 280 }}
         onClick={handleMapClick}
       >
         {/* English map tiles using CartoCDN Voyager (English labels globally) */}
         <div className="absolute inset-0 pointer-events-none">
-          {[-1, 0, 1].map((dy) =>
-            [-1, 0, 1].map((dx) => {
+          {tileRange.y.map((dy) =>
+            tileRange.x.map((dx) => {
               const tx = centerTileX + dx;
               const ty = centerTileY + dy;
-              const tileSize = 256;
               const centerTilePixelX = mapWidth / 2 - (mapWidth / 2 % tileSize);
               const centerTilePixelY = mapHeight / 2 - (mapHeight / 2 % tileSize);
               const tileLeft = centerTilePixelX + dx * tileSize - (mapWidth / 2 % tileSize);
