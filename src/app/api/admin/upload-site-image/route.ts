@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
-      const body = await req.json();
+      let body = await req.json();
       const { sourceUrl, folder, fileKey, oldPath } = body as {
         sourceUrl?: string;
         folder?: string;
@@ -79,7 +79,16 @@ export async function POST(req: NextRequest) {
 
       const imgRes = await fetch(sourceUrl, {
         signal: AbortSignal.timeout(30000),
-        headers: { 'User-Agent': 'CoveEstates-CMS/1.0' },
+        redirect: 'follow',
+        headers: {
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Sec-Fetch-Dest': 'image',
+          'Sec-Fetch-Mode': 'no-cors',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
       });
       if (!imgRes.ok) {
         return NextResponse.json({ error: `Failed to fetch image: ${imgRes.status}` }, { status: 400 });
