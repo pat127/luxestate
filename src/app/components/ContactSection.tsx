@@ -23,7 +23,6 @@ export default function ContactSection({ content }: Props) {
     name: '',
     email: '',
     phone: '',
-    budget: '',
     propertyType: '',
     message: '',
   });
@@ -59,7 +58,6 @@ export default function ContactSection({ content }: Props) {
         phone: form.phone || null,
         source: 'Contact Form',
         status: 'New',
-        budget: form.budget || null,
         interest: form.propertyType || null,
         notes: form.message || null,
         form_type: 'contact',
@@ -71,14 +69,12 @@ export default function ContactSection({ content }: Props) {
       name: form.name,
       email: form.email,
       phone: form.phone || undefined,
-      budget: form.budget || undefined,
       propertyType: form.propertyType || undefined,
       message: form.message || undefined,
       formType: 'contact',
     });
     trackInquirySubmission({
       formType: 'contact',
-      budget: form.budget,
       source: 'contact_section',
     });
     setSubmitting(false);
@@ -156,17 +152,7 @@ export default function ContactSection({ content }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.phone')}</label>
-                    <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="+1 (212) 000-0000" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">{t('contact.budget')}</label>
-                    <select value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors cursor-pointer">
-                      <option value="">{t('contact.budget_select')}</option>
-                      <option value="1m-5m">$1M – $5M</option>
-                      <option value="5m-15m">$5M – $15M</option>
-                      <option value="15m-50m">$15M – $50M</option>
-                      <option value="50m+">$50M+</option>
-                    </select>
+                    <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full bg-background border border-border text-foreground px-4 py-3.5 text-sm outline-none focus:border-primary transition-colors placeholder-muted-foreground" placeholder="+971 50 000 0000" />
                   </div>
                 </div>
                 <div>
