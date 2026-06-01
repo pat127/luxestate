@@ -15,7 +15,9 @@ function serviceClient() {
 async function getAuthUser() {
   try {
     const supabaseAuth = await createServerClient();
-    const { data: { user } } = await supabaseAuth.auth.getUser();
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser();
     return user;
   } catch {
     return null;
@@ -32,8 +34,9 @@ export async function POST(req: NextRequest) {
     let formData: FormData;
     try {
       formData = await req.formData();
-    } catch (err: any) {
-      return NextResponse.json({ error: 'Invalid form data: ' + (err?.message || 'parse error') }, { status: 400 });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'parse error';
+      return NextResponse.json({ error: 'Invalid form data: ' + message }, { status: 400 });
     }
 
     const file = formData.get('file') as File | null;
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
     const { error: uploadError } = await sb.storage
       .from(BUCKET)
       .upload(filePath, new Uint8Array(arrayBuffer), {
-        contentType: file.type,
+        contentType: file.type || 'image/x-icon',
         cacheControl: '3600',
         upsert: true,
       });
@@ -67,9 +70,10 @@ export async function POST(req: NextRequest) {
     const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(filePath);
 
     return NextResponse.json({ url: urlData.publicUrl, path: filePath });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
     console.error('[upload-favicon] Unhandled error:', err);
-    return NextResponse.json({ error: err?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -99,8 +103,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
     console.error('[upload-favicon] DELETE unhandled error:', err);
-    return NextResponse.json({ error: err?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
