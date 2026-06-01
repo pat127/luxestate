@@ -96,6 +96,7 @@ export default function AboutPage() {
             <p className="text-foreground/70 text-base md:text-lg max-w-lg leading-relaxed">
               {aboutPage.hero_description}
             </p>
+            {aboutPage.sections?.stats_section !== false && (
             <div className="flex flex-wrap gap-6 pt-2">
               {ab.hero_stats.map((stat) =>
               <div key={stat.label} className="flex flex-col">
@@ -104,6 +105,7 @@ export default function AboutPage() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       </section>
@@ -225,6 +227,7 @@ export default function AboutPage() {
                 </p>
               </div>
 
+              {aboutPage.sections?.stats_section !== false && (
               <div className="grid grid-cols-2 gap-4">
                 {ab.ceo_stats.map((stat) => (
                   <div key={stat.label} className="border border-border p-5 bg-card">
@@ -233,6 +236,7 @@ export default function AboutPage() {
                   </div>
                 ))}
               </div>
+              )}
 
               <a
                 href={ab.ceo.linkedin}
