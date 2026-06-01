@@ -661,7 +661,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1fef2a040-1772907432197.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15831eb38-1768374767097.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -760,7 +760,7 @@ export const DEFAULT_PROJECT_DETAIL: ProjectDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'marcus@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1557a1dac-1772889187828.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_10ff7b3a0-1772221573304.png",
     avatarAlt: 'Marcus Al-Rashid, Off-Plan Investment Specialist at Cove Estates',
     listings: 31,
     experience: '9 Years',
@@ -776,7 +776,7 @@ export const DEFAULT_PROJECT_DETAIL: ProjectDetailContent = {
   similar: [
   { id: 2, name: 'Seraphine Residences', location: 'Beverly Hills, CA', priceFrom: 'From AED 14,000,000', completion: 'Q1 2027', units: 32, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1a5a737aa-1778059435159.png", alt: 'Seraphine Residences luxury tower rendering, flowing organic architecture, dramatic dusk lighting', href: '/projects/2' },
   { id: 3, name: 'The Monarch', location: 'Miami Beach, FL', priceFrom: 'From AED 4,200,000', completion: 'Q4 2026', units: 120, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1064062a9-1778059435164.png", alt: 'The Monarch luxury mixed-use development, geometric white facade, ocean backdrop, golden hour', href: '/projects/3' },
-  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1faf938f1-1778137755172.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
+  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1db286f0f-1778059435816.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
 
 };
 
@@ -787,7 +787,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Where Architecture Becomes Legacy',
   hero_subheadline: 'Ultra-premium properties for discerning buyers',
   hero_description: 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.',
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1de1aff6c-1773039815800.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f44c47c7-1767955717672.png",
   hero_eyebrow: 'Curated Luxury Properties',
   cta_primary_text: 'Explore Properties',
   cta_primary_link: '/residential',
@@ -826,7 +826,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Premium Commercial Real Estate',
   hero_subheadline: "Office spaces, retail units & investment-grade commercial properties",
   hero_description: "Strategic commercial properties in Dubai's most sought-after business districts, offering exceptional yields and capital appreciation.",
-  hero_image: "https://images.unsplash.com/photo-1572737761382-629159d63d9b",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_14b926046-1765893546612.png",
   cta_primary_text: 'View Commercial',
   cta_primary_link: '/commercial#listings',
   cta_secondary_text: 'Get Investment Report',
@@ -841,7 +841,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Off-Plan & New Developments',
   hero_subheadline: "Exclusive access to Dubai's most anticipated new projects",
   hero_description: "Invest in tomorrow's landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai's leading developers.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1e4487274-1780279093787.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1c67149c5-1780295407942.png",
   cta_primary_text: 'View Projects',
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
@@ -900,7 +900,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'World-Class Properties, Every Continent',
   hero_subheadline: 'Global Portfolio',
   hero_description: "Curated international developments from the world's most sought-after cities — exclusively sourced for UAE-based investors seeking global diversification.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_18d71bb9d-1767170624569.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d8677203-1780295407682.png",
   cta_primary_text: 'Explore Global',
   cta_primary_link: '/international#gallery',
   cta_secondary_text: 'Register Interest',
@@ -1119,9 +1119,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
       } catch {
 
 
+
         // ignore transient network errors
-      }}, 4000);
-    return () => clearInterval(interval);
+      }}, 4000);return () => clearInterval(interval);
   }, []);
 
   const getPage = useCallback(

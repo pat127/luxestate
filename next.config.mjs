@@ -5,6 +5,12 @@ const nextConfig = {
   productionBrowserSourceMaps: true,
   distDir: process.env.DIST_DIR || '.next',
 
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
+
   typescript: {
     ignoreBuildErrors: true,
   },
