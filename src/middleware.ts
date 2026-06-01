@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith('/admin') && !PUBLIC_ADMIN_ROUTES.some((r) => pathname === r)) {
+  if (!user && pathname.startsWith('/admin') && !pathname.startsWith('/api/') && !PUBLIC_ADMIN_ROUTES.some((r) => pathname === r)) {
     const url = request.nextUrl.clone();
     url.pathname = '/admin/login';
     return NextResponse.redirect(url);

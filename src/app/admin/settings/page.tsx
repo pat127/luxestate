@@ -30,6 +30,9 @@ const DEFAULT_PROPERTY_FIELDS: PropertyFieldGroup[] = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+function tryParseError(text: string): string {
+  try { return JSON.parse(text)?.error || ''; } catch { return text; }
+}
 function InputField({ label, value, onChange, placeholder, type = 'text' }: { label: string; value?: string; onChange?: (v: string) => void; placeholder?: string; type?: string }) {
   return (
     <div>
@@ -624,6 +627,12 @@ function SiteImageUpload({
         if (oldPath) fd.append('oldPath', oldPath);
       }
       const res = await fetch(uploadEndpoint, { method: 'POST', body: fd });
+      if (!res.ok) {
+        const text = await res.text();
+        const msg = text.startsWith('<') ? `Upload failed (HTTP ${res.status})` : text;
+        console.error('Image upload error:', msg);
+        return;
+      }
       const data = await res.json();
       if (data.url) { onChange(data.url); setPasteUrl(''); }
       else if (data.error) console.error('Image upload error:', data.error);
@@ -649,6 +658,12 @@ function SiteImageUpload({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      if (!res.ok) {
+        const text = await res.text();
+        const msg = text.startsWith('<') ? `Upload failed (HTTP ${res.status})` : text;
+        setUrlError(msg);
+        return;
+      }
       const data = await res.json();
       if (data.url) { onChange(data.url); setPasteUrl(''); setUrlError(''); }
       else if (data.error) setUrlError(data.error);
@@ -1699,8 +1714,12 @@ export default function SettingsPage() {
       if (oldPath) formData.append('oldPath', oldPath);
 
       const res = await fetch('/api/admin/upload-logo', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.startsWith('<') ? `Upload failed (HTTP ${res.status})` : (tryParseError(text) || 'Upload failed'));
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Upload failed');
+      if (!result.url) throw new Error(result.error || 'Upload failed');
 
       setLogoPreview(result.url);
       setBranding((prev) => ({ ...prev, logo_url: result.url }));
@@ -1729,8 +1748,12 @@ export default function SettingsPage() {
           fileKey: 'logo_manual',
         }),
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.startsWith('<') ? `Upload failed (HTTP ${res.status})` : (tryParseError(text) || 'Upload failed'));
+      }
       const result = await res.json();
-      if (!res.ok || !result.url) throw new Error(result.error || 'Upload failed');
+      if (!result.url) throw new Error(result.error || 'Upload failed');
 
       setLogoPreview(result.url);
       setBranding((prev) => ({ ...prev, logo_url: result.url }));
@@ -1757,8 +1780,12 @@ export default function SettingsPage() {
       if (oldPath) formData.append('oldPath', oldPath);
 
       const res = await fetch('/api/admin/upload-favicon', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.startsWith('<') ? `Upload failed (HTTP ${res.status})` : (tryParseError(text) || 'Upload failed'));
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Upload failed');
+      if (!result.url) throw new Error(result.error || 'Upload failed');
 
       setFaviconPreview(result.url);
       setBranding((prev) => ({ ...prev, favicon_url: result.url }));
