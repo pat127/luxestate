@@ -5,7 +5,7 @@ import Icon from '@/components/ui/AppIcon';
 import { useCMS, PageConfig, PageKey, BrandingConfig, HomepageBlock, DEFAULT_HOMEPAGE_BLOCKS, DEFAULT_FEATURED_PROPERTIES, DEFAULT_FEATURED_PROJECTS, DEFAULT_WHY_LUXESTATE, DEFAULT_TESTIMONIALS, DEFAULT_CONTACT, DEFAULT_MORTGAGE, DEFAULT_HERO_STATS, DEFAULT_ABOUT_CONTENT, HeroStat, PropertyItem, ProjectItem, WhyStep, TestimonialItem, AwardItem, ContactDetail, PropertyDetailContent, ProjectDetailContent,  } from '@/contexts/CMSContext';
 import { UAE_LOCATIONS, UAELocation } from '@/lib/uaeLocations';
 import { createClient } from '@/lib/supabase/client';
-import { CMS_IMAGE_FOLDERS, extractCmsImageUrls, getSiteAssetsPath, isSiteAssetsUrl } from '@/lib/cmsImages';
+import { CMS_IMAGE_FOLDERS, SITE_ASSETS_BUCKET, extractCmsImageUrls, getSiteAssetsPath, isSiteAssetsUrl } from '@/lib/cmsImages';
 
 type SettingsTab = 'Company' | 'Branding' | 'Appearance' | 'Pages' | 'Social' | 'SEO' | 'Workflow' | 'Property Fields' | 'Communities';
 
@@ -774,20 +774,35 @@ function CtaFileUpload({
     setIsUploading(true);
     setError('');
     try {
-      const form = new FormData();
-      form.append('file', file);
-      form.append('fileKey', fileKey);
+      // Upload directly to Supabase Storage from the browser to bypass nginx body size limits
+      const supabase = createClient();
+
+      // Remove old file if exists
       if (currentUrl) {
         const marker = '/site-assets/';
         const idx = currentUrl.indexOf(marker);
-        if (idx !== -1) form.append('oldPath', decodeURIComponent(currentUrl.substring(idx + marker.length).split('?')[0]));
+        if (idx !== -1) {
+          const oldPath = decodeURIComponent(currentUrl.substring(idx + marker.length).split('?')[0]);
+          await supabase.storage.from(SITE_ASSETS_BUCKET).remove([oldPath]);
+        }
       }
-      const res = await fetch('/api/admin/upload-cta-file', { method: 'POST', body: form });
-      const text = await res.text();
-      let data: { url?: string; error?: string };
-      try { data = JSON.parse(text); } catch { data = { error: text }; }
-      if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
-      onChange(data.url);
+
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48) || 'cta-file';
+      const filePath = `cta-files/${sanitizedKey}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(SITE_ASSETS_BUCKET)
+        .upload(filePath, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: urlData } = supabase.storage.from(SITE_ASSETS_BUCKET).getPublicUrl(filePath);
+      onChange(urlData.publicUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
