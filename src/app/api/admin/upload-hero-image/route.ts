@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 const BUCKET = 'site-assets';
 const FOLDER = 'hero-images';
 const CMS_KEY = 'cms_config';

@@ -3,6 +3,8 @@ import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { CMS_IMAGE_FOLDERS, SITE_ASSETS_BUCKET, type CmsImageFolder } from '@/lib/cmsImages';
 
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_FOLDERS = new Set<string>(Object.values(CMS_IMAGE_FOLDERS));
 const MAX_BYTES = 10 * 1024 * 1024;
 
