@@ -46,6 +46,7 @@ export function extractCmsImageUrls(
   };
 
   push(branding.logo_url);
+  push(branding.favicon_url);
 
   for (const page of pages) {
     push(page.hero_image);

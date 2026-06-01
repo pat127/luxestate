@@ -45,6 +45,21 @@ export default function DynamicSEO() {
       if (branding.seo_title) setMetaProp('og:title', branding.seo_title);
       if (branding.seo_description) setMetaProp('og:description', branding.seo_description);
     }
+
+    // Dynamic favicon from CMS
+    if (branding.favicon_url) {
+      const setFavicon = (rel: string, href: string) => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = href;
+      };
+      setFavicon('icon', branding.favicon_url);
+      setFavicon('shortcut icon', branding.favicon_url);
+    }
   }, [branding]);
 
   return null;

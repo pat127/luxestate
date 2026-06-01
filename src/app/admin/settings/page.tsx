@@ -1665,6 +1665,9 @@ export default function SettingsPage() {
   const [logoPasteUrl, setLogoPasteUrl] = useState('');
   const [logoUrlUploading, setLogoUrlUploading] = useState(false);
   const logoInputRef = React.useRef<HTMLInputElement>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [faviconUploading, setFaviconUploading] = useState(false);
+  const faviconInputRef = React.useRef<HTMLInputElement>(null);
   const initializedRef = React.useRef(false);
 
   // Sync from CMS context only after Supabase data has loaded (not on every render)
@@ -1733,6 +1736,34 @@ export default function SettingsPage() {
       setTimeout(() => setSaveError(null), 5000);
     } finally {
       setLogoUrlUploading(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFaviconUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const oldPath = getSiteAssetsPath(branding.favicon_url);
+      if (oldPath) formData.append('oldPath', oldPath);
+
+      const res = await fetch('/api/admin/upload-favicon', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Upload failed');
+
+      setFaviconPreview(result.url);
+      setBranding((prev) => ({ ...prev, favicon_url: result.url }));
+    } catch (err: any) {
+      console.error('Favicon upload failed:', err);
+      setSaveError(err?.message || 'Failed to upload favicon');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setFaviconUploading(false);
+      if (faviconInputRef.current) faviconInputRef.current.value = '';
     }
   };
 
@@ -1858,6 +1889,13 @@ export default function SettingsPage() {
       });
       if (url) nextBranding = { ...nextBranding, logo_url: url };
     }
+    if (nextBranding.favicon_url && !isSiteAssetsUrl(nextBranding.favicon_url)) {
+      const url = await migrateExternalUrl(nextBranding.favicon_url, {
+        endpoint: '/api/admin/upload-site-image',
+        body: { folder: CMS_IMAGE_FOLDERS.logos, fileKey: 'favicon' },
+      });
+      if (url) nextBranding = { ...nextBranding, favicon_url: url };
+    }
 
     let nextPd = { ...pd };
     if (nextPd.agent?.avatar && !isSiteAssetsUrl(nextPd.agent.avatar)) {
@@ -1912,10 +1950,8 @@ export default function SettingsPage() {
       const path = getSiteAssetsPath(prevUrl);
       if (!path) continue;
       const deleteEndpoint = path.startsWith('hero-images/')
-        ? '/api/admin/upload-hero-image'
-        : path.startsWith('logos/')
-          ? '/api/admin/upload-logo'
-          : '/api/admin/upload-site-image';
+        ? '/api/admin/upload-hero-image' : path.startsWith('logos/')
+          ? '/api/admin/upload-logo' :'/api/admin/upload-site-image';
       try {
         await fetch(deleteEndpoint, {
           method: 'DELETE',
@@ -2205,6 +2241,67 @@ export default function SettingsPage() {
                 </div>
               </div>
               <p className="text-[10px] text-muted-foreground/60 mt-1">Paste an ImageKit or any CDN URL directly. This takes priority over the uploaded file above.</p>
+            </div>
+            {/* Favicon Upload */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Favicon</label>
+              <input
+                ref={faviconInputRef}
+                type="file"
+                accept="image/x-icon,image/png,image/svg+xml,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleFaviconUpload}
+              />
+              <div
+                className={`border border-dashed border-border p-5 text-center transition-colors ${faviconUploading ? 'opacity-60 pointer-events-none' : 'hover:border-primary/40 cursor-pointer'}`}
+                onClick={() => !faviconUploading && faviconInputRef.current?.click()}
+              >
+                {faviconUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-muted-foreground">Uploading to Supabase...</p>
+                  </div>
+                ) : faviconPreview || branding.favicon_url ? (
+                  <div className="flex flex-col items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={faviconPreview || branding.favicon_url}
+                      alt="Favicon preview"
+                      className="w-10 h-10 object-contain"
+                    />
+                    <p className="text-xs text-primary font-semibold">Favicon uploaded — click to replace</p>
+                  </div>
+                ) : (
+                  <>
+                    <Icon name="GlobeAltIcon" size={24} className="text-muted-foreground mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">Click to upload favicon (ICO, PNG, SVG)</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Recommended: 32×32 or 64×64 PNG / ICO</p>
+                  </>
+                )}
+              </div>
+              {(faviconPreview || branding.favicon_url) && (
+                <button
+                  onClick={async () => {
+                    const oldUrl = branding.favicon_url;
+                    if (oldUrl && oldUrl.includes('/site-assets/')) {
+                      const oldPath = oldUrl.split('/site-assets/').pop();
+                      if (oldPath) {
+                        await fetch('/api/admin/upload-favicon', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ path: oldPath }),
+                        });
+                      }
+                    }
+                    setFaviconPreview(null);
+                    setBranding((prev) => ({ ...prev, favicon_url: undefined }));
+                  }}
+                  className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Remove favicon
+                </button>
+              )}
+              <p className="text-[10px] text-muted-foreground/60 mt-1">The favicon appears in browser tabs and bookmarks. Changes apply after saving.</p>
             </div>
           </div>
         )}
