@@ -537,8 +537,8 @@ export const DEFAULT_FEATURED_PROJECTS: FeaturedProjectsContent = {
   cta_text: 'View All Projects',
   cta_link: '/projects',
   projects: [
-  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: "https://img.rocket.new/generatedImages/rocket_gen_img_164eb4147-1772355208442.png", alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
-  { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', completion: 'Q2 2027', price: 'AED 900K+', units: 320, sold: 65, image: 'https://images.unsplash.com/photo-1735561650147-27d4d3e1002c', alt: 'Twin towers rising over Dubai Marina waterfront, golden hour reflections on glass', tag: 'New Launch' },
+  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d4a4c643-1772201743362.png", alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
+  { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', completion: 'Q2 2027', price: 'AED 900K+', units: 320, sold: 65, image: "https://images.unsplash.com/photo-1653965013889-e791d268b778", alt: 'Twin towers rising over Dubai Marina waterfront, golden hour reflections on glass', tag: 'New Launch' },
   { id: 3, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', completion: 'Q3 2028', price: 'AED 1.8M+', units: 180, sold: 0, image: "https://img.rocket.new/generatedImages/rocket_gen_img_10e7e337d-1772064904447.png", alt: 'Luxury waterfront development along Dubai Creek, contemporary architecture', tag: 'Launching Soon' }]
 
 };
@@ -570,9 +570,9 @@ export const DEFAULT_TESTIMONIALS: TestimonialsContent = {
   testimonials: [
   { name: 'Margaret Harrington', location: 'Greenwich, Connecticut', quote: "Cove Estates found us a property that wasn't on any public listing. The discretion and access they provide is unlike anything we've experienced in twenty years of property ownership.", role: 'Private Equity Principal', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1b32bbd93-1763299584368.png', imageAlt: 'Professional woman in elegant dark blazer, studio portrait' },
   { name: 'Thomas Blackwell', location: 'Upper East Side, New York', quote: 'The caliber of off-market opportunities they surfaced was extraordinary.', role: 'Investment Banker', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1bfef8bd5-1763295388609.png', imageAlt: 'Professional man in tailored dark suit, confident expression, studio portrait' },
-  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: "https://img.rocket.new/generatedImages/rocket_gen_img_11287cdb4-1772690426652.png", imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
+  { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: "https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png", imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
   { name: 'James Whitfield', location: 'Palm Beach, Florida', quote: 'Truly exceptional service.', role: 'Family Office Director', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1651cfc0b-1763295052209.png', imageAlt: 'Professional man in dark jacket, confident posture, studio portrait' },
-  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1683642765567-3c6873f793e4", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
+  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1636200063467-5408d3d08473", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
 
   awards: [
   { title: 'Forbes Global Properties', category: 'Top 10 Luxury Brokerages', year: '2025' },
@@ -661,7 +661,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16f0638be-1763300671799.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1fef2a040-1772907432197.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -826,7 +826,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Premium Commercial Real Estate',
   hero_subheadline: "Office spaces, retail units & investment-grade commercial properties",
   hero_description: "Strategic commercial properties in Dubai's most sought-after business districts, offering exceptional yields and capital appreciation.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_14b926046-1765893546612.png",
+  hero_image: "https://images.unsplash.com/photo-1572737761382-629159d63d9b",
   cta_primary_text: 'View Commercial',
   cta_primary_link: '/commercial#listings',
   cta_secondary_text: 'Get Investment Report',
@@ -841,7 +841,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Off-Plan & New Developments',
   hero_subheadline: "Exclusive access to Dubai's most anticipated new projects",
   hero_description: "Invest in tomorrow's landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai's leading developers.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1c4d21aa7-1780278377584.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1e4487274-1780279093787.png",
   cta_primary_text: 'View Projects',
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
@@ -1118,9 +1118,9 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
         setLoaded(true);
       } catch {
 
+
         // ignore transient network errors
       }}, 4000);
-
     return () => clearInterval(interval);
   }, []);
 

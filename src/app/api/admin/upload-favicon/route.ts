@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 const BUCKET = 'site-assets';
 const FOLDER = 'logos';
@@ -14,10 +17,28 @@ function serviceClient() {
 
 async function getAuthUser() {
   try {
-    const supabaseAuth = await createServerClient();
-    const {
-      data: { user },
-    } = await supabaseAuth.auth.getUser();
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // read-only context
+            }
+          },
+        },
+      }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
     return user;
   } catch {
     return null;

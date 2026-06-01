@@ -977,8 +977,7 @@ export default function UsersPage() {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {editUser
-                    ? 'Enter a new password to replace the current one, or leave blank to keep it.'
-                    : 'A welcome email with these credentials will be sent to the user automatically.'}
+                    ? 'Enter a new password to replace the current one, or leave blank to keep it.' :'A welcome email with these credentials will be sent to the user automatically.'}
                 </p>
               </div>
 

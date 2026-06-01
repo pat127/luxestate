@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
-      const body = await req.json();
+      let body = await req.json();
       const { sourceUrl, pageKey, oldPath } = body as { sourceUrl?: string; pageKey?: string; oldPath?: string };
 
       if (!sourceUrl) {
