@@ -633,7 +633,7 @@ function SiteImageUpload({
         console.error('Image upload error:', msg);
         return;
       }
-      const data = await res.json();
+      let data = await res.json();
       if (data.url) { onChange(data.url); setPasteUrl(''); }
       else if (data.error) console.error('Image upload error:', data.error);
     } catch (err) {
@@ -664,7 +664,7 @@ function SiteImageUpload({
         setUrlError(msg);
         return;
       }
-      const data = await res.json();
+      let data = await res.json();
       if (data.url) { onChange(data.url); setPasteUrl(''); setUrlError(''); }
       else if (data.error) setUrlError(data.error);
     } catch (err) {
@@ -754,10 +754,106 @@ function SiteImageUpload({
   );
 }
 
+// ─── CTA File Download Upload ─────────────────────────────────────────────────
+function CtaFileUpload({
+  label,
+  currentUrl,
+  fileKey,
+  onChange,
+}: {
+  label: string;
+  currentUrl?: string;
+  fileKey: string;
+  onChange: (url: string) => void;
+}) {
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  async function handleFile(file: File) {
+    setIsUploading(true);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('fileKey', fileKey);
+      if (currentUrl) {
+        const marker = '/site-assets/';
+        const idx = currentUrl.indexOf(marker);
+        if (idx !== -1) form.append('oldPath', decodeURIComponent(currentUrl.substring(idx + marker.length).split('?')[0]));
+      }
+      const res = await fetch('/api/admin/upload-cta-file', { method: 'POST', body: form });
+      const text = await res.text();
+      let data: { url?: string; error?: string };
+      try { data = JSON.parse(text); } catch { data = { error: text }; }
+      if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
+      onChange(data.url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function handleRemove() {
+    if (!currentUrl) return;
+    onChange('');
+  }
+
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</label>
+      {currentUrl ? (
+        <div className="flex items-center gap-2 p-2.5 bg-input border border-border">
+          <Icon name="DocumentArrowDownIcon" size={16} className="text-primary flex-shrink-0" />
+          <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-xs text-primary truncate hover:underline">
+            {currentUrl.split('/').pop()?.split('_').slice(0, -1).join('_') || 'Download file'}
+          </a>
+          <button
+            onClick={handleRemove}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 border border-red-400/30 hover:border-red-400/60 transition-colors flex-shrink-0"
+          >
+            <Icon name="XMarkIcon" size={12} /> Remove
+          </button>
+        </div>
+      ) : (
+        <div
+          onClick={() => !isUploading && fileRef.current?.click()}
+          className="border-2 border-dashed border-border hover:border-primary/40 p-4 flex items-center gap-3 cursor-pointer transition-colors"
+        >
+          {isUploading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+              <p className="text-xs text-muted-foreground">Uploading file...</p>
+            </>
+          ) : (
+            <>
+              <Icon name="ArrowUpTrayIcon" size={18} className="text-muted-foreground flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Click to upload a file (PDF, DOC, etc.)</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">Max 20MB — PDF, Word, or other document formats</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {error && <p className="text-[11px] text-red-500 mt-1.5 font-medium">{error}</p>}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+      />
+    </div>
+  );
+}
+
 // ─── Page CMS Editor ──────────────────────────────────────────────────────────
 function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageConfig) => void }) {
   const isHome = page.key === 'home';
   const isAbout = page.key === 'about';
+  const isDownloadPage = page.key === 'residential' || page.key === 'commercial' || page.key === 'projects';
   type SubTab = 'content' | 'sections' | 'seo' | 'blocks' | 'hero' | 'properties' | 'projects' | 'why' | 'testimonials' | 'contact' | 'mortgage' | 'about_story' | 'about_values' | 'about_ceo';
   const [activeSection, setActiveSection] = useState<SubTab>('content');
 
@@ -852,6 +948,29 @@ function PageEditor({ page, onChange }: { page: PageConfig; onChange: (p: PageCo
             <InputField label="Secondary CTA Text" value={page.cta_secondary_text} onChange={(v) => onChange({ ...page, cta_secondary_text: v })} />
             <InputField label="Secondary CTA Link" value={page.cta_secondary_link} onChange={(v) => onChange({ ...page, cta_secondary_link: v })} />
           </div>
+          {isDownloadPage && (
+            <div className="space-y-3 pt-1">
+              <div className="bg-primary/5 border border-primary/20 p-3">
+                <p className="text-xs text-primary/80">
+                  <span className="font-semibold">File Download CTA:</span> Upload a file to make the button trigger a download instead of navigating to a link. When a file is uploaded, the download icon will appear on the button automatically.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CtaFileUpload
+                  label="Primary CTA — Download File (optional)"
+                  currentUrl={page.cta_primary_download_url}
+                  fileKey={`${page.key}_cta_primary`}
+                  onChange={(v) => onChange({ ...page, cta_primary_download_url: v })}
+                />
+                <CtaFileUpload
+                  label="Secondary CTA — Download File (optional)"
+                  currentUrl={page.cta_secondary_download_url}
+                  fileKey={`${page.key}_cta_secondary`}
+                  onChange={(v) => onChange({ ...page, cta_secondary_download_url: v })}
+                />
+              </div>
+            </div>
+          )}
           {isHome && (
             <div className="pt-2">
               <HeroStatsEditor stats={hs} onChange={(s) => onChange({ ...page, hero_stats: s })} />
@@ -1810,7 +1929,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceUrl: url, ...opts.body }),
       });
-      const data = await res.json();
+      let data = await res.json();
       return data.url || null;
     } catch {
       return null;

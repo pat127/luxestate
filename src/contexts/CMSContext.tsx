@@ -23,8 +23,10 @@ export interface PageConfig {
   hero_eyebrow?: string;
   cta_primary_text: string;
   cta_primary_link: string;
+  cta_primary_download_url?: string;
   cta_secondary_text: string;
   cta_secondary_link: string;
+  cta_secondary_download_url?: string;
   meta_title: string;
   meta_description: string;
   sections: Record<string, boolean>;

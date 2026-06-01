@@ -66,14 +66,40 @@ export default function ResidentialHero() {
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             {page.cta_primary_text && (
-              <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
-                {page.cta_primary_text}
-              </Link>
+              page.cta_primary_download_url ? (
+                <a
+                  href={page.cta_primary_download_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors"
+                >
+                  <Icon name="ArrowDownTrayIcon" size={14} />
+                  {page.cta_primary_text}
+                </a>
+              ) : (
+                <Link href={page.cta_primary_link || '#'} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors">
+                  {page.cta_primary_text}
+                </Link>
+              )
             )}
             {page.cta_secondary_text && (
-              <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
-                {page.cta_secondary_text}
-              </Link>
+              page.cta_secondary_download_url ? (
+                <a
+                  href={page.cta_secondary_download_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors"
+                >
+                  <Icon name="ArrowDownTrayIcon" size={14} />
+                  {page.cta_secondary_text}
+                </a>
+              ) : (
+                <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
+                  {page.cta_secondary_text}
+                </Link>
+              )
             )}
           </div>
           {page.sections?.market_stats !== false && (
