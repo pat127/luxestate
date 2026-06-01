@@ -603,6 +603,7 @@ function SiteImageUpload({
   const [urlUploading, setUrlUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [pasteUrl, setPasteUrl] = useState('');
+  const [urlError, setUrlError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const uploadEndpoint = variant === 'hero' ? '/api/admin/upload-hero-image' : '/api/admin/upload-site-image';
@@ -637,6 +638,7 @@ function SiteImageUpload({
     const url = pasteUrl.trim();
     if (!url) return;
     setUrlUploading(true);
+    setUrlError('');
     try {
       const body =
         variant === 'hero' && pageKey
@@ -648,10 +650,10 @@ function SiteImageUpload({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (data.url) { onChange(data.url); setPasteUrl(''); }
-      else if (data.error) console.error('URL upload error:', data.error);
+      if (data.url) { onChange(data.url); setPasteUrl(''); setUrlError(''); }
+      else if (data.error) setUrlError(data.error);
     } catch (err) {
-      console.error('URL upload failed:', err);
+      setUrlError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUrlUploading(false);
     }
@@ -729,6 +731,9 @@ function SiteImageUpload({
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">Paste any image URL — it will be downloaded and saved to Supabase storage</p>
+        {urlError && (
+          <p className="text-[11px] text-red-500 mt-1.5 font-medium">{urlError}</p>
+        )}
       </div>
     </div>
   );
