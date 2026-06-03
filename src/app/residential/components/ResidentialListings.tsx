@@ -18,6 +18,7 @@ interface Property {
   sqft: string;
   tag: string;
   status: string;
+  completion: string;
   image: string;
   alt: string;
   featured: boolean;
@@ -46,7 +47,7 @@ export default function ResidentialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, availability, bedrooms, bathrooms, area_sqft, image_urls, featured')
+          .select('id, title, location_area, price_aed, prop_category, availability, completion, bedrooms, bathrooms, area_sqft, image_urls, featured')
           .eq('published', true)
           .in('prop_category', RESIDENTIAL_CATEGORIES)
           .order('created_at', { ascending: false });
@@ -75,6 +76,7 @@ export default function ResidentialListings() {
             sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
             tag: displayTag,
             status: p.availability || 'Available',
+            completion: p.completion || 'Ready',
             image: imgs.length > 0 ? imgs[0] : '',
             alt: p.title || 'Property image',
             featured: p.featured || false,
@@ -222,7 +224,7 @@ export default function ResidentialListings() {
                     {property.tag}
                   </span>
                   <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
-                    {property.status}
+                    {property.completion}
                   </span>
                 </div>
                 {property.featured &&
@@ -270,7 +272,7 @@ export default function ResidentialListings() {
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">{property.tag}</span>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${property.status === 'Available' ? 'text-primary' : 'text-muted-foreground'}`}>{property.status}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${property.completion === 'Ready' ? 'text-primary' : 'text-muted-foreground'}`}>{property.completion}</span>
                     </div>
                     <h3 className="text-foreground font-bold text-xl mb-1">{property.name}</h3>
                     <p className="text-muted-foreground text-xs tracking-widest uppercase flex items-center gap-1">
