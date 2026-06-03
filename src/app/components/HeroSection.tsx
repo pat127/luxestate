@@ -53,22 +53,9 @@ export default function HeroSection() {
     return items;
   }, [locations]);
 
-  useEffect(() => {
-    // Reduced delays: start at 0ms, stagger by 100ms instead of 300+180ms
-    // This prevents content from being invisible for 300-660ms on mobile
-    const els = [headlineRef?.current, subRef?.current, searchRef?.current, statsRef?.current];
-    els?.forEach((el, i) => {
-      if (!el) return;
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      setTimeout(() => {
-        if (!el) return;
-        el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }, i * 100);
-    });
-  }, []);
+  // REMOVED: The useEffect that set opacity:0 on hero elements was hiding LCP
+  // content until JS ran on mobile (~100-300ms delay). CSS animations are used
+  // instead — they don't require JS execution and don't block LCP measurement.
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -134,7 +121,7 @@ export default function HeroSection() {
           alt={heroHeadline || 'Luxury real estate hero'}
           fill
           priority
-          quality={60}
+          quality={75}
           className="object-cover"
           sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, (max-width: 1280px) 1280px, 100vw"
         />
@@ -145,8 +132,8 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 w-full pb-0 pt-28 md:pt-40">
         <div className="max-w-7xl mx-auto px-4 md:px-10">
-          {/* Eyebrow + Headline */}
-          <div ref={headlineRef} className="mb-6 md:mb-8">
+          {/* Eyebrow + Headline — rendered immediately, no JS-gated opacity */}
+          <div ref={headlineRef} className="mb-6 md:mb-8 hero-fade-in" style={{ animationDelay: '0ms' }}>
             <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 md:mb-6">
               <span className="h-px w-8 md:w-10 bg-primary" />
               {heroEyebrow}
@@ -159,13 +146,13 @@ export default function HeroSection() {
           </div>
 
           {heroDescription && (
-            <p ref={subRef} className="text-foreground/45 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10">
+            <p ref={subRef} className="text-foreground/45 text-base md:text-xl max-w-xl leading-relaxed mb-7 md:mb-10 hero-fade-in" style={{ animationDelay: '100ms' }}>
               {heroDescription}
             </p>
           )}
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-7 md:mb-10">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-7 md:mb-10 hero-fade-in" style={{ animationDelay: '150ms' }}>
             <Link
               href={ctaPrimaryLink}
               className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-accent transition-colors duration-300 group min-h-[52px]">
@@ -180,7 +167,7 @@ export default function HeroSection() {
           </div>
 
           {/* Search Bar */}
-          <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-3 md:p-5 max-w-3xl mb-12 md:mb-16">
+          <div ref={searchRef} className="bg-card/90 backdrop-blur-md border border-border p-3 md:p-5 max-w-3xl mb-12 md:mb-16 hero-fade-in" style={{ animationDelay: '200ms' }}>
             <div ref={searchContainerRef} className="relative">
               <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 <div className="flex-1 flex items-center gap-3 border border-border bg-background px-4 py-3">
@@ -243,7 +230,7 @@ export default function HeroSection() {
 
         {/* Stats — full width strip */}
         {stats.length > 0 && (
-          <div ref={statsRef} className="w-full border-t border-border/40 bg-background/60 backdrop-blur-md">
+          <div ref={statsRef} className="w-full border-t border-border/40 bg-background/60 backdrop-blur-md hero-fade-in" style={{ animationDelay: '250ms' }}>
             <div className="max-w-7xl mx-auto px-4 md:px-10 py-5 md:py-6 grid grid-cols-2 md:flex md:items-center md:justify-between gap-4">
               {stats.map((stat, i) => (
                 <div key={i} className="border-l border-primary/30 pl-4 first:border-l-0 first:pl-0 md:flex-1">

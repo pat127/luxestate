@@ -68,9 +68,7 @@ const AppImage = memo(function AppImage({
     unoptimized = false,
     ...props
 }: AppImageProps) {
-    // ── FIX: Initialize synchronously so priority images have a src on first render.
-    // The previous pattern (null → useEffect) caused the LCP hero image to render
-    // a placeholder <div> on first paint, preventing browser preload entirely.
+    // Initialize synchronously so priority images have a src on first render.
     const [imageSrc, setImageSrc] = useState<string | null>(() => {
         const s = sanitizeSrc(src, fallbackSrc);
         return s || null;
@@ -129,9 +127,12 @@ const AppImage = memo(function AppImage({
 
         if (priority) {
             baseProps.priority = true;
+            // fetchPriority must be passed as a prop to Next.js Image for it to emit
+            // fetchpriority="high" on the <img> tag — critical for mobile LCP
             baseProps.fetchPriority = 'high';
         } else {
             baseProps.loading = loading;
+            baseProps.fetchPriority = 'auto';
         }
 
         baseProps.placeholder = placeholder;
@@ -140,7 +141,9 @@ const AppImage = memo(function AppImage({
         return baseProps;
     }, [imageSrc, fallbackSrc, alt, imageClassName, quality, unoptimized, priority, loading, placeholder, blurDataURL, handleError, handleLoad, onClick]);
 
-    if (!imageSrc) {
+    // For priority (LCP) images: never render the placeholder div — always render
+    // the <Image> element so the browser can discover and preload it immediately.
+    if (!imageSrc && !priority) {
         const placeholderClass = [className, 'animate-pulse bg-muted/30'].filter(Boolean).join(' ');
         if (fill) {
             return <div className={placeholderClass} style={{ position: 'absolute', inset: 0 }} />;

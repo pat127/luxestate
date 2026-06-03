@@ -22,8 +22,9 @@ const nextConfig = {
   images: {
     remotePatterns: imageHosts,
     minimumCacheTTL: 2592000,
-    // webp first for broader compatibility; avif can add decode latency on low-end mobile
-    formats: ['image/webp', 'image/avif'],
+    // avif first: ~50% smaller than webp on mobile, significantly reducing LCP image transfer time
+    // Modern mobile browsers (Chrome 85+, Safari 16+) support avif
+    formats: ['image/avif', 'image/webp'],
     // Mobile-first device sizes: prioritise smaller breakpoints for faster LCP on mobile
     deviceSizes: [480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

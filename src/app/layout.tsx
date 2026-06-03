@@ -12,7 +12,8 @@ import { Suspense } from 'react';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  // Reduced from 5 weights to 3 — fewer font files = faster first paint on mobile
+  weight: ['400', '600', '800'],
   variable: '--font-plus-jakarta-sans',
   display: 'swap',
 });
@@ -172,6 +173,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
+        {/* Preload the Next.js image endpoint for the mobile hero image size.
+            This gives the browser an early hint to start fetching the LCP image
+            before the JS bundle parses and renders the <Image> component. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=480&q=75"
+          imageSrcSet="/_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=480&q=75 480w, /_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=768&q=75 768w"
+          imageSizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 100vw"
+          fetchPriority="high"
+        />
         <meta name="geo.region" content="AE-DU" />
         <meta name="geo.placename" content="Dubai, United Arab Emirates" />
         <meta name="geo.position" content="25.2048;55.2708" />
