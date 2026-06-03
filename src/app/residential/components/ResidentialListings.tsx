@@ -221,11 +221,9 @@ export default function ResidentialListings() {
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
                     {property.tag}
                   </span>
-                  {property.status !== 'Available' &&
-              <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
-                      {property.status}
-                    </span>
-              }
+                  <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
+                    {property.status}
+                  </span>
                 </div>
                 {property.featured &&
             <div className="absolute top-4 right-4">
