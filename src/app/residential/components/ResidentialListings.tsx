@@ -223,9 +223,6 @@ export default function ResidentialListings() {
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
                     {property.tag}
                   </span>
-                  <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
-                    {property.completion}
-                  </span>
                 </div>
                 {property.featured &&
             <div className="absolute top-4 right-4">
@@ -272,7 +269,6 @@ export default function ResidentialListings() {
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">{property.tag}</span>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${property.completion === 'Ready' ? 'text-primary' : 'text-muted-foreground'}`}>{property.completion}</span>
                     </div>
                     <h3 className="text-foreground font-bold text-xl mb-1">{property.name}</h3>
                     <p className="text-muted-foreground text-xs tracking-widest uppercase flex items-center gap-1">
