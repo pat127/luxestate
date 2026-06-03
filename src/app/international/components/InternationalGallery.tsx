@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 interface InternationalProject {
@@ -20,13 +21,6 @@ interface InternationalProject {
   images: { url: string; alt?: string }[] | null;
   featured: boolean;
 }
-
-const statusColors: Record<string, string> = {
-  Active: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10',
-  Completed: 'text-blue-400 border-blue-400/30 bg-blue-400/10',
-  Launching: 'text-primary border-primary/30 bg-primary/10',
-  'On Hold': 'text-orange-400 border-orange-400/30 bg-orange-400/10',
-};
 
 export default function InternationalGallery() {
   const [projects, setProjects] = useState<InternationalProject[]>([]);
@@ -49,7 +43,6 @@ export default function InternationalGallery() {
         if (!error && data) {
           setProjects(data as InternationalProject[]);
         } else if (error) {
-          // Fallback: fetch without strict boolean filter to handle legacy NULL values
           const { data: fallbackData } = await supabase
             .from('projects')
             .select('id, name, developer, location_area, country, project_type, status, total_units, sold_units, handover_date, starting_price, images, featured, international, published')
@@ -122,19 +115,19 @@ export default function InternationalGallery() {
 
       {/* Loading */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-64 bg-card border border-border animate-pulse" />
-          ))}
+        <div className="flex items-center justify-center py-24">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-20 border border-border">
-          <Icon name="GlobeAltIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">No international projects available at this time.</p>
-          <p className="text-muted-foreground text-xs mt-1">Check back soon for new global opportunities.</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-on-scroll">
+          <div className="w-16 h-16 border border-border flex items-center justify-center mb-6">
+            <Icon name="GlobeAltIcon" size={28} className="text-muted-foreground" />
+          </div>
+          <h3 className="text-foreground font-bold text-xl mb-2">No International Projects</h3>
+          <p className="text-muted-foreground text-sm max-w-sm">No international projects available at this time. Check back soon for new global opportunities.</p>
         </div>
       )}
 
@@ -142,115 +135,77 @@ export default function InternationalGallery() {
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children animate-on-scroll">
           {filtered.map((project, i) => {
-            const soldPct = project.total_units > 0 ? Math.round((project.sold_units / project.total_units) * 100) : 0;
             const isFeatured = project.featured;
             const images = Array.isArray(project.images) ? project.images : [];
             const firstImage = images[0];
             const imgSrc = firstImage?.url || '';
             const imgAlt = firstImage?.alt || project.name;
+            const priceFrom = project.starting_price
+              ? `AED ${Number(project.starting_price).toLocaleString()}+`
+              : '';
 
             return (
-              <div
+              <Link
                 key={project.id}
+                href={`/projects/${project.id}`}
                 className={`animate-on-scroll property-card bg-card border border-border group cursor-pointer block ${isFeatured ? 'md:col-span-2' : ''}`}
                 style={{ transitionDelay: `${i * 70}ms` }}
               >
                 <div className={`relative overflow-hidden ${isFeatured ? 'h-80' : 'h-64'}`}>
-                  <AppImage
-                    src={imgSrc}
-                    alt={imgAlt}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
+                  {imgSrc ? (
+                    <AppImage
+                      src={imgSrc}
+                      alt={imgAlt}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-secondary flex items-center justify-center">
+                      <Icon name="GlobeAltIcon" size={40} className="text-muted-foreground" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                  {/* Status + Type */}
-                  <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
-                    {project.project_type && (
+                  {/* Country label only */}
+                  {project.country && (
+                    <div className="absolute top-4 left-4 flex gap-2">
                       <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">
-                        {project.project_type}
-                      </span>
-                    )}
-                    {project.status && (
-                      <span className={`text-[10px] font-bold uppercase tracking-widest border px-3 py-1 backdrop-blur-sm ${statusColors[project.status] || ''}`}>
-                        {project.status}
-                      </span>
-                    )}
-                    {project.country && (
-                      <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-border flex items-center gap-1">
-                        <Icon name="GlobeAltIcon" size={10} className="text-primary" />
                         {project.country}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Completion */}
-                  {project.handover_date && (
-                    <div className="absolute top-4 right-4">
-                      <span className="bg-background/80 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-border">
-                        {project.handover_date}
                       </span>
                     </div>
                   )}
-
-                  {/* Bottom info overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <h3 className="text-white font-black text-xl md:text-2xl tracking-tight mb-1">{project.name}</h3>
-                    {project.location_area && (
-                      <p className="text-white/70 text-xs tracking-widest uppercase flex items-center gap-1">
-                        <Icon name="MapPinIcon" size={11} className="text-primary" />
-                        {project.location_area}
-                      </p>
-                    )}
-                  </div>
 
                   <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
 
                 <div className="p-5">
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      {project.developer && (
-                        <p className="text-muted-foreground text-xs mb-1">
-                          <span className="text-foreground font-medium">{project.developer}</span>
-                        </p>
-                      )}
-                      {project.starting_price && (
-                        <p className="text-primary font-bold text-lg">{project.starting_price}</p>
-                      )}
+                      <h3 className="text-foreground font-bold text-xl leading-tight">{project.name}</h3>
+                      <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
+                        <Icon name="MapPinIcon" size={11} className="text-primary" />
+                        {project.location_area || project.country || ''}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-foreground font-bold text-sm">{project.total_units} Units</p>
-                      <p className="text-muted-foreground text-xs">{project.sold_units} Reserved</p>
-                    </div>
+                    {priceFrom && (
+                      <span className="text-primary font-bold text-sm text-right">{priceFrom}</span>
+                    )}
                   </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-widest mb-2">
-                      <span>Reservation Progress</span>
-                      <span>{soldPct}%</span>
-                    </div>
-                    <div className="h-1 bg-border overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-700"
-                        style={{ width: `${soldPct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                      <Icon name="MapPinIcon" size={11} className="text-primary" />
-                      {project.location_area || project.country || ''}
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1 group-hover:gap-2 transition-all duration-300">
-                      Enquire <Icon name="ArrowRightIcon" size={11} />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
+                    <span className="text-primary font-bold text-base">{project.developer || ''}</span>
+                    {project.handover_date && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="CalendarIcon" size={11} className="text-primary" />
+                        {project.handover_date}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 text-primary font-bold">
+                      View Project <Icon name="ArrowRightIcon" size={11} />
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

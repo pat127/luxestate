@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
-import Icon from '@/components/ui/AppIcon';
+
 import { useCMSPage } from '@/contexts/CMSContext';
 import Link from 'next/link';
 
@@ -73,18 +73,6 @@ export default function InternationalHero() {
               <Link href={page.cta_secondary_link || '#'} className="inline-flex items-center gap-2 border border-primary/40 text-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:border-primary transition-colors">
                 {page.cta_secondary_text}
               </Link>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-6 pt-2">
-            {[
-            { icon: 'GlobeAltIcon', label: '20+ Countries' },
-            { icon: 'BuildingOffice2Icon', label: 'Prime City Locations' },
-            { icon: 'LockClosedIcon', label: 'Exclusive Access' }].
-            map((stat) =>
-            <div key={stat.label} className="flex items-center gap-2 text-foreground/80 text-sm">
-                <Icon name={stat.icon as Parameters<typeof Icon>[0]['name']} size={14} className="text-primary" />
-                {stat.label}
-              </div>
             )}
           </div>
         </div>
