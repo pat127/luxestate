@@ -181,7 +181,9 @@ export default function ProjectsGallery() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">{project.type}</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest border px-3 py-1 backdrop-blur-sm ${project.statusColor}`}>{getDisplayStatus(project.status)}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest border px-3 py-1 backdrop-blur-sm text-amber-400 border-amber-400/30 bg-amber-400/10`}>
+                    {project.completion ? project.completion : 'Ready'}
+                  </span>
                 </div>
                 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
