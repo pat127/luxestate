@@ -36,7 +36,7 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
   return (
     <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer h-full ${isTall ? 'flex flex-col' : ''}`}>
       <div className={`relative overflow-hidden ${isTall ? 'flex-1 min-h-[300px]' : 'h-64 md:h-72'}`}>
-        <AppImage src={property.image} alt={property.alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
+        <AppImage src={property.image} alt={property.alt} fill className="object-cover" quality={60} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" priority={priority} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-4 left-4">
           <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{property.tag}</span>

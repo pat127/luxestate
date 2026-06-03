@@ -122,8 +122,9 @@ export default function HeroSection() {
             alt={heroHeadline || 'Hero background'}
             fill
             priority
+            quality={60}
             className="object-cover"
-            sizes="100vw" />
+            sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, (max-width: 1280px) 1280px, 100vw" />
         )}
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />
