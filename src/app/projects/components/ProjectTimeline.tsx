@@ -9,7 +9,6 @@ const milestones = [
     title: 'Pre-Launch Registration',
     description: 'Gain exclusive access to architectural plans, developer presentations, and pre-public pricing. Priority registrants secure first right of refusal on unit selection.',
     status: 'Open Now',
-    statusColor: 'text-primary',
     icon: 'ClipboardDocumentListIcon',
   },
   {
@@ -17,7 +16,6 @@ const milestones = [
     title: 'Private Sales Launch',
     description: 'Invitation-only sales events for registered clients. Contracts executed at pre-market pricing with developer incentives. Typical 15-25% below anticipated completion value.',
     status: 'Q2 2026',
-    statusColor: 'text-yellow-400',
     icon: 'KeyIcon',
   },
   {
@@ -25,7 +23,6 @@ const milestones = [
     title: 'Construction & Progress Reports',
     description: 'Monthly construction updates, site visits, and milestone reporting. Our project management team monitors progress on your behalf and maintains developer accountability.',
     status: 'Ongoing',
-    statusColor: 'text-foreground/60',
     icon: 'BuildingOffice2Icon',
   },
   {
@@ -33,15 +30,20 @@ const milestones = [
     title: 'Completion & Handover',
     description: 'White-glove completion inspections, snagging management, and settlement coordination. We remain with you through to key handover and post-completion support.',
     status: 'Varies by Project',
-    statusColor: 'text-foreground/60',
     icon: 'HomeModernIcon',
   },
 ];
 
+const TIMELINE_CONTENT = {
+  eyebrow: 'Off-Plan Journey',
+  headline: 'The Acquisition',
+  headline_line2: 'Process',
+  phases: milestones,
+};
+
 export default function ProjectTimeline() {
   const sectionRef = useRef<HTMLElement>(null);
-  const page = useCMSPage('projects');
-  const content = page?.acquisition_process_content ?? DEFAULT_ACQUISITION_PROCESS;
+  const content = TIMELINE_CONTENT;
 
   const statusColors: Record<string, string> = {
     'Open Now': 'text-primary',
@@ -85,7 +87,6 @@ export default function ProjectTimeline() {
           </p>
         </div>
 
-        {/* Horizontal Phase Timeline */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-on-scroll stagger-children">
           {content.phases.map((milestone, i) => (
             <div
@@ -93,28 +94,22 @@ export default function ProjectTimeline() {
               className="animate-on-scroll relative border border-border bg-background p-6 group hover:border-primary/40 transition-all duration-500"
               style={{ transitionDelay: `${i * 100}ms` }}
             >
-              {/* Phase connector line */}
               {i < content.phases.length - 1 && (
                 <div className="hidden lg:block absolute top-10 -right-[1px] w-4 h-px bg-border z-10" />
               )}
 
-              {/* Icon */}
               <div className="w-12 h-12 border border-border flex items-center justify-center mb-5 group-hover:border-primary group-hover:bg-primary/10 transition-all duration-300">
                 <Icon name={milestone.icon as Parameters<typeof Icon>[0]['name']} size={20} className="text-primary" />
               </div>
 
-              {/* Phase Label */}
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground block mb-2">{milestone.phase}</span>
 
-              {/* Title */}
               <h3 className="text-foreground font-bold text-lg mb-3 leading-snug">{milestone.title}</h3>
 
-              {/* Status */}
               <span className={`text-xs font-bold uppercase tracking-widest ${getStatusColor(milestone.status)} block mb-4`}>
                 {milestone.status}
               </span>
 
-              {/* Description */}
               <p className="text-muted-foreground text-xs leading-relaxed">{milestone.description}</p>
             </div>
           ))}

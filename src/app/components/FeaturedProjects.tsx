@@ -46,7 +46,9 @@ function ProjectCard({ project, priority = false, wide = false }: {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{project.type}</span>
-          <span className="bg-white/10 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 border border-white/20">{project.tag}</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] border px-3 py-1 backdrop-blur-sm text-amber-400 border-amber-400/30 bg-amber-400/10">
+            {project.completion ? project.completion : 'Ready'}
+          </span>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <div className="flex justify-between items-end mb-3">

@@ -311,9 +311,11 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const imageList: string[] = property.image_urls
-    ? property.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
-    : [];
+  const imageList: string[] = Array.isArray(property.image_urls)
+    ? property.image_urls
+    : typeof property.image_urls === 'string'
+      ? property.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+      : [];
 
   const amenityList: string[] = property.amenities
     ? property.amenities.split(',').map((a: string) => a.trim()).filter(Boolean)
