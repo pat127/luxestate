@@ -14,8 +14,7 @@ interface CommercialListing {
   price: string;
   type: string;
   sqft: string;
-  capRate: string;
-  occupancy: string;
+  pricePerSqft: string;
   status: string;
   image: string;
   alt: string;
@@ -63,8 +62,9 @@ export default function CommercialListings() {
             price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : '—',
             type: displayType,
             sqft: p.area_sqft ? Number(p.area_sqft).toLocaleString() : '—',
-            capRate: '—',
-            occupancy: '—',
+            pricePerSqft: (p.price_aed && p.area_sqft && Number(p.area_sqft) > 0)
+              ? `AED ${Math.round(Number(p.price_aed) / Number(p.area_sqft)).toLocaleString()}`
+              : '—',
             status: p.availability || 'Available',
             image: imgs.length > 0 ? imgs[0] : '',
             alt: p.title || 'Commercial property image',
@@ -211,18 +211,14 @@ export default function CommercialListings() {
                 </div>
 
                 {/* Investment Metrics */}
-                <div className="grid grid-cols-3 gap-3 border border-border p-3 mb-4 bg-background">
-                  <div className="text-center">
-                    <p className="text-primary font-bold text-sm">{listing.capRate}</p>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Cap Rate</p>
-                  </div>
-                  <div className="text-center border-x border-border">
-                    <p className="text-primary font-bold text-sm">{listing.occupancy}</p>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Occupied</p>
-                  </div>
+                <div className="grid grid-cols-2 gap-3 border border-border p-3 mb-4 bg-background">
                   <div className="text-center">
                     <p className="text-primary font-bold text-sm">{listing.sqft}</p>
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Sq Ft</p>
+                  </div>
+                  <div className="text-center border-l border-border">
+                    <p className="text-primary font-bold text-sm">{listing.pricePerSqft}</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Price / Sq Ft</p>
                   </div>
                 </div>
 
