@@ -9,6 +9,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '20mb',
     },
+    optimizePackageImports: ['@heroicons/react', 'lucide-react', 'recharts'],
   },
 
   typescript: {

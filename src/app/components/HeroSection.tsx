@@ -6,8 +6,8 @@ import Icon from '@/components/ui/AppIcon';
 import { useCMSPage } from '@/contexts/CMSContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCommunities } from '@/hooks/useCommunities';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { UAE_LOCATIONS, type UAELocation } from '@/lib/uaeLocations';
 
 interface LocationSuggestion {
   label: string;
@@ -31,7 +31,8 @@ export default function HeroSection() {
   const page = useCMSPage('home');
   const router = useRouter();
   const { t } = useLanguage();
-  const { locations } = useCommunities();
+  const [locations, setLocations] = useState<UAELocation[]>(UAE_LOCATIONS);
+  const [communitiesLoaded, setCommunitiesLoaded] = useState(false);
   const headlineRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -41,6 +42,14 @@ export default function HeroSection() {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const loadCommunities = () => {
+    if (communitiesLoaded) return;
+    setCommunitiesLoaded(true);
+    import('@/hooks/useCommunities').then(({ fetchCommunities }) => {
+      fetchCommunities().then(setLocations);
+    });
+  };
 
   const allLocationSuggestions = useMemo(() => {
     const items: LocationSuggestion[] = [];
@@ -177,6 +186,7 @@ export default function HeroSection() {
                     value={searchQuery}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onFocus={() => {
+                      loadCommunities();
                       if (searchQuery.trim() && suggestions.length > 0) setShowSuggestions(true);
                     }}
                     onKeyDown={(e) => {
