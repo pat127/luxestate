@@ -204,11 +204,7 @@ export default function AboutPage() {
                   className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6">
-                  <p className="text-white font-bold text-2xl leading-tight">{ab.ceo.name}</p>
-                  <p className="text-primary text-xs uppercase tracking-widest mt-1">{ab.ceo.role}</p>
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
               </div>
             </div>
 

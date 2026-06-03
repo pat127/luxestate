@@ -78,7 +78,7 @@ const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
   { value: 'EUR', label: 'EUR — Euro' },
 ];
 
-function FooterColumn({ title, links, onLinkClick }: { title: string; links: { label: string; href: string }[]; onLinkClick?: (label: string) => void }) {
+function FooterColumn({ title, links, onLinkClick }: { title: string; links: { label: string; href: string; gold?: boolean }[]; onLinkClick?: (label: string) => void }) {
   return (
     <div className="flex flex-col gap-3">
       <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/80">{title}</h4>
@@ -95,7 +95,11 @@ function FooterColumn({ title, links, onLinkClick }: { title: string; links: { l
             ) : (
               <Link
                 href={link.href}
-                className="text-muted-foreground text-sm hover:text-primary transition-colors duration-300 py-0.5 inline-block"
+                className={`text-sm transition-colors duration-300 py-0.5 inline-block ${
+                  link.gold
+                    ? 'text-[#C9A84C] font-semibold hover:text-[#e0c070]'
+                    : 'text-muted-foreground hover:text-primary'
+                }`}
                 {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               >
                 {link.label}
@@ -198,7 +202,7 @@ export default function Footer() {
     { label: t('footer.company_blog'), href: '/blog' },
     { label: t('footer.company_careers'), href: '#careers-popup' },
     { label: t('footer.company_contact'), href: '/#contact' },
-    { label: 'Reagle', href: 'https://reagle.ae' },
+    { label: 'Reagle Advisory', href: 'https://reagle.ae', gold: true },
   ];
 
   const propertyLinks = [
