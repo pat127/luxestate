@@ -8,6 +8,7 @@ import { trackFilterSelection, trackSortSelection } from '@/lib/analytics';
 import { usePropertyFields } from '@/hooks/usePropertyFields';
 import { createClient } from '@/lib/supabase/client';
 
+
 interface Property {
   id: string;
   name: string;
@@ -47,7 +48,7 @@ export default function ResidentialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, availability, completion, bedrooms, bathrooms, area_sqft, image_urls, featured')
+          .select('id, title, location_area, price_aed, prop_category, property_type, availability, completion, bedrooms, bathrooms, area_sqft, image_urls, featured')
           .eq('published', true)
           .in('prop_category', RESIDENTIAL_CATEGORIES)
           .order('created_at', { ascending: false });
@@ -65,7 +66,7 @@ export default function ResidentialListings() {
             : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
               : [];
           const rawCategory = p.prop_category || '';
-          const displayTag = rawCategory || 'Residential';
+          const displayTag = p.property_type || (rawCategory !== 'Residential' ? rawCategory : '') || 'Property';
           return {
             id: p.id,
             name: p.title || '',
