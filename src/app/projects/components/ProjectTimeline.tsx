@@ -40,6 +40,18 @@ const milestones = [
 
 export default function ProjectTimeline() {
   const sectionRef = useRef<HTMLElement>(null);
+  const page = useCMSPage('projects');
+  const content = page?.acquisition_process_content ?? DEFAULT_ACQUISITION_PROCESS;
+
+  const statusColors: Record<string, string> = {
+    'Open Now': 'text-primary',
+    'Ongoing': 'text-foreground/60',
+    'Varies by Project': 'text-foreground/60',
+  };
+
+  function getStatusColor(status: string): string {
+    return statusColors[status] ?? 'text-yellow-400';
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -63,9 +75,9 @@ export default function ProjectTimeline() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between md:items-end items-start mb-16 gap-6 animate-on-scroll">
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Acquisition Process</span>
+            <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">{content.eyebrow}</span>
             <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">
-              From Registration<br />to Keys
+              {content.headline}<br />{content.headline_line2}
             </h2>
           </div>
           <p className="text-muted-foreground text-sm max-w-xs leading-relaxed text-left md:text-right">
@@ -75,14 +87,14 @@ export default function ProjectTimeline() {
 
         {/* Horizontal Phase Timeline */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-on-scroll stagger-children">
-          {milestones.map((milestone, i) => (
+          {content.phases.map((milestone, i) => (
             <div
               key={milestone.phase}
               className="animate-on-scroll relative border border-border bg-background p-6 group hover:border-primary/40 transition-all duration-500"
               style={{ transitionDelay: `${i * 100}ms` }}
             >
               {/* Phase connector line */}
-              {i < milestones.length - 1 && (
+              {i < content.phases.length - 1 && (
                 <div className="hidden lg:block absolute top-10 -right-[1px] w-4 h-px bg-border z-10" />
               )}
 
@@ -98,7 +110,7 @@ export default function ProjectTimeline() {
               <h3 className="text-foreground font-bold text-lg mb-3 leading-snug">{milestone.title}</h3>
 
               {/* Status */}
-              <span className={`text-xs font-bold uppercase tracking-widest ${milestone.statusColor} block mb-4`}>
+              <span className={`text-xs font-bold uppercase tracking-widest ${getStatusColor(milestone.status)} block mb-4`}>
                 {milestone.status}
               </span>
 

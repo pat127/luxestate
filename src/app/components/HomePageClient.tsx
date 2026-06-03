@@ -1,6 +1,6 @@
 'use client';
 
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -15,7 +15,7 @@ const TestimonialsSection = dynamic(() => import('@/app/components/TestimonialsS
 const MortgageCalculator = dynamic(() => import('@/app/components/MortgageCalculator'), { ssr: false });
 const ContactSection = dynamic(() => import('@/app/components/ContactSection'), { ssr: false });
 
-export default function HomePage() {
+export default function HomePageClient() {
   const homePage = useCMSPage('home');
 
   const blocks = homePage?.homepage_blocks?.length
