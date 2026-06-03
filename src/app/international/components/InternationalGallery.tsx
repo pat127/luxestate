@@ -48,6 +48,19 @@ export default function InternationalGallery() {
 
         if (!error && data) {
           setProjects(data as InternationalProject[]);
+        } else if (error) {
+          // Fallback: fetch without strict boolean filter to handle legacy NULL values
+          const { data: fallbackData } = await supabase
+            .from('projects')
+            .select('id, name, developer, location_area, country, project_type, status, total_units, sold_units, handover_date, starting_price, images, featured, international, published')
+            .order('featured', { ascending: false })
+            .order('created_at', { ascending: false });
+          if (fallbackData) {
+            setProjects(
+              (fallbackData as (InternationalProject & { international: boolean | null; published: boolean | null })[])
+                .filter((p) => p.international === true && p.published === true) as InternationalProject[]
+            );
+          }
         }
       } catch {
         // silent fail — show empty state

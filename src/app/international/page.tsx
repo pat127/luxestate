@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import InternationalHero from '@/app/international/components/InternationalHero';
 import InternationalGallery from '@/app/international/components/InternationalGallery';
-import ProjectInquiry from '@/app/projects/components/ProjectInquiry';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 
 export default function InternationalPage() {
@@ -13,7 +12,6 @@ export default function InternationalPage() {
         <Header />
         <InternationalHero />
         <InternationalGallery />
-        <ProjectInquiry />
         <Footer />
       </main>
     </CurrencyProvider>
