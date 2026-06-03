@@ -1,20 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useCMS } from '@/contexts/CMSContext';
 
 export default function CMSLoadGate({ children }: { children: React.ReactNode }) {
-  const { loaded } = useCMS();
-
-  return (
-    <div
-      style={{
-        opacity: loaded ? 1 : 0,
-        transition: loaded ? 'opacity 0.15s ease-in' : 'none',
-        visibility: loaded ? 'visible' : 'hidden',
-      }}
-    >
-      {children}
-    </div>
-  );
+  // Render children immediately — do NOT block rendering while CMS loads.
+  // Hiding the entire page until Supabase responds was the primary cause of
+  // the 6.6 s LCP on mobile. Individual components handle their own skeletons.
+  return <>{children}</>;
 }

@@ -15,6 +15,18 @@ interface LocationSuggestion {
   emirate: string;
 }
 
+// Static fallback so the hero renders immediately before CMS data arrives
+const FALLBACK_HERO = {
+  image: '/assets/images/no_image.png',
+  eyebrow: 'Luxury Real Estate Dubai',
+  headline: 'Discover Exceptional Properties',
+  description: 'Curated luxury residential and commercial properties for discerning buyers.',
+  ctaPrimaryText: 'Explore Properties',
+  ctaPrimaryLink: '/residential',
+  ctaSecondaryText: 'Contact Us',
+  ctaSecondaryLink: '/#contact',
+};
+
 export default function HeroSection() {
   const page = useCMSPage('home');
   const router = useRouter();
@@ -42,19 +54,19 @@ export default function HeroSection() {
   }, [locations]);
 
   useEffect(() => {
+    // Reduced delays: start at 0ms, stagger by 100ms instead of 300+180ms
+    // This prevents content from being invisible for 300-660ms on mobile
     const els = [headlineRef?.current, subRef?.current, searchRef?.current, statsRef?.current];
     els?.forEach((el, i) => {
       if (!el) return;
       el.style.opacity = '0';
-      el.style.transform = 'translateY(40px)';
-      el.style.filter = 'blur(8px)';
+      el.style.transform = 'translateY(20px)';
       setTimeout(() => {
         if (!el) return;
-        el.style.transition = 'opacity 1s cubic-bezier(0.16,1,0.3,1), transform 1s cubic-bezier(0.16,1,0.3,1), filter 1s cubic-bezier(0.16,1,0.3,1)';
+        el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';
-        el.style.filter = 'blur(0px)';
-      }, 300 + i * 180);
+      }, i * 100);
     });
   }, []);
 
@@ -98,14 +110,15 @@ export default function HeroSection() {
     }
   };
 
-  const heroImage = page?.hero_image || '';
-  const heroEyebrow = page?.hero_eyebrow || '';
-  const heroHeadline = page?.hero_headline || '';
-  const heroDescription = page?.hero_description || '';
-  const ctaPrimaryText = page?.cta_primary_text || '';
-  const ctaPrimaryLink = page?.cta_primary_link || '/residential';
-  const ctaSecondaryText = page?.cta_secondary_text || '';
-  const ctaSecondaryLink = page?.cta_secondary_link || '/#contact';
+  // Use CMS data when available, fall back to static values immediately
+  const heroImage = page?.hero_image || FALLBACK_HERO.image;
+  const heroEyebrow = page?.hero_eyebrow || FALLBACK_HERO.eyebrow;
+  const heroHeadline = page?.hero_headline || FALLBACK_HERO.headline;
+  const heroDescription = page?.hero_description || FALLBACK_HERO.description;
+  const ctaPrimaryText = page?.cta_primary_text || FALLBACK_HERO.ctaPrimaryText;
+  const ctaPrimaryLink = page?.cta_primary_link || FALLBACK_HERO.ctaPrimaryLink;
+  const ctaSecondaryText = page?.cta_secondary_text || FALLBACK_HERO.ctaSecondaryText;
+  const ctaSecondaryLink = page?.cta_secondary_link || FALLBACK_HERO.ctaSecondaryLink;
   const stats = page?.hero_stats || [];
 
   const headlineWords = heroHeadline.split(' ');
@@ -116,16 +129,15 @@ export default function HeroSection() {
     <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 z-0">
-        {heroImage && (
-          <AppImage
-            src={heroImage}
-            alt={heroHeadline || 'Hero background'}
-            fill
-            priority
-            quality={60}
-            className="object-cover"
-            sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, (max-width: 1280px) 1280px, 100vw" />
-        )}
+        <AppImage
+          src={heroImage}
+          alt={heroHeadline || 'Luxury real estate hero'}
+          fill
+          priority
+          quality={60}
+          className="object-cover"
+          sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, (max-width: 1280px) 1280px, 100vw"
+        />
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />
       </div>

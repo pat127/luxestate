@@ -68,17 +68,25 @@ const AppImage = memo(function AppImage({
     unoptimized = false,
     ...props
 }: AppImageProps) {
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
+    // ── FIX: Initialize synchronously so priority images have a src on first render.
+    // The previous pattern (null → useEffect) caused the LCP hero image to render
+    // a placeholder <div> on first paint, preventing browser preload entirely.
+    const [imageSrc, setImageSrc] = useState<string | null>(() => {
+        const s = sanitizeSrc(src, fallbackSrc);
+        return s || null;
+    });
     const [hasError, setHasError] = useState(false);
-    const [loaded, setLoaded] = useState(false);
+    // Priority images start visible — no fade-in delay for LCP element
+    const [loaded, setLoaded] = useState(priority);
     const imgRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
         const next = sanitizeSrc(src, fallbackSrc);
         setImageSrc(next ? next : null);
         setHasError(false);
-        setLoaded(false);
-    }, [src, fallbackSrc]);
+        // Keep priority images visible even when src changes
+        setLoaded(priority);
+    }, [src, fallbackSrc, priority]);
 
     const handleError = useCallback(() => {
         if (hasError) return;
@@ -99,12 +107,13 @@ const AppImage = memo(function AppImage({
     const imageClassName = useMemo(() => {
         const classes = [
             className,
-            'transition-opacity duration-500 ease-out',
-            loaded ? 'opacity-100' : 'opacity-0',
+            // Priority (LCP) images: always visible. Others: fade in on load.
+            priority ? '' : 'transition-opacity duration-500 ease-out',
+            priority ? 'opacity-100' : (loaded ? 'opacity-100' : 'opacity-0'),
         ];
         if (onClick) classes.push('cursor-pointer hover:opacity-90');
         return classes.filter(Boolean).join(' ');
-    }, [className, onClick, loaded]);
+    }, [className, onClick, loaded, priority]);
 
     const imageProps = useMemo(() => {
         const baseProps: any = {
