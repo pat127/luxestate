@@ -3,11 +3,11 @@
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import HeroSection from '@/app/components/HeroSection';
 import { useCMSPage, DEFAULT_HOMEPAGE_BLOCKS } from '@/contexts/CMSContext';
 
-// Below-fold chunks — loaded after first paint so they don't compete with LCP on mobile
-const Footer = dynamic(() => import('@/components/Footer'), { ssr: false });
+// Dynamically import below-fold components to avoid blocking LCP
 const FeaturedProperties = dynamic(() => import('@/app/components/FeaturedProperties'), { ssr: false });
 const FeaturedProjects = dynamic(() => import('@/app/components/FeaturedProjects'), { ssr: false });
 const WhyLuxEstate = dynamic(() => import('@/app/components/WhyLuxEstate'), { ssr: false });

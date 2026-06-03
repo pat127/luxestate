@@ -1,47 +1,42 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { UAE_LOCATIONS, type UAELocation } from '@/lib/uaeLocations';
 
 let _cache: { locations: UAELocation[]; ts: number } | null = null;
 const CACHE_TTL = 60_000;
 
-export async function fetchCommunities(): Promise<UAELocation[]> {
-  if (_cache && Date.now() - _cache.ts < CACHE_TTL) {
-    return _cache.locations;
-  }
-
-  const { createClient } = await import('@/lib/supabase/client');
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('site_settings')
-    .select('data')
-    .eq('key', 'communities')
-    .single();
-
-  if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
-    const fetched = data.data as UAELocation[];
-    _cache = { locations: fetched, ts: Date.now() };
-    return fetched;
-  }
-
-  return UAE_LOCATIONS;
-}
-
 export function useCommunities() {
   const [locations, setLocations] = useState<UAELocation[]>(_cache?.locations ?? UAE_LOCATIONS);
   const [loaded, setLoaded] = useState(!!_cache);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    if (_cache && Date.now() - _cache.ts < CACHE_TTL) {
+      setLocations(_cache.locations);
+      setLoaded(true);
+      return;
+    }
+
     let cancelled = false;
-    fetchCommunities().then((result) => {
-      if (!cancelled) {
-        setLocations(result);
+    supabase
+      .from('site_settings')
+      .select('data')
+      .eq('key', 'communities')
+      .single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
+          const fetched = data.data as UAELocation[];
+          _cache = { locations: fetched, ts: Date.now() };
+          setLocations(fetched);
+        }
         setLoaded(true);
-      }
-    });
+      });
+
     return () => { cancelled = true; };
-  }, []);
+  }, [supabase]);
 
   const areas = useMemo(() => locations.map((l) => l.area), [locations]);
 

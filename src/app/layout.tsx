@@ -1,13 +1,14 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import Script from 'next/script';
 import '../styles/tailwind.css';
 import { CMSProvider } from '@/contexts/CMSContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
+import DynamicSEO from '@/components/DynamicSEO';
 import CMSLoadGate from '@/components/CMSLoadGate';
-import DeferredClientExtras from '@/components/DeferredClientExtras';
+import { Suspense } from 'react';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -199,19 +200,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-      </head>
+
+        <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.19" />
+        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
       <body className={plusJakartaSans.className}>
-        {/* Non-critical third-party scripts — load after page is interactive */}
-        <Script
-          src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.19"
-          strategy="lazyOnload"
-        />
-        <Script
-          src="https://static.rocket.new/rocket-shot.js?v=0.0.2"
-          strategy="lazyOnload"
-        />
         <CMSProvider>
-          <DeferredClientExtras />
+          <Suspense fallback={null}>
+            <GoogleAnalytics />
+          </Suspense>
+          <DynamicSEO />
           <CurrencyProvider defaultCurrency="AED">
             <LanguageProvider>
               <CMSLoadGate>
