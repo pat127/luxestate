@@ -55,7 +55,7 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <main className="bg-background overflow-x-hidden">
+    <main className="bg-background overflow-x-hidden page-enter">
       <Header />
 
       {/* Hero */}

@@ -46,7 +46,7 @@ export default function HomePageClient() {
   };
 
   return (
-    <main className="bg-background overflow-x-hidden">
+    <main className="bg-background overflow-x-hidden page-enter">
       <Header />
       <HeroSection />
       <Suspense fallback={null}>

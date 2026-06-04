@@ -29,7 +29,7 @@ export default function ResidentialPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema) }}
         suppressHydrationWarning
       />
-      <main className="bg-background overflow-x-hidden">
+      <main className="bg-background overflow-x-hidden page-enter">
         <Header />
         <ResidentialHero />
         {sections?.search_bar !== false && <ResidentialSearch />}

@@ -30,7 +30,7 @@ export default function CommercialPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema) }}
         suppressHydrationWarning
       />
-      <main className="bg-background overflow-x-hidden">
+      <main className="bg-background overflow-x-hidden page-enter">
         <Header />
         <CommercialHero />
         {sections?.listings_grid !== false && <CommercialListings />}

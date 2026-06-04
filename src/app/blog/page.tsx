@@ -192,7 +192,7 @@ export default function BlogPage() {
   const mainWords = headlineWords.length > 1 ? headlineWords.slice(0, -1).join(' ') : '';
 
   return (
-    <main className="bg-background overflow-x-hidden">
+    <main className="bg-background overflow-x-hidden page-enter">
       <Header />
 
       {/* Hero */}

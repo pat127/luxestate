@@ -8,7 +8,7 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 export default function InternationalPage() {
   return (
     <CurrencyProvider defaultCurrency="USD">
-      <main className="bg-background overflow-x-hidden">
+      <main className="bg-background overflow-x-hidden page-enter">
         <Header />
         <InternationalHero />
         <InternationalGallery />

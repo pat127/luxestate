@@ -29,7 +29,7 @@ export default function ProjectsPageClient() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema) }}
         suppressHydrationWarning
       />
-      <main className="bg-background overflow-x-hidden">
+      <main className="bg-background overflow-x-hidden page-enter">
         <Header />
         <ProjectsHero />
         {sections?.projects_gallery !== false && <ProjectsGallery />}

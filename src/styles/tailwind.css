@@ -167,6 +167,23 @@
   }
 }
 
+/* Page transition: fade-in on mount to prevent flash of previous page content */
+@keyframes pageEnter {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.page-enter {
+  animation: pageEnter 0.25s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .vertical-beam {
   position: absolute;
   left: -1px;
