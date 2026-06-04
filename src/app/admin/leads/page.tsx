@@ -44,11 +44,16 @@ interface LeadForm {
   name: string; email: string; phone: string; whatsapp: string;
   source: string; status: string; budget: string; interest: string;
   nationality: string; assignedAgent: string; notes: string; followUpDate: string;
+  buyerType: 'individual' | 'company';
+  companyName: string;
+  referralName: string;
+  referralFee: string;
 }
 
 const emptyForm: LeadForm = {
   name: '', email: '', phone: '', whatsapp: '', source: 'Website', status: 'New',
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
+  buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
 };
 
 export default function LeadsPage() {
@@ -142,6 +147,7 @@ export default function LeadsPage() {
       budget: lead.budget || '', interest: lead.interest || '',
       nationality: lead.nationality || '', assignedAgent: lead.assigned_agent || '',
       notes: lead.notes || '', followUpDate: lead.follow_up_date || '',
+      buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
     });
     setShowModal(true);
   };
@@ -154,12 +160,19 @@ export default function LeadsPage() {
 
   const handleSave = async () => {
     if (!form.name) return;
+    if (form.buyerType === 'company' && !form.companyName) return;
     setSaving(true);
+    const notesWithExtras = [
+      form.notes,
+      form.buyerType === 'company' && form.companyName ? `Company: ${form.companyName}` : '',
+      form.source === 'Referral' && form.referralName ? `Referral by: ${form.referralName}` : '',
+      form.source === 'Referral' && form.referralFee ? `Referral fee: ${form.referralFee}` : '',
+    ].filter(Boolean).join('\n');
     const payload = {
       name: form.name, email: form.email, phone: form.phone,
       source: form.source, status: form.status, budget: form.budget,
       interest: form.interest, nationality: form.nationality,
-      assigned_agent: form.assignedAgent, notes: form.notes,
+      assigned_agent: form.assignedAgent, notes: notesWithExtras,
       follow_up_date: form.followUpDate || null,
     };
     if (editLead) {
@@ -303,7 +316,45 @@ export default function LeadsPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2"><label className={labelCls}>Full Name *</label><input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Lead name" /></div>
+
+                {/* Buyer Type Toggle */}
+                <div className="col-span-2">
+                  <label className={labelCls}>Buyer Type</label>
+                  <div className="flex gap-0 border border-[#333] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, buyerType: 'individual', companyName: '' })}
+                      className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${form.buyerType === 'individual' ? 'bg-primary text-primary-foreground' : 'bg-[#1a1a1a] text-[#aaa] hover:text-white'}`}
+                    >
+                      Individual
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, buyerType: 'company' })}
+                      className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${form.buyerType === 'company' ? 'bg-primary text-primary-foreground' : 'bg-[#1a1a1a] text-[#aaa] hover:text-white'}`}
+                    >
+                      Company
+                    </button>
+                  </div>
+                </div>
+
+                {/* Company Name — shown only when company is selected */}
+                {form.buyerType === 'company' && (
+                  <div className="col-span-2">
+                    <label className={labelCls}>Company Name *</label>
+                    <input
+                      className={inputCls}
+                      value={form.companyName}
+                      onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                      placeholder="Company / Organisation name"
+                    />
+                  </div>
+                )}
+
+                <div className="col-span-2">
+                  <label className={labelCls}>{form.buyerType === 'company' ? 'Contact Person Name' : 'Full Name'} *</label>
+                  <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Lead name" />
+                </div>
                 <div><label className={labelCls}>Email</label><input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div><label className={labelCls}>Phone</label><input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                 <div><label className={labelCls}>Source</label>
@@ -316,28 +367,45 @@ export default function LeadsPage() {
                     {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
+
+                {/* Referral fields — shown only when source is Referral */}
+                {form.source === 'Referral' && (
+                  <>
+                    <div>
+                      <label className={labelCls}>Referral Name *</label>
+                      <input
+                        className={inputCls}
+                        value={form.referralName}
+                        onChange={(e) => setForm({ ...form, referralName: e.target.value })}
+                        placeholder="Name of referrer"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Referral Fee</label>
+                      <input
+                        className={inputCls}
+                        value={form.referralFee}
+                        onChange={(e) => setForm({ ...form, referralFee: e.target.value })}
+                        placeholder="e.g. AED 5,000 or 1%"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div><label className={labelCls}>Budget</label><input className={inputCls} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. AED 2M–5M" /></div>
                 <div><label className={labelCls}>Nationality</label><input className={inputCls} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></div>
                 <div className="col-span-2"><label className={labelCls}>Interest / Property</label><input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" /></div>
                 <div>
-                  <label className={labelCls}>Assigned Agent</label>
-                  {agentNames.length > 0 ? (
-                    <select
-                      className={inputCls}
-                      value={form.assignedAgent}
-                      onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
-                    >
-                      <option value="">— Select Agent —</option>
-                      {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
-                    </select>
-                  ) : (
-                    <input
-                      className={inputCls}
-                      value={form.assignedAgent}
-                      onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
-                      placeholder="Agent name"
-                    />
-                  )}
+                  <label className={labelCls}>Assigned To</label>
+                  <select
+                    className={inputCls}
+                    value={form.assignedAgent}
+                    onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
+                  >
+                    <option value="">— Select —</option>
+                    <option value="CEO Pawan">CEO Pawan</option>
+                    {agentNames.filter(n => n !== 'CEO Pawan').map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
                 </div>
                 <div><label className={labelCls}>Follow-up Date</label><input type="date" className={inputCls} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} /></div>
                 <div className="col-span-2"><label className={labelCls}>Notes</label><textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
@@ -345,7 +413,11 @@ export default function LeadsPage() {
             </div>
             <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={saving || !form.name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.name || (form.buyerType === 'company' && !form.companyName)}
+                className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50"
+              >
                 {saving ? 'Saving...' : editLead ? 'Update Lead' : 'Save Lead'}
               </button>
             </div>
