@@ -1000,15 +1000,28 @@ function parseCMSData(data: CMSData) {
   };
 }
 
-export function CMSProvider({ children }: {children: React.ReactNode;}) {
-  const [pages, setPages] = useState<PageConfig[]>(DEFAULT_PAGES);
-  const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
-  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(DEFAULT_PROPERTY_DETAIL);
-  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(DEFAULT_PROJECT_DETAIL);
-  const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
-  const [loaded, setLoaded] = useState(false);
+export function CMSProvider({
+  children,
+  initialCmsData = null,
+  initialUpdatedAt = null,
+}: {
+  children: React.ReactNode;
+  initialCmsData?: CMSData | null;
+  initialUpdatedAt?: string | null;
+}) {
+  const hasServerBoot = !!(initialCmsData && Object.keys(initialCmsData).length > 0);
+  const boot = hasServerBoot ? parseCMSData(initialCmsData!) : null;
+
+  const [pages, setPages] = useState<PageConfig[]>(boot?.pages ?? DEFAULT_PAGES);
+  const [branding, setBranding] = useState<BrandingConfig>(boot?.branding ?? DEFAULT_BRANDING);
+  const [propertyDetail, setPropertyDetail] = useState<PropertyDetailContent>(boot?.propertyDetail ?? DEFAULT_PROPERTY_DETAIL);
+  const [projectDetail, setProjectDetail] = useState<ProjectDetailContent>(boot?.projectDetail ?? DEFAULT_PROJECT_DETAIL);
+  const [lastSaved, setLastSaved] = useState<string | undefined>(boot?.lastSaved);
+  const [loaded, setLoaded] = useState(hasServerBoot);
   const supabaseRef = useRef(createClient());
-  const cmsUpdatedAtRef = useRef<string | null>(null);
+  const cmsUpdatedAtRef = useRef<string | null>(initialUpdatedAt);
+  const serverBootRef = useRef(hasServerBoot);
+  const serverUpdatedAtRef = useRef(initialUpdatedAt);
 
   useEffect(() => {
     if (!branding) return;
@@ -1034,14 +1047,19 @@ export function CMSProvider({ children }: {children: React.ReactNode;}) {
     then(async ({ data, error }) => {
       if (cancelled) return;
       if (!error && data?.data && Object.keys(data.data).length > 0) {
+        const nextUpdatedAt = (data as { updated_at?: string })?.updated_at ?? null;
+        if (serverBootRef.current && nextUpdatedAt && nextUpdatedAt === serverUpdatedAtRef.current) {
+          setLoaded(true);
+          return;
+        }
         const remote = parseCMSData(data.data as CMSData);
-        cmsUpdatedAtRef.current = (data as any)?.updated_at ?? null;
+        cmsUpdatedAtRef.current = nextUpdatedAt;
         setPages(remote.pages);
         setBranding(remote.branding);
         setPropertyDetail(remote.propertyDetail);
         setProjectDetail(remote.projectDetail);
         setLastSaved(remote.lastSaved);
-      } else {
+      } else if (!serverBootRef.current) {
         const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const seedPayload: CMSData = {
           pages: DEFAULT_PAGES,

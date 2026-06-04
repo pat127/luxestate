@@ -9,6 +9,8 @@ import GoogleAnalytics from '@/components/GoogleAnalytics';
 import DynamicSEO from '@/components/DynamicSEO';
 import CMSLoadGate from '@/components/CMSLoadGate';
 import { Suspense } from 'react';
+import { getCmsConfigServer } from '@/lib/cms/getCmsConfigServer';
+import type { BrandingConfig } from '@/contexts/CMSContext';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -162,28 +164,43 @@ const websiteSchema = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+function brandingCssVars(branding?: BrandingConfig): React.CSSProperties | undefined {
+  if (!branding) return undefined;
+  return {
+    ['--primary' as string]: branding.primary_color || '#C9A84C',
+    ['--accent' as string]: branding.accent_color || '#B8963E',
+    ['--font-sans' as string]: `'${branding.font_family || 'Plus Jakarta Sans'}', sans-serif`,
+    ['--radius' as string]: branding.border_radius || '0px',
+  };
+}
+
+function heroPreloadHref(heroUrl?: string): string | null {
+  if (!heroUrl || heroUrl.startsWith('/assets/images/no_image')) return null;
+  const encoded = encodeURIComponent(heroUrl);
+  return `/_next/image?url=${encoded}&w=480&q=75`;
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const cms = await getCmsConfigServer();
+  const branding = cms.data?.branding;
+  const homeHero = cms.data?.pages?.find((p) => p.key === 'home')?.hero_image;
+  const heroPreload = heroPreloadHref(homeHero);
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} dark`}>
+    <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Preconnect to image CDNs used for hero/property images */}
-        <link rel="preconnect" href="https://img.rocket.new" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
-        {/* Preload the Next.js image endpoint for the mobile hero image size.
-            This gives the browser an early hint to start fetching the LCP image
-            before the JS bundle parses and renders the <Image> component. */}
-        <link
-          rel="preload"
-          as="image"
-          href="/_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=480&q=75"
-          imageSrcSet="/_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=480&q=75 480w, /_next/image?url=%2Fassets%2Fimages%2Fno_image.png&w=768&q=75 768w"
-          imageSizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 100vw"
-          fetchPriority="high"
-        />
+        {heroPreload && (
+          <link
+            rel="preload"
+            as="image"
+            href={heroPreload}
+            fetchPriority="high"
+          />
+        )}
         <meta name="geo.region" content="AE-DU" />
         <meta name="geo.placename" content="Dubai, United Arab Emirates" />
         <meta name="geo.position" content="25.2048;55.2708" />
@@ -204,7 +221,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.19" />
         <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
       <body className={plusJakartaSans.className}>
-        <CMSProvider>
+        <CMSProvider initialCmsData={cms.data} initialUpdatedAt={cms.updatedAt}>
           <Suspense fallback={null}>
             <GoogleAnalytics />
           </Suspense>

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
-import { useCMSPage } from '@/contexts/CMSContext';
+import { useCMSPage, useCMS } from '@/contexts/CMSContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCommunities } from '@/hooks/useCommunities';
@@ -28,6 +28,7 @@ const FALLBACK_HERO = {
 };
 
 export default function HeroSection() {
+  const { loaded: cmsLoaded } = useCMS();
   const page = useCMSPage('home');
   const router = useRouter();
   const { t } = useLanguage();
@@ -97,16 +98,17 @@ export default function HeroSection() {
     }
   };
 
-  // Use CMS data when available, fall back to static values immediately
-  const heroImage = page?.hero_image || FALLBACK_HERO.image;
-  const heroEyebrow = page?.hero_eyebrow || FALLBACK_HERO.eyebrow;
-  const heroHeadline = page?.hero_headline || FALLBACK_HERO.headline;
-  const heroDescription = page?.hero_description || FALLBACK_HERO.description;
-  const ctaPrimaryText = page?.cta_primary_text || FALLBACK_HERO.ctaPrimaryText;
-  const ctaPrimaryLink = page?.cta_primary_link || FALLBACK_HERO.ctaPrimaryLink;
-  const ctaSecondaryText = page?.cta_secondary_text || FALLBACK_HERO.ctaSecondaryText;
-  const ctaSecondaryLink = page?.cta_secondary_link || FALLBACK_HERO.ctaSecondaryLink;
-  const stats = page?.hero_stats || [];
+  // Avoid flashing baked-in Rocket defaults before CMS is ready
+  const cmsReady = cmsLoaded && page;
+  const heroImage = cmsReady && page?.hero_image ? page.hero_image : FALLBACK_HERO.image;
+  const heroEyebrow = cmsReady && page?.hero_eyebrow ? page.hero_eyebrow : FALLBACK_HERO.eyebrow;
+  const heroHeadline = cmsReady && page?.hero_headline ? page.hero_headline : FALLBACK_HERO.headline;
+  const heroDescription = cmsReady && page?.hero_description ? page.hero_description : FALLBACK_HERO.description;
+  const ctaPrimaryText = cmsReady && page?.cta_primary_text ? page.cta_primary_text : FALLBACK_HERO.ctaPrimaryText;
+  const ctaPrimaryLink = cmsReady && page?.cta_primary_link ? page.cta_primary_link : FALLBACK_HERO.ctaPrimaryLink;
+  const ctaSecondaryText = cmsReady && page?.cta_secondary_text ? page.cta_secondary_text : FALLBACK_HERO.ctaSecondaryText;
+  const ctaSecondaryLink = cmsReady && page?.cta_secondary_link ? page.cta_secondary_link : FALLBACK_HERO.ctaSecondaryLink;
+  const stats = cmsReady ? (page?.hero_stats || []) : [];
 
   const headlineWords = heroHeadline.split(' ');
   const lastWord = headlineWords.pop();
