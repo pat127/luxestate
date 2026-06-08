@@ -425,6 +425,29 @@ input[type="range"]::-moz-range-thumb {
   min-height: 16px;
 }
 
+/* Admin panel mobile safe area */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Admin panel bottom padding for mobile bottom nav */
+.admin-panel {
+  /* already used in layout */
+}
+
 @layer utilities {
   @keyframes shimmer {
     0% { transform: skewX(-12deg) translateX(-150%); }

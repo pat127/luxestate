@@ -34,6 +34,14 @@ const allCmsLinks = [
   { label: 'Blog Posts', href: '/admin/blog', icon: 'DocumentDuplicateIcon', permission: 'view_blog' as Permission },
 ];
 
+// Bottom nav items (most used — shown on mobile)
+const bottomNavItems = [
+  { label: 'Home', href: '/admin', icon: 'Squares2X2Icon', permission: 'view_dashboard' as Permission },
+  { label: 'Leads', href: '/admin/leads', icon: 'UserPlusIcon', permission: 'view_leads' as Permission },
+  { label: 'Properties', href: '/admin/properties', icon: 'HomeIcon', permission: 'view_properties' as Permission },
+  { label: 'Calendar', href: '/admin/calendar', icon: 'CalendarIcon', permission: 'view_calendar' as Permission },
+];
+
 const roleLabels: Record<UserRole, string> = {
   super_admin: 'Super Admin / CEO',
   admin: 'Admin',
@@ -54,13 +62,15 @@ interface NavItemProps {
   label: string;
   active: boolean;
   collapsed: boolean;
+  onClick?: () => void;
 }
 
-function NavItem({ href, icon, label, active, collapsed }: NavItemProps) {
+function NavItem({ href, icon, label, active, collapsed, onClick }: NavItemProps) {
   return (
     <Link
       href={href}
       title={collapsed ? label : undefined}
+      onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative ${
         active
           ? 'bg-primary/10 text-primary border-l-2 border-primary' :'text-muted-foreground hover:text-foreground hover:bg-white/5 border-l-2 border-transparent'
@@ -79,7 +89,7 @@ function NavItem({ href, icon, label, active, collapsed }: NavItemProps) {
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
   const [authChecked, setAuthChecked] = useState(false);
@@ -87,6 +97,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { currentUser, setCurrentUser, can, isRole } = useRole();
   const supabase = useMemo(() => createClient(), []);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const syncAuthUser = async () => {
@@ -138,7 +153,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const handleBellClick = () => {
     setShowNotifications(!showNotifications);
-    setShowRoleSwitcher(false);
     if (!showNotifications) fetchPendingDocs();
   };
 
@@ -147,6 +161,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (!isRole('super_admin', 'admin', 'marketing')) return false;
     return can(l.permission);
   });
+  const mobileBottomLinks = bottomNavItems.filter((l) => can(l.permission));
 
   const totalNotifications = currentUser.role === 'super_admin' ? pendingDocs.length : 0;
 
@@ -160,16 +175,20 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Wait for auth check to complete before rendering (prevents layout flash)
+  // Wait for auth check to complete before rendering
   if (!authChecked) {
     return null;
   }
 
+  // Get current page label for mobile header
+  const currentPageLabel = [...allCrmLinks, ...allCmsLinks].find(l => l.href === pathname)?.label || 'Admin';
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
+
+      {/* ─── DESKTOP SIDEBAR ─── */}
       <aside
-        className={`flex flex-col bg-card border-r border-border transition-all duration-300 flex-shrink-0 ${
+        className={`hidden lg:flex flex-col bg-card border-r border-border transition-all duration-300 flex-shrink-0 ${
           collapsed ? 'w-14' : 'w-56'
         }`}
       >
@@ -199,46 +218,25 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Scrollable nav */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
-          {/* CRM Section */}
           {crmLinks.length > 0 && (
             <div className="mb-1">
               {!collapsed && (
-                <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
-                  CRM
-                </p>
+                <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">CRM</p>
               )}
               {collapsed && <div className="border-t border-border my-2" />}
               {crmLinks.map((link) => (
-                <NavItem
-                  key={link.href}
-                  href={link.href}
-                  icon={link.icon}
-                  label={link.label}
-                  active={pathname === link.href}
-                  collapsed={collapsed}
-                />
+                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={collapsed} />
               ))}
             </div>
           )}
-
-          {/* CMS Section */}
           {cmsLinks.length > 0 && (
             <div className="mt-3">
               {!collapsed && (
-                <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
-                  CMS
-                </p>
+                <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">CMS</p>
               )}
               {collapsed && <div className="border-t border-border my-2" />}
               {cmsLinks.map((link) => (
-                <NavItem
-                  key={link.href}
-                  href={link.href}
-                  icon={link.icon}
-                  label={link.label}
-                  active={pathname === link.href}
-                  collapsed={collapsed}
-                />
+                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={collapsed} />
               ))}
             </div>
           )}
@@ -246,27 +244,98 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <div className="border-t border-border p-3 space-y-1">
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <Icon name="ArrowTopRightOnSquareIcon" size={14} />
             {!collapsed && <span>View Website</span>}
           </Link>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full"
-          >
+          <button onClick={handleSignOut} className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-red-400 transition-colors w-full">
             <Icon name="ArrowRightOnRectangleIcon" size={14} />
             {!collapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
+      {/* ─── MOBILE DRAWER OVERLAY ─── */}
+      {mobileDrawerOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setMobileDrawerOpen(false)}
+        />
+      )}
+
+      {/* ─── MOBILE SLIDE-OUT DRAWER ─── */}
+      <aside
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-card border-r border-border z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+          mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+          <Link href="/" className="flex items-center gap-2" onClick={() => setMobileDrawerOpen(false)}>
+            <div className="w-7 h-7 bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground text-sm font-black">C</span>
+            </div>
+            <div>
+              <p className="text-foreground font-bold text-sm tracking-tight leading-none">Cove Estates</p>
+              <p className="text-muted-foreground text-[10px] mt-0.5">Admin Panel</p>
+            </div>
+          </Link>
+          <button onClick={() => setMobileDrawerOpen(false)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="XMarkIcon" size={18} />
+          </button>
+        </div>
+
+        {/* User info in drawer */}
+        <div className="px-4 py-3 border-b border-border bg-background/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-primary text-sm font-bold">{currentUser.avatar}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{currentUser.name}</p>
+              <p className={`text-[11px] font-medium ${roleBadgeColors[currentUser.role]}`}>{roleLabels[currentUser.role]}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable nav */}
+        <div className="flex-1 overflow-y-auto py-2">
+          {crmLinks.length > 0 && (
+            <div className="mb-1">
+              <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">CRM</p>
+              {crmLinks.map((link) => (
+                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={false} onClick={() => setMobileDrawerOpen(false)} />
+              ))}
+            </div>
+          )}
+          {cmsLinks.length > 0 && (
+            <div className="mt-2">
+              <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">CMS</p>
+              {cmsLinks.map((link) => (
+                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={false} onClick={() => setMobileDrawerOpen(false)} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Drawer footer */}
+        <div className="border-t border-border p-3 space-y-1">
+          <Link href="/" onClick={() => setMobileDrawerOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="ArrowTopRightOnSquareIcon" size={16} />
+            <span>View Website</span>
+          </Link>
+          <button onClick={handleSignOut} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-red-400 transition-colors w-full">
+            <Icon name="ArrowRightOnRectangleIcon" size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ─── MAIN CONTENT AREA ─── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* ─── TOP BAR (desktop) ─── */}
+        <header className="hidden lg:flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
           <div />
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -284,7 +353,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
                 )}
               </button>
-
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border shadow-xl z-50">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -295,12 +363,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   </div>
                   <div className="divide-y divide-border max-h-72 overflow-y-auto">
                     {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
-                      <Link
-                        key={doc.id}
-                        href="/admin/documents"
-                        onClick={() => setShowNotifications(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
-                      >
+                      <Link key={doc.id} href="/admin/documents" onClick={() => setShowNotifications(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
                         <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
                           <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
                         </div>
@@ -340,8 +403,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
-
-            {/* Role display (real user — no switcher in production) */}
             <div className="flex items-center gap-2 px-3 py-1.5 border border-border">
               <div className="w-6 h-6 bg-primary/20 border border-primary/30 flex items-center justify-center">
                 <span className="text-primary text-xs font-bold">{currentUser.avatar}</span>
@@ -354,10 +415,127 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto admin-panel">
+        {/* ─── MOBILE TOP BAR ─── */}
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card flex-shrink-0 safe-area-top">
+          <button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Open menu"
+          >
+            <Icon name="Bars3Icon" size={22} />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground text-xs font-black">C</span>
+            </div>
+            <span className="text-foreground font-bold text-sm tracking-tight">{currentPageLabel}</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Bell */}
+            <div className="relative">
+              <button
+                onClick={handleBellClick}
+                className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="BellIcon" size={20} />
+                {totalNotifications > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-black">{totalNotifications > 9 ? '9+' : totalNotifications}</span>
+                  </span>
+                )}
+                {totalNotifications === 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] bg-card border border-border shadow-xl z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <p className="text-xs font-bold uppercase tracking-wider text-foreground">Notifications</p>
+                    <button onClick={() => setShowNotifications(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <Icon name="XMarkIcon" size={14} />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-border max-h-64 overflow-y-auto">
+                    {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
+                      <Link key={doc.id} href="/admin/documents" onClick={() => setShowNotifications(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
+                        <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
+                          <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">Pending Approval</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{doc.title || doc.template_name}</p>
+                        </div>
+                        <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
+                      </Link>
+                    ))}
+                    {[
+                      { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
+                      { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
+                    ].map((n, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
+                        <div className="w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5">
+                          <Icon name={n.icon as any} size={14} className={n.color} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">{n.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.desc}</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-border">
+                    <p className="text-[10px] text-center text-muted-foreground">All caught up</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Avatar */}
+            <div className="w-8 h-8 bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <span className="text-primary text-xs font-bold">{currentUser.avatar}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* ─── PAGE CONTENT ─── */}
+        <main className="flex-1 overflow-y-auto admin-panel pb-20 lg:pb-0">
           {children}
         </main>
+
+        {/* ─── MOBILE BOTTOM NAV ─── */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-30 safe-area-bottom">
+          <div className="flex items-stretch">
+            {mobileBottomLinks.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors ${
+                    active ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon name={item.icon as any} size={22} className={active ? 'text-primary' : 'text-muted-foreground'} />
+                  <span className={`text-[10px] font-semibold tracking-wide ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {item.label}
+                  </span>
+                  {active && <span className="absolute bottom-0 w-8 h-0.5 bg-primary rounded-full" />}
+                </Link>
+              );
+            })}
+            {/* More button */}
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-muted-foreground transition-colors"
+            >
+              <Icon name="EllipsisHorizontalIcon" size={22} />
+              <span className="text-[10px] font-semibold tracking-wide">More</span>
+            </button>
+          </div>
+        </nav>
+
       </div>
     </div>
   );

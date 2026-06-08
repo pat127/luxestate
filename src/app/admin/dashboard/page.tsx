@@ -110,7 +110,6 @@ export default function AgentDashboardPage() {
     loadLeads();
   }, [loadLeads]);
 
-  // Derived stats
   const totalLeads = leads.length;
   const overdueFollowUps = leads.filter(l => isOverdue(l.follow_up_date)).length;
   const dueTodayFollowUps = leads.filter(l => isDueToday(l.follow_up_date)).length;
@@ -118,15 +117,12 @@ export default function AgentDashboardPage() {
   const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
   const closedLeads = leads.filter(l => l.status === 'Closed').length;
 
-  // Follow-up leads sorted by urgency
   const followUpLeads = leads
     .filter(l => l.follow_up_date)
     .sort((a, b) => new Date(a.follow_up_date!).getTime() - new Date(b.follow_up_date!).getTime());
 
-  // Converted/pipeline leads
   const convertedLeadsList = leads.filter(l => conversionStatuses.includes(l.status));
 
-  // Activity timeline — derive from leads sorted by created_at
   const activityTimeline: ActivityEvent[] = leads
     .slice(0, 20)
     .map(l => ({
@@ -184,55 +180,88 @@ export default function AgentDashboardPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+
+      {/* ─── HEADER ─── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Agent Portal</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Welcome back, <span className="text-primary font-semibold">{currentUser.name}</span>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">Agent Portal</h1>
+          <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
+            Welcome, <span className="text-primary font-semibold">{currentUser.name}</span>
           </p>
         </div>
         <Link
           href="/admin/leads"
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
         >
-          <Icon name="UserPlusIcon" size={14} />
-          Manage Leads
+          <Icon name="UserPlusIcon" size={13} />
+          <span className="hidden sm:inline">Manage </span>Leads
         </Link>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* ─── STAT CARDS — 2-col on mobile, 4-col on desktop ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((card) => (
-          <div key={card.label} className="bg-card border border-border p-5 hover:border-primary/30 transition-colors">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-10 h-10 ${card.bg} flex items-center justify-center`}>
-                <Icon name={card.icon as any} size={18} className={card.color} />
-              </div>
+          <div key={card.label} className="bg-card border border-border p-4 hover:border-primary/30 transition-colors">
+            <div className={`w-8 h-8 ${card.bg} flex items-center justify-center mb-3`}>
+              <Icon name={card.icon as any} size={16} className={card.color} />
             </div>
-            <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
-            <p className={`text-2xl font-bold ${card.color}`}>{loading ? '—' : card.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+            <p className="text-muted-foreground text-[10px] lg:text-xs mb-0.5 leading-tight">{card.label}</p>
+            <p className={`text-xl lg:text-2xl font-bold ${card.color}`}>{loading ? '—' : card.value}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{card.sub}</p>
           </div>
         ))}
       </div>
 
-      {/* Main Content: Leads Table + Activity Timeline */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Leads Panel — takes 2/3 */}
+      {/* ─── PIPELINE BREAKDOWN (mobile-first horizontal scroll) ─── */}
+      <div className="bg-card border border-border p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Icon name="FunnelIcon" size={14} className="text-primary" />
+          <h3 className="text-sm font-bold text-foreground">Conversion Pipeline</h3>
+        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Closed'].map((stage) => {
+              const count = leads.filter(l => l.status === stage).length;
+              const pct = totalLeads > 0 ? Math.round((count / totalLeads) * 100) : 0;
+              return (
+                <div key={stage} className="bg-background border border-border p-3 flex flex-col gap-1.5 min-w-[90px] flex-shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDotColors[stage] || 'bg-muted-foreground'}`} />
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">{stage}</p>
+                  </div>
+                  <p className={`text-xl font-bold ${statusColors[stage]?.split(' ')[0] || 'text-foreground'}`}>{count}</p>
+                  <div className="w-full bg-border h-1">
+                    <div className={`h-1 transition-all duration-500 ${statusDotColors[stage] || 'bg-muted-foreground'}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">{pct}%</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ─── LEADS + ACTIVITY (stacked on mobile, side-by-side on xl) ─── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+
+        {/* Leads Panel */}
         <div className="xl:col-span-2 bg-card border border-border flex flex-col">
           {/* Tabs */}
-          <div className="flex items-center border-b border-border px-5 pt-4">
+          <div className="flex items-center border-b border-border px-4 pt-3 overflow-x-auto scrollbar-hide">
             {[
-              { key: 'all', label: 'All Leads', count: totalLeads },
+              { key: 'all', label: 'All', count: totalLeads },
               { key: 'followup', label: 'Follow-ups', count: followUpLeads.length },
-              { key: 'converted', label: 'In Pipeline', count: convertedLeadsList.length },
+              { key: 'converted', label: 'Pipeline', count: convertedLeadsList.length },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors mr-1 ${
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors mr-1 whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.key
                     ? 'border-primary text-primary' :'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
@@ -246,14 +275,14 @@ export default function AgentDashboardPage() {
           </div>
 
           {/* Lead List */}
-          <div className="flex-1 overflow-y-auto max-h-[520px]">
+          <div className="flex-1 overflow-y-auto max-h-[420px] lg:max-h-[520px]">
             {loading ? (
-              <div className="flex items-center justify-center py-16">
+              <div className="flex items-center justify-center py-12">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : displayedLeads.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Icon name="UserGroupIcon" size={36} className="text-muted-foreground mb-3" />
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Icon name="UserGroupIcon" size={32} className="text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">No leads in this category.</p>
               </div>
             ) : (
@@ -263,10 +292,10 @@ export default function AgentDashboardPage() {
                   const today = isDueToday(lead.follow_up_date);
                   const soon = isDueSoon(lead.follow_up_date);
                   return (
-                    <div key={lead.id} className="p-4 hover:bg-white/[0.02] transition-colors">
+                    <div key={lead.id} className="p-3 lg:p-4 hover:bg-white/[0.02] transition-colors active:bg-white/[0.04]">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
-                        <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-primary text-sm font-bold">
+                        <div className="w-8 h-8 lg:w-9 lg:h-9 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-primary text-sm font-bold">
                           {lead.name.charAt(0).toUpperCase()}
                         </div>
 
@@ -274,29 +303,23 @@ export default function AgentDashboardPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-foreground">{lead.name}</p>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10 border-gray-400/20'}`}>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 border ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10 border-gray-400/20'}`}>
                               {lead.status}
                             </span>
-                            {lead.source && (
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{lead.source}</span>
-                            )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 flex-wrap">
-                            {lead.email && <p className="text-xs text-muted-foreground">{lead.email}</p>}
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                            {lead.source && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{lead.source}</p>}
                           </div>
                           {lead.interest && (
                             <p className="text-xs text-primary mt-0.5 truncate">{lead.interest}</p>
                           )}
-                          {lead.budget && (
-                            <p className="text-xs text-muted-foreground mt-0.5">Budget: {lead.budget}</p>
-                          )}
                         </div>
 
-                        {/* Follow-up date */}
+                        {/* Follow-up badge */}
                         <div className="flex-shrink-0 text-right">
                           {lead.follow_up_date ? (
-                            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[10px] font-bold uppercase tracking-wider ${
+                            <div className={`flex items-center gap-1 px-2 py-1 border text-[10px] font-bold uppercase tracking-wider ${
                               overdue
                                 ? 'bg-red-400/10 border-red-400/30 text-red-400'
                                 : today
@@ -304,63 +327,55 @@ export default function AgentDashboardPage() {
                                 : soon
                                 ? 'bg-orange-400/10 border-orange-400/30 text-orange-400' :'bg-card border-border text-muted-foreground'
                             }`}>
-                              <Icon name="CalendarDaysIcon" size={11} />
+                              <Icon name="CalendarDaysIcon" size={10} />
                               {overdue ? 'Overdue' : today ? 'Today' : soon ? 'Soon' : formatDate(lead.follow_up_date)}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground">No follow-up</span>
+                            <span className="text-[10px] text-muted-foreground">—</span>
                           )}
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            Added {formatDate(lead.created_at)}
-                          </p>
                         </div>
                       </div>
-
-                      {/* Notes preview */}
-                      {lead.notes && (
-                        <div className="mt-2 ml-12 px-3 py-2 bg-white/[0.03] border-l-2 border-primary/30">
-                          <p className="text-xs text-muted-foreground line-clamp-1">{lead.notes}</p>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+
+          <div className="border-t border-border px-4 py-3">
+            <Link href="/admin/leads" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+              <Icon name="ArrowRightIcon" size={12} />
+              View all leads
+            </Link>
+          </div>
         </div>
 
-        {/* Activity Timeline — takes 1/3 */}
+        {/* Activity Timeline */}
         <div className="bg-card border border-border flex flex-col">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
-            <Icon name="ClockIcon" size={15} className="text-primary" />
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <Icon name="ClockIcon" size={14} className="text-primary" />
             <h3 className="text-sm font-bold text-foreground">Lead Activity</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto max-h-[520px] p-4">
+          <div className="flex-1 overflow-y-auto max-h-[320px] lg:max-h-[520px] p-4">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-10">
                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : activityTimeline.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Icon name="ClockIcon" size={32} className="text-muted-foreground mb-3" />
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Icon name="ClockIcon" size={28} className="text-muted-foreground mb-3" />
                 <p className="text-xs text-muted-foreground">No activity yet.</p>
               </div>
             ) : (
               <div className="relative">
-                {/* Vertical line */}
                 <div className="absolute left-3.5 top-0 bottom-0 w-px bg-border" />
-
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {activityTimeline.map((event, idx) => (
-                    <div key={`${event.id}-${idx}`} className="flex gap-4 relative">
-                      {/* Dot */}
+                    <div key={`${event.id}-${idx}`} className="flex gap-3 relative">
                       <div className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full border-2 border-card z-10 ${statusDotColors[event.status || ''] || 'bg-muted-foreground'}`}>
                         <Icon name="UserIcon" size={11} className="text-black" />
                       </div>
-
-                      {/* Content */}
                       <div className="flex-1 min-w-0 pb-1">
                         <p className="text-xs font-semibold text-foreground truncate">{event.lead_name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">{event.description}</p>
@@ -380,54 +395,13 @@ export default function AgentDashboardPage() {
             )}
           </div>
 
-          {/* Footer link */}
-          <div className="border-t border-border px-5 py-3">
-            <Link
-              href="/admin/leads"
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-            >
+          <div className="border-t border-border px-4 py-3">
+            <Link href="/admin/leads" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
               <Icon name="ArrowRightIcon" size={12} />
               View all leads
             </Link>
           </div>
         </div>
-      </div>
-
-      {/* Conversion Status Breakdown */}
-      <div className="bg-card border border-border p-5">
-        <div className="flex items-center gap-2 mb-5">
-          <Icon name="FunnelIcon" size={15} className="text-primary" />
-          <h3 className="text-sm font-bold text-foreground">Conversion Pipeline</h3>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Closed'].map((stage) => {
-              const count = leads.filter(l => l.status === stage).length;
-              const pct = totalLeads > 0 ? Math.round((count / totalLeads) * 100) : 0;
-              return (
-                <div key={stage} className="bg-background border border-border p-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${statusDotColors[stage] || 'bg-muted-foreground'}`} />
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{stage}</p>
-                  </div>
-                  <p className={`text-2xl font-bold ${statusColors[stage]?.split(' ')[0] || 'text-foreground'}`}>{count}</p>
-                  <div className="w-full bg-border h-1">
-                    <div
-                      className={`h-1 transition-all duration-500 ${statusDotColors[stage] || 'bg-muted-foreground'}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">{pct}% of total</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
