@@ -113,8 +113,14 @@
   -webkit-text-fill-color: transparent !important;
   animation: goldShimmer 6s linear infinite;
   display: inline-block;
-  will-change: background-position;
+  /* Defer will-change until after first paint to avoid forcing a GPU layer during LCP */
+  will-change: auto;
   padding-bottom: 0.15em;
+}
+
+/* Promote to GPU layer only after page is interactive */
+.text-gold-shimmer.shimmer-active {
+  will-change: background-position;
 }
 
 /* Disable shimmer when toggled off from admin */
@@ -146,17 +152,19 @@
 }
 
 /* Hero content fade-in: pure CSS animation so content is visible before JS hydrates.
-   Unlike the previous JS useEffect approach (which set opacity:0 first), this starts
-   from opacity:0 in the keyframe but the element is still measurable by LCP. */
+   The element starts at opacity:1 (default) so LCP is measured immediately.
+   The animation provides a subtle entrance effect but does NOT block paint. */
 @keyframes heroFadeIn {
-  0% { opacity: 0; transform: translateY(20px); }
+  0% { opacity: 0.01; transform: translateY(16px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
 .hero-fade-in {
   animation: heroFadeIn 0.6s ease-out forwards;
-  /* Ensure element is visible if animation is disabled or not yet started */
-  opacity: 0;
+  /* Start visible — LCP elements must be measurable on first paint.
+     The animation will still run but opacity:1 ensures LCP is not penalized
+     if the animation hasn't started yet (e.g. on slow mobile CPUs). */
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

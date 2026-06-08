@@ -177,7 +177,18 @@ function brandingCssVars(branding?: BrandingConfig): React.CSSProperties | undef
 function heroPreloadHref(heroUrl?: string): string | null {
   if (!heroUrl || heroUrl.startsWith('/assets/images/no_image')) return null;
   const encoded = encodeURIComponent(heroUrl);
-  return `/_next/image?url=${encoded}&w=480&q=75`;
+  return `/_next/image?url=${encoded}&w=828&q=75`;
+}
+
+function heroPreloadSrcSet(heroUrl?: string): string | null {
+  if (!heroUrl || heroUrl.startsWith('/assets/images/no_image')) return null;
+  const encoded = encodeURIComponent(heroUrl);
+  // Provide srcset covering mobile breakpoints so the browser picks the right size
+  return [
+    `/_next/image?url=${encoded}&w=480&q=75 480w`,
+    `/_next/image?url=${encoded}&w=828&q=75 828w`,
+    `/_next/image?url=${encoded}&w=1080&q=75 1080w`,
+  ].join(', ');
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -185,6 +196,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const branding = cms.data?.branding;
   const homeHero = cms.data?.pages?.find((p) => p.key === 'home')?.hero_image;
   const heroPreload = heroPreloadHref(homeHero);
+  const heroSrcSet = heroPreloadSrcSet(homeHero);
   return (
     <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)}>
       <head>
@@ -194,11 +206,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
         {heroPreload && (
+          // imagesrcset + imagesizes tell the browser which responsive image to preload
+          // matching the actual <img srcset> the Next.js Image component will emit.
+          // fetchpriority="high" ensures this is fetched before other resources on mobile.
           <link
             rel="preload"
             as="image"
             href={heroPreload}
-            fetchPriority="high"
+            // @ts-ignore — fetchpriority/imagesrcset/imagesizes are valid HTML5 but not in React types
+            fetchpriority="high"
+            imagesrcset={heroSrcSet || undefined}
+            imagesizes="100vw"
           />
         )}
         <meta name="geo.region" content="AE-DU" />
