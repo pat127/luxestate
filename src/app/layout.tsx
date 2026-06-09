@@ -206,17 +206,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
         {heroPreload && (
-          // imagesrcset + imagesizes tell the browser which responsive image to preload
+          // imageSrcSet + imageSizes tell the browser which responsive image to preload
           // matching the actual <img srcset> the Next.js Image component will emit.
-          // fetchpriority="high" ensures this is fetched before other resources on mobile.
+          // fetchPriority="high" ensures this is fetched before other resources on mobile.
           <link
             rel="preload"
             as="image"
             href={heroPreload}
-            // @ts-ignore — fetchpriority/imagesrcset/imagesizes are valid HTML5 but not in React types
-            fetchpriority="high"
-            imagesrcset={heroSrcSet || undefined}
-            imagesizes="100vw"
+            // @ts-ignore — fetchPriority/imageSrcSet/imageSizes are valid HTML5 but not in React types
+            fetchPriority="high"
+            imageSrcSet={heroSrcSet || undefined}
+            imageSizes="100vw"
           />
         )}
         <meta name="geo.region" content="AE-DU" />
