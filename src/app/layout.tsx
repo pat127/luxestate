@@ -14,8 +14,8 @@ import type { BrandingConfig } from '@/contexts/CMSContext';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  // Reduced from 5 weights to 3 — fewer font files = faster first paint on mobile
-  weight: ['400', '600', '800'],
+  // 2 weights only: 400 (body) + 800 (headings) — fewer font files = faster FCP on mobile
+  weight: ['400', '800'],
   variable: '--font-plus-jakarta-sans',
   display: 'swap',
 });
@@ -191,6 +191,17 @@ function heroPreloadSrcSet(heroUrl?: string): string | null {
   ].join(', ');
 }
 
+/** Emit a raw <link rel="preload"> with lowercase HTML attributes that React
+ *  would otherwise strip (imagesrcset, imagesizes, fetchpriority).
+ *  Using dangerouslySetInnerHTML on a <meta> placeholder is not possible for
+ *  <link>, so we inject via a tiny inline <script> that runs synchronously
+ *  in <head> — this is the only reliable way to get these attrs into the DOM
+ *  before the browser's preload scanner finishes. */
+function HeroPreloadScript({ href, srcSet }: { href: string; srcSet: string }) {
+  const script = `(function(){var l=document.createElement('link');l.rel='preload';l.as='image';l.href=${JSON.stringify(href)};l.setAttribute('imagesrcset',${JSON.stringify(srcSet)});l.setAttribute('imagesizes','100vw');l.setAttribute('fetchpriority','high');document.head.appendChild(l);})();`;
+  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+}
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const cms = await getCmsConfigServer();
   const branding = cms.data?.branding;
@@ -205,20 +216,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
-        {heroPreload && (
-          // imageSrcSet + imageSizes tell the browser which responsive image to preload
-          // matching the actual <img srcset> the Next.js Image component will emit.
-          // fetchPriority="high" ensures this is fetched before other resources on mobile.
-          <link
-            rel="preload"
-            as="image"
-            href={heroPreload}
-            // @ts-ignore — fetchPriority/imageSrcSet/imageSizes are valid HTML5 but not in React types
-            fetchPriority="high"
-            imageSrcSet={heroSrcSet || undefined}
-            imageSizes="100vw"
-          />
-        )}
+        {/* Hero image preload is handled via HeroPreloadScript below — inline script
+            is the only reliable way to emit imagesrcset/imagesizes/fetchpriority
+            since React strips unknown camelCase props from <link> elements. */}
         <meta name="geo.region" content="AE-DU" />
         <meta name="geo.placename" content="Dubai, United Arab Emirates" />
         <meta name="geo.position" content="25.2048;55.2708" />
@@ -235,7 +235,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-
+        {heroPreload && <HeroPreloadScript href={heroPreload} srcSet={heroSrcSet || ''} />}      
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.19" />
         <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
       <body className={plusJakartaSans.className}>

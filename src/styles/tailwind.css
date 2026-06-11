@@ -155,7 +155,7 @@
    The element starts at opacity:1 (default) so LCP is measured immediately.
    The animation provides a subtle entrance effect but does NOT block paint. */
 @keyframes heroFadeIn {
-  0% { opacity: 0.01; transform: translateY(16px); }
+  0% { opacity: 1; transform: translateY(16px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
