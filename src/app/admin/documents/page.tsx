@@ -437,7 +437,6 @@ function FillDocumentModal({
                   <span style={{ fontSize:'8px', color:'#8a7040', fontWeight:600 }}>Draft Preview</span>
                 </div>
                 <div style={{ textAlign:'center', marginBottom:'32px' }}>
-                  <div style={{ fontSize:'7px', letterSpacing:'3px', textTransform:'uppercase', color:'#C9A84C', marginBottom:'10px', fontWeight:700 }}>{template.category}</div>
                   <div style={{ fontSize:'15px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{template.name}</div>
                   <div style={{ width:'40px', height:'2px', background:'#C9A84C', margin:'12px auto 0' }} />
                 </div>
@@ -588,12 +587,12 @@ function DocumentPreviewModal({
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff}
-      .page{max-width:760px;margin:0 auto;padding:64px}
+      @page{margin:64px 64px 80px 64px}
+      .page{max-width:760px;margin:0 auto}
       .ref-strip{display:flex;justify-content:space-between;border-bottom:1px solid #e8e3d8;padding-bottom:14px;margin-bottom:40px}
       .ref-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:#b0a080;font-weight:600}
       .ref-no{font-size:9px;color:#8a7040;font-weight:600}
       .title-block{text-align:center;margin-bottom:48px}
-      .cat-label{font-size:7px;letter-spacing:4px;text-transform:uppercase;color:#C9A84C;margin-bottom:14px;font-weight:700}
       .doc-title{font-size:20px;font-weight:700;letter-spacing:1px;color:#0f0f0f;text-transform:uppercase;line-height:1.3}
       .gold-rule{width:48px;height:2px;background:#C9A84C;margin:16px auto 0}
       .content{font-size:11px;color:#333;line-height:1.9;white-space:pre-wrap;margin-bottom:48px}
@@ -602,20 +601,21 @@ function DocumentPreviewModal({
       .sig-role{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
       .sig-date{font-size:10px;color:#aaa;margin-top:6px}
       .approved-stamp{border:1.5px solid #22c55e;background:#f0fdf4;padding:20px;text-align:center;margin-bottom:32px}
-      .footer-rule{border-top:1px solid #e8e3d8;padding-top:12px;display:flex;justify-content:space-between}
+      .doc-footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e8e3d8;padding:10px 64px;display:flex;justify-content:space-between;background:#fff}
       .footer-text{font-size:8px;color:#c0b080;letter-spacing:1.5px;text-transform:uppercase}
       @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
     </style></head><body><div class="page">
       <div class="ref-strip"><div class="ref-label">Cove Estates · Confidential</div><div class="ref-no">Ref: ${refNo}</div></div>
-      <div class="title-block"><div class="cat-label">${doc.category}</div><div class="doc-title">${doc.template_name}</div><div class="gold-rule"></div></div>
+      <div class="title-block"><div class="doc-title">${doc.template_name}</div><div class="gold-rule"></div></div>
       <div class="content">${filledContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div class="sig-grid">
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
       </div>
       ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">&#10003; Approved &amp; Executed</div><div style="font-size:28px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:9px;color:#888;margin-top:6px">Authorised on ${doc.approved_at}</div></div>` : ''}
-      <div class="footer-rule"><div class="footer-text">Confidential · Not for Distribution</div><div class="footer-text">${refNo}</div></div>
-    </div><script>window.onload=function(){window.print()}<\/script></body></html>`);
+    </div>
+    <div class="doc-footer"><div class="footer-text">Confidential · Not for Distribution</div><div class="footer-text">${refNo}</div></div>
+    <script>window.onload=function(){window.print()}<\/script></body></html>`);
     win.document.close();
   };
 
@@ -653,7 +653,6 @@ function DocumentPreviewModal({
               <span style={{ fontSize:'9px', color:'#8a7040', fontWeight:600 }}>Ref: {refNo}</span>
             </div>
             <div style={{ textAlign:'center', marginBottom:'40px' }}>
-              <div style={{ fontSize:'7px', letterSpacing:'4px', textTransform:'uppercase', color:'#C9A84C', marginBottom:'12px', fontWeight:700 }}>{doc.category}</div>
               <div style={{ fontSize:'18px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{doc.template_name}</div>
               <div style={{ width:'48px', height:'2px', background:'#C9A84C', margin:'14px auto 0' }} />
             </div>
@@ -679,7 +678,7 @@ function DocumentPreviewModal({
                 <div style={{ fontSize:'9px', color:'#888', marginTop:'6px' }}>Authorised on {doc.approved_at}</div>
               </div>
             )}
-            <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'12px', display:'flex', justifyContent:'space-between' }}>
+            <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'12px', display:'flex', justifyContent:'space-between', marginTop:'auto' }}>
               <span style={{ fontSize:'8px', color:'#c0b080', letterSpacing:'1.5px', textTransform:'uppercase' }}>Confidential · Not for Distribution</span>
               <span style={{ fontSize:'8px', color:'#c0b080' }}>{refNo}</span>
             </div>
