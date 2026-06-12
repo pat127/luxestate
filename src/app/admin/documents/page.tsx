@@ -586,33 +586,38 @@ function DocumentPreviewModal({
     win.document.write(`<!DOCTYPE html><html><head><title>${doc.title}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff}
-      @page{margin:64px 64px 80px 64px}
-      .page{max-width:760px;margin:0 auto}
-      .ref-strip{display:flex;justify-content:space-between;border-bottom:1px solid #e8e3d8;padding-bottom:14px;margin-bottom:40px}
-      .ref-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:#b0a080;font-weight:600}
-      .ref-no{font-size:9px;color:#8a7040;font-weight:600}
-      .title-block{text-align:center;margin-bottom:48px}
-      .doc-title{font-size:20px;font-weight:700;letter-spacing:1px;color:#0f0f0f;text-transform:uppercase;line-height:1.3}
-      .gold-rule{width:48px;height:2px;background:#C9A84C;margin:16px auto 0}
-      .content{font-size:11px;color:#333;line-height:1.9;white-space:pre-wrap;margin-bottom:48px}
-      .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:48px;margin-bottom:40px}
-      .sig-line{min-height:56px;border-bottom:1.5px solid #1a1a1a;margin-bottom:10px}
-      .sig-role{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
-      .sig-date{font-size:10px;color:#aaa;margin-top:6px}
-      .approved-stamp{border:1.5px solid #22c55e;background:#f0fdf4;padding:20px;text-align:center;margin-bottom:32px}
-      .doc-footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e8e3d8;padding:10px 64px;display:flex;justify-content:space-between;background:#fff}
-      .footer-text{font-size:8px;color:#c0b080;letter-spacing:1.5px;text-transform:uppercase}
-      @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+      html,body{width:210mm;min-height:297mm;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff}
+      @page{size:A4 portrait;margin:20mm 16mm 28mm 16mm}
+      .page{width:100%;padding:0}
+      .doc-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8e3d8;padding-bottom:10px;margin-bottom:32px}
+      .ref-label{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#b0a080;font-weight:600}
+      .ref-no{font-size:8px;color:#8a7040;font-weight:600}
+      .title-block{text-align:center;margin-bottom:36px}
+      .doc-title{font-size:18px;font-weight:700;letter-spacing:1px;color:#0f0f0f;text-transform:uppercase;line-height:1.3}
+      .gold-rule{width:48px;height:2px;background:#C9A84C;margin:12px auto 0}
+      .content{font-size:10.5px;color:#333;line-height:1.85;white-space:pre-wrap;margin-bottom:36px}
+      .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px;margin-bottom:32px}
+      .sig-line{min-height:48px;border-bottom:1.5px solid #1a1a1a;margin-bottom:8px}
+      .sig-role{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+      .sig-date{font-size:9px;color:#aaa;margin-top:4px}
+      .approved-stamp{border:1.5px solid #22c55e;background:#f0fdf4;padding:16px;text-align:center;margin-bottom:24px}
+      .doc-footer{position:running(footer);width:100%;border-top:1px solid #e8e3d8;padding:7px 0;display:flex;justify-content:space-between;background:#fff}
+      .footer-text{font-size:7.5px;color:#c0b080;letter-spacing:1.5px;text-transform:uppercase}
+      @page{@bottom-left{content:element(footer)}}
+      @media print{
+        html,body{width:210mm;min-height:297mm}
+        body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .doc-footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e8e3d8;padding:7px 16mm;display:flex;justify-content:space-between;background:#fff}
+      }
     </style></head><body><div class="page">
-      <div class="ref-strip"><div class="ref-label">Cove Estates · Confidential</div><div class="ref-no">Ref: ${refNo}</div></div>
+      <div class="doc-header"><div class="ref-label">Cove Estates · Confidential</div><div class="ref-no">Ref: ${refNo}</div></div>
       <div class="title-block"><div class="doc-title">${doc.template_name}</div><div class="gold-rule"></div></div>
       <div class="content">${filledContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div class="sig-grid">
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
       </div>
-      ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">&#10003; Approved &amp; Executed</div><div style="font-size:28px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:9px;color:#888;margin-top:6px">Authorised on ${doc.approved_at}</div></div>` : ''}
+      ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">&#10003; Approved &amp; Executed</div><div style="font-size:26px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:8px;color:#888;margin-top:4px">Authorised on ${doc.approved_at}</div></div>` : ''}
     </div>
     <div class="doc-footer"><div class="footer-text">Confidential · Not for Distribution</div><div class="footer-text">${refNo}</div></div>
     <script>window.onload=function(){window.print()}<\/script></body></html>`);
