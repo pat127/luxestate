@@ -34,6 +34,7 @@ interface FilledDocument {
   doc_status: 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected';
   ceo_signature: string | null;
   approved_at: string | null;
+  rejection_comments: string | null;
   submitted_by: string;
   created_at: string;
 }
@@ -65,6 +66,8 @@ const Icon = {
   Check: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5"/></svg>,
   Send: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
   Download: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+  Reject: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
+  Refresh: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -80,11 +83,6 @@ function placeholderToLabel(key: string): string {
 
 function fillContent(content: string, values: Record<string, string>): string {
   return content.replace(/\{\{([^}]+)\}\}/g, (_, key) => values[key.trim()] || `___________`);
-}
-
-function fmtDate(val: string) {
-  if (!val) return '___________';
-  try { return new Date(val + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return val; }
 }
 
 // ─── Template Modal ───────────────────────────────────────────────────────────
@@ -153,14 +151,12 @@ function TemplateModal({
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-[#111] border border-white/10 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl rounded-sm">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <h2 className="text-sm font-bold text-white">{mode === 'create' ? 'Create Template' : 'Edit Template'}</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">&lt;Icon.X /&gt;</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Name + Category */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-white/50 mb-1.5">Template Name <span className="text-primary">*</span></label>
@@ -183,7 +179,6 @@ function TemplateModal({
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-xs text-white/50 mb-1.5">Description</label>
             <textarea
@@ -195,7 +190,6 @@ function TemplateModal({
             />
           </div>
 
-          {/* Document Content */}
           <div>
             <label className="block text-xs text-white/50 mb-1">Document Content</label>
             <p className="text-[11px] text-white/30 mb-2">Use {'{{field_id}}'} to insert placeholders (e.g. {'{{client_name}}'}, {'{{contract_date}}'})</p>
@@ -208,7 +202,6 @@ function TemplateModal({
             />
           </div>
 
-          {/* Form Fields */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <div>
@@ -239,7 +232,6 @@ function TemplateModal({
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
-                  {/* Header row */}
                   <div className="grid grid-cols-[1fr_1fr_120px_80px_32px] gap-3 px-4 py-2 text-[10px] text-white/30 uppercase tracking-wider">
                     <span>Field ID (in content)</span>
                     <span>Display Label</span>
@@ -287,7 +279,6 @@ function TemplateModal({
             </div>
           </div>
 
-          {/* Requires Approval */}
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input
               type="checkbox"
@@ -301,7 +292,6 @@ function TemplateModal({
           {error && <p className="text-red-400 text-xs">{error}</p>}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10">
           <button onClick={onClose} className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Cancel</button>
           <button
@@ -317,19 +307,27 @@ function TemplateModal({
   );
 }
 
-// ─── Fill Document Modal ──────────────────────────────────────────────────────
+// ─── Fill Document Modal (create + edit) ──────────────────────────────────────
 function FillDocumentModal({
   template,
+  initialValues,
+  initialTitle,
+  initialNotes,
+  submitLabel,
   onSave,
   onClose,
 }: {
   template: DocumentTemplate;
+  initialValues?: Record<string, string>;
+  initialTitle?: string;
+  initialNotes?: string;
+  submitLabel?: string;
   onSave: (values: Record<string, string>, title: string, notes: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [title, setTitle] = useState(`${template.name} — ${new Date().toLocaleDateString('en-GB')}`);
-  const [notes, setNotes] = useState('');
+  const [values, setValues] = useState<Record<string, string>>(initialValues || {});
+  const [title, setTitle] = useState(initialTitle || `${template.name} — ${new Date().toLocaleDateString('en-GB')}`);
+  const [notes, setNotes] = useState(initialNotes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -361,7 +359,7 @@ function FillDocumentModal({
       <div className={`bg-[#111] border border-white/10 w-full ${showPreview ? 'max-w-5xl' : 'max-w-xl'} max-h-[95vh] flex flex-col shadow-2xl rounded-sm transition-all duration-300`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
-            <h2 className="text-sm font-bold text-white">Fill Document</h2>
+            <h2 className="text-sm font-bold text-white">{submitLabel ? 'Edit Document' : 'Fill Document'}</h2>
             <p className="text-xs text-white/40 mt-0.5">{template.name}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -376,9 +374,7 @@ function FillDocumentModal({
         </div>
 
         <div className="flex-1 overflow-hidden flex min-h-0">
-          {/* ── Form Panel ── */}
           <div className={`${showPreview ? 'w-1/2 border-r border-white/10' : 'w-full'} overflow-y-auto px-6 py-5 space-y-4`}>
-            {/* Document Title */}
             <div>
               <label className="block text-xs text-white/50 mb-1.5">Document Title</label>
               <input
@@ -388,7 +384,6 @@ function FillDocumentModal({
               />
             </div>
 
-            {/* Fields */}
             {template.form_fields.length > 0 && (
               <div className="space-y-3">
                 <p className="text-xs text-white/40 uppercase tracking-wider">Fill in the fields below</p>
@@ -420,7 +415,6 @@ function FillDocumentModal({
               </div>
             )}
 
-            {/* Notes */}
             <div>
               <label className="block text-xs text-white/50 mb-1.5">Internal Notes (optional)</label>
               <textarea
@@ -435,26 +429,21 @@ function FillDocumentModal({
             {error && <p className="text-red-400 text-xs">{error}</p>}
           </div>
 
-          {/* ── Live Preview Panel ── */}
           {showPreview && (
             <div className="w-1/2 overflow-y-auto bg-gray-100 p-4">
               <div className="bg-white shadow px-8 py-8 min-h-full">
-                {/* Ref strip */}
                 <div style={{ display:'flex', justifyContent:'space-between', borderBottom:'1px solid #e8e3d8', paddingBottom:'12px', marginBottom:'32px' }}>
                   <span style={{ fontSize:'8px', letterSpacing:'2px', textTransform:'uppercase', color:'#b0a080', fontWeight:600 }}>Cove Estates · Confidential</span>
                   <span style={{ fontSize:'8px', color:'#8a7040', fontWeight:600 }}>Draft Preview</span>
                 </div>
-                {/* Title */}
                 <div style={{ textAlign:'center', marginBottom:'32px' }}>
                   <div style={{ fontSize:'7px', letterSpacing:'3px', textTransform:'uppercase', color:'#C9A84C', marginBottom:'10px', fontWeight:700 }}>{template.category}</div>
                   <div style={{ fontSize:'15px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{template.name}</div>
                   <div style={{ width:'40px', height:'2px', background:'#C9A84C', margin:'12px auto 0' }} />
                 </div>
-                {/* Content */}
                 <div style={{ fontSize:'10px', color:'#333', lineHeight:1.9, whiteSpace:'pre-wrap', marginBottom:'40px', fontFamily:"'Helvetica Neue', Arial, sans-serif" }}>
                   {previewContent}
                 </div>
-                {/* Signatures */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px', marginTop:'40px' }}>
                   <div>
                     <div style={{ minHeight:'48px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'8px' }} />
@@ -467,7 +456,6 @@ function FillDocumentModal({
                     <div style={{ fontSize:'9px', color:'#aaa', marginTop:'4px' }}>Date: _______________</div>
                   </div>
                 </div>
-                {/* Footer */}
                 <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'10px', marginTop:'32px', display:'flex', justifyContent:'space-between' }}>
                   <span style={{ fontSize:'7px', color:'#c0b080', letterSpacing:'1.5px', textTransform:'uppercase' }}>Confidential · Not for Distribution</span>
                   <span style={{ fontSize:'7px', color:'#c0b080' }}>Draft</span>
@@ -484,7 +472,81 @@ function FillDocumentModal({
             disabled={saving}
             className="text-sm bg-primary hover:bg-primary/90 text-black font-semibold px-5 py-2 transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Create Document'}
+            {saving ? 'Saving...' : submitLabel || 'Create Document'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reject Document Modal ────────────────────────────────────────────────────
+function RejectDocumentModal({
+  doc,
+  onReject,
+  onClose,
+}: {
+  doc: FilledDocument;
+  onReject: (docId: string, comments: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [comments, setComments] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleReject = async () => {
+    if (!comments.trim()) { setError('Please provide rejection comments so the submitter knows what to fix.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onReject(doc.id, comments.trim());
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to reject document.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 w-full max-w-md shadow-2xl rounded-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h2 className="text-sm font-bold text-white">Reject Document</h2>
+            <p className="text-xs text-white/40 mt-0.5 truncate max-w-xs">{doc.title}</p>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">&lt;Icon.X /&gt;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="bg-red-500/5 border border-red-500/20 px-4 py-3 rounded-sm">
+            <p className="text-xs text-red-400/80">The submitter will be notified with your comments and can edit and resubmit the document.</p>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">Rejection Comments <span className="text-primary">*</span></label>
+            <textarea
+              value={comments}
+              onChange={e => setComments(e.target.value)}
+              rows={4}
+              placeholder="Explain what needs to be corrected or updated..."
+              className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-red-500/50 resize-none placeholder:text-white/20"
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+          <button
+            onClick={handleReject}
+            disabled={saving}
+            className="flex items-center gap-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 font-semibold px-5 py-2 transition-colors disabled:opacity-50"
+          >
+            <Icon.Reject /> {saving ? 'Rejecting...' : 'Reject Document'}
           </button>
         </div>
       </div>
@@ -496,14 +558,20 @@ function FillDocumentModal({
 function DocumentPreviewModal({
   doc,
   template,
+  isCEO,
   onClose,
   onApprove,
+  onRejectOpen,
+  onEditByCEO,
   onSendForApproval,
 }: {
   doc: FilledDocument;
   template: DocumentTemplate | null;
+  isCEO: boolean;
   onClose: () => void;
   onApprove?: (sig: string) => void;
+  onRejectOpen?: () => void;
+  onEditByCEO?: () => void;
   onSendForApproval?: () => void;
 }) {
   const [ceoSig, setCeoSig] = useState('');
@@ -545,7 +613,7 @@ function DocumentPreviewModal({
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
         <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
       </div>
-      ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">✓ Approved &amp; Executed</div><div style="font-size:28px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:9px;color:#888;margin-top:6px">Authorised on ${doc.approved_at}</div></div>` : ''}
+      ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">&#10003; Approved &amp; Executed</div><div style="font-size:28px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:9px;color:#888;margin-top:6px">Authorised on ${doc.approved_at}</div></div>` : ''}
       <div class="footer-rule"><div class="footer-text">Confidential · Not for Distribution</div><div class="footer-text">${refNo}</div></div>
     </div><script>window.onload=function(){window.print()}<\/script></body></html>`);
     win.document.close();
@@ -569,25 +637,29 @@ function DocumentPreviewModal({
           </div>
         </div>
 
+        {/* Rejection comments banner (visible to submitter on rejected docs) */}
+        {doc.doc_status === 'Rejected' && doc.rejection_comments && (
+          <div className="mx-6 mt-4 bg-red-500/5 border border-red-500/20 px-4 py-3 rounded-sm">
+            <p className="text-xs font-semibold text-red-400 mb-1">Rejection Comments from CEO:</p>
+            <p className="text-xs text-red-400/80 whitespace-pre-wrap">{doc.rejection_comments}</p>
+          </div>
+        )}
+
         {/* Document Body */}
         <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
           <div className="max-w-2xl mx-auto bg-white shadow-lg px-12 py-10">
-            {/* Ref strip */}
             <div style={{ display:'flex', justifyContent:'space-between', borderBottom:'1px solid #e8e3d8', paddingBottom:'14px', marginBottom:'40px' }}>
               <span style={{ fontSize:'9px', letterSpacing:'2.5px', textTransform:'uppercase', color:'#b0a080', fontWeight:600 }}>Cove Estates · Confidential</span>
               <span style={{ fontSize:'9px', color:'#8a7040', fontWeight:600 }}>Ref: {refNo}</span>
             </div>
-            {/* Title */}
             <div style={{ textAlign:'center', marginBottom:'40px' }}>
               <div style={{ fontSize:'7px', letterSpacing:'4px', textTransform:'uppercase', color:'#C9A84C', marginBottom:'12px', fontWeight:700 }}>{doc.category}</div>
               <div style={{ fontSize:'18px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{doc.template_name}</div>
               <div style={{ width:'48px', height:'2px', background:'#C9A84C', margin:'14px auto 0' }} />
             </div>
-            {/* Content */}
             <div style={{ fontSize:'11px', color:'#333', lineHeight:1.9, whiteSpace:'pre-wrap', marginBottom:'48px', fontFamily:"'Helvetica Neue', Arial, sans-serif" }}>
               {filledContent}
             </div>
-            {/* Signatures */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', marginTop:'48px', marginBottom:'32px' }}>
               <div>
                 <div style={{ minHeight:'56px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'10px' }} />
@@ -600,7 +672,6 @@ function DocumentPreviewModal({
                 <div style={{ fontSize:'10px', color:'#aaa', marginTop:'6px' }}>Date: _______________</div>
               </div>
             </div>
-            {/* CEO Stamp */}
             {doc.doc_status === 'Approved' && doc.ceo_signature && (
               <div style={{ border:'1.5px solid #22c55e', background:'#f0fdf4', padding:'20px', textAlign:'center', marginBottom:'32px' }}>
                 <div style={{ fontSize:'7px', fontWeight:700, textTransform:'uppercase', letterSpacing:'2.5px', color:'#16a34a', marginBottom:'8px' }}>✓ Approved & Executed</div>
@@ -608,7 +679,6 @@ function DocumentPreviewModal({
                 <div style={{ fontSize:'9px', color:'#888', marginTop:'6px' }}>Authorised on {doc.approved_at}</div>
               </div>
             )}
-            {/* Footer */}
             <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'12px', display:'flex', justifyContent:'space-between' }}>
               <span style={{ fontSize:'8px', color:'#c0b080', letterSpacing:'1.5px', textTransform:'uppercase' }}>Confidential · Not for Distribution</span>
               <span style={{ fontSize:'8px', color:'#c0b080' }}>{refNo}</span>
@@ -622,20 +692,27 @@ function DocumentPreviewModal({
             <button onClick={handlePrint} className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors">
               <Icon.Print /> Print / PDF
             </button>
-            {doc.doc_status === 'Pending Approval' && (
-              <button onClick={handlePrint} className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors">
-                <Icon.Download /> Download PDF
-              </button>
-            )}
           </div>
           <div className="flex items-center gap-2">
-            {doc.doc_status === 'Draft' && onSendForApproval && (
-              <button onClick={onSendForApproval} className="flex items-center gap-1.5 text-xs bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 px-3 py-2 transition-colors">
-                <Icon.Send /> Send for Approval
-              </button>
-            )}
-            {doc.doc_status === 'Pending Approval' && onApprove && (
+            {/* CEO actions on Pending Approval */}
+            {isCEO && doc.doc_status === 'Pending Approval' && (
               <>
+                {onEditByCEO && (
+                  <button
+                    onClick={() => { onClose(); onEditByCEO(); }}
+                    className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors"
+                  >
+                    <Icon.Edit /> Edit Fields
+                  </button>
+                )}
+                {onRejectOpen && (
+                  <button
+                    onClick={() => { onClose(); onRejectOpen(); }}
+                    className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 px-3 py-2 transition-colors"
+                  >
+                    <Icon.Reject /> Reject
+                  </button>
+                )}
                 {!showSignInput ? (
                   <button onClick={() => setShowSignInput(true)} className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors">
                     <Icon.Check /> Review & E-Sign
@@ -658,6 +735,13 @@ function DocumentPreviewModal({
                   </div>
                 )}
               </>
+            )}
+
+            {/* Submitter: Send for Approval on Draft */}
+            {!isCEO && doc.doc_status === 'Draft' && onSendForApproval && (
+              <button onClick={onSendForApproval} className="flex items-center gap-1.5 text-xs bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 px-3 py-2 transition-colors">
+                <Icon.Send /> Send for Approval
+              </button>
             )}
           </div>
         </div>
@@ -683,6 +767,10 @@ export default function DocumentsPage() {
   const [templateModal, setTemplateModal] = useState<{ mode: ModalMode; template?: DocumentTemplate | null }>({ mode: null });
   const [fillModal, setFillModal] = useState<DocumentTemplate | null>(null);
   const [previewDoc, setPreviewDoc] = useState<FilledDocument | null>(null);
+  // Edit modal: CEO editing a pending doc, or submitter editing a rejected/pending doc
+  const [editDocModal, setEditDocModal] = useState<{ doc: FilledDocument; template: DocumentTemplate } | null>(null);
+  // Reject modal
+  const [rejectDocModal, setRejectDocModal] = useState<FilledDocument | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchTemplates = useCallback(async () => {
@@ -750,9 +838,9 @@ export default function DocumentsPage() {
   };
 
   const sendForApproval = async (docId: string) => {
-    await supabase.from('filled_documents').update({ doc_status: 'Pending Approval' }).eq('id', docId);
+    await supabase.from('filled_documents').update({ doc_status: 'Pending Approval', rejection_comments: null }).eq('id', docId);
     await fetchDocuments();
-    if (previewDoc?.id === docId) setPreviewDoc(prev => prev ? { ...prev, doc_status: 'Pending Approval' } : null);
+    if (previewDoc?.id === docId) setPreviewDoc(prev => prev ? { ...prev, doc_status: 'Pending Approval', rejection_comments: null } : null);
   };
 
   const approveDocument = async (docId: string, sig: string) => {
@@ -762,10 +850,54 @@ export default function DocumentsPage() {
     setPreviewDoc(null);
   };
 
+  const rejectDocument = async (docId: string, comments: string) => {
+    await supabase.from('filled_documents').update({ doc_status: 'Rejected', rejection_comments: comments }).eq('id', docId);
+    await fetchDocuments();
+    setRejectDocModal(null);
+  };
+
+  // CEO edits form fields on a pending document (keeps status as Pending Approval)
+  const ceoEditDocument = async (values: Record<string, string>, title: string, notes: string) => {
+    if (!editDocModal) return;
+    const { error } = await supabase
+      .from('filled_documents')
+      .update({ field_values: values, title, notes, updated_at: new Date().toISOString() })
+      .eq('id', editDocModal.doc.id);
+    if (error) throw error;
+    await fetchDocuments();
+    setEditDocModal(null);
+  };
+
+  // Submitter edits and resubmits (sets status back to Pending Approval)
+  const submitterEditAndResubmit = async (values: Record<string, string>, title: string, notes: string) => {
+    if (!editDocModal) return;
+    const { error } = await supabase
+      .from('filled_documents')
+      .update({
+        field_values: values,
+        title,
+        notes,
+        doc_status: 'Pending Approval',
+        rejection_comments: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', editDocModal.doc.id);
+    if (error) throw error;
+    await fetchDocuments();
+    setEditDocModal(null);
+  };
+
   const deleteDocument = async (id: string) => {
     if (!confirm('Delete this document?')) return;
     await supabase.from('filled_documents').delete().eq('id', id);
     await fetchDocuments();
+  };
+
+  // ── Open edit modal helper ─────────────────────────────────────────────────
+  const openEditModal = (doc: FilledDocument) => {
+    const tmpl = templates.find(t => t.id === doc.template_id);
+    if (!tmpl) return;
+    setEditDocModal({ doc, template: tmpl });
   };
 
   // ── Filtered lists ─────────────────────────────────────────────────────────
@@ -822,7 +954,7 @@ export default function DocumentsPage() {
                 <p className="text-sm font-semibold text-amber-400">
                   {pendingApprovalDocs.length} document{pendingApprovalDocs.length > 1 ? 's' : ''} pending your approval
                 </p>
-                <p className="text-xs text-amber-400/60 mt-0.5">Review and e-sign to approve</p>
+                <p className="text-xs text-amber-400/60 mt-0.5">Review, edit fields, or reject with comments</p>
               </div>
             </div>
             <button
@@ -891,7 +1023,6 @@ export default function DocumentsPage() {
             <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           </div>
         ) : activeTab === 'templates' ? (
-          /* ── Templates Grid ── */
           filteredTemplates.length === 0 ? (
             <div className="text-center py-20 text-white/30">
               <div className="text-4xl mb-3">📄</div>
@@ -962,12 +1093,27 @@ export default function DocumentsPage() {
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 flex-shrink-0 ${STATUS_STYLES[doc.doc_status]}`}>
                     {doc.doc_status}
                   </span>
-                  <button
-                    onClick={() => setPreviewDoc(doc)}
-                    className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors flex-shrink-0"
-                  >
-                    <Icon.Check /> Review & Sign
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openEditModal(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors"
+                      title="Edit form fields"
+                    >
+                      <Icon.Edit /> Edit Fields
+                    </button>
+                    <button
+                      onClick={() => setRejectDocModal(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 px-3 py-2 transition-colors"
+                    >
+                      <Icon.Reject /> Reject
+                    </button>
+                    <button
+                      onClick={() => setPreviewDoc(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors"
+                    >
+                      <Icon.Check /> Review & Sign
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -989,6 +1135,12 @@ export default function DocumentsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white truncate">{doc.title}</div>
                     <div className="text-xs text-white/40 mt-0.5">{doc.template_name} · {doc.category} · {new Date(doc.created_at).toLocaleDateString('en-GB')}</div>
+                    {/* Show rejection comments inline for rejected docs */}
+                    {doc.doc_status === 'Rejected' && doc.rejection_comments && (
+                      <div className="mt-1.5 text-[11px] text-red-400/80 bg-red-500/5 border border-red-500/15 px-2 py-1 rounded-sm line-clamp-1">
+                        <span className="font-semibold">CEO Comments:</span> {doc.rejection_comments}
+                      </div>
+                    )}
                   </div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 flex-shrink-0 ${STATUS_STYLES[doc.doc_status]}`}>
                     {doc.doc_status}
@@ -1001,6 +1153,16 @@ export default function DocumentsPage() {
                     >
                       <Icon.Eye />
                     </button>
+                    {/* Submitter can edit & resubmit if Rejected or Pending Approval */}
+                    {(doc.doc_status === 'Rejected' || doc.doc_status === 'Pending Approval') && (
+                      <button
+                        onClick={() => openEditModal(doc)}
+                        className="p-2 text-white/30 hover:text-primary transition-colors"
+                        title={doc.doc_status === 'Rejected' ? 'Edit & Resubmit' : 'Edit document'}
+                      >
+                        <Icon.Edit />
+                      </button>
+                    )}
                     {doc.doc_status === 'Draft' && (
                       <button
                         onClick={() => sendForApproval(doc.id)}
@@ -1008,6 +1170,15 @@ export default function DocumentsPage() {
                         title="Send for approval"
                       >
                         <Icon.Send />
+                      </button>
+                    )}
+                    {doc.doc_status === 'Rejected' && (
+                      <button
+                        onClick={() => sendForApproval(doc.id)}
+                        className="p-2 text-white/30 hover:text-amber-400 transition-colors"
+                        title="Resubmit for approval"
+                      >
+                        <Icon.Refresh />
                       </button>
                     )}
                     <button
@@ -1047,9 +1218,38 @@ export default function DocumentsPage() {
         <DocumentPreviewModal
           doc={previewDoc}
           template={previewTemplate}
+          isCEO={isCEO}
           onClose={() => setPreviewDoc(null)}
-          onSendForApproval={() => sendForApproval(previewDoc.id)}
-          onApprove={(sig) => approveDocument(previewDoc.id, sig)}
+          onSendForApproval={!isCEO ? () => sendForApproval(previewDoc.id) : undefined}
+          onApprove={isCEO ? (sig) => approveDocument(previewDoc.id, sig) : undefined}
+          onRejectOpen={isCEO ? () => setRejectDocModal(previewDoc) : undefined}
+          onEditByCEO={isCEO ? () => openEditModal(previewDoc) : undefined}
+        />
+      )}
+
+      {/* Edit modal — CEO keeps status, submitter resubmits */}
+      {editDocModal && (
+        <FillDocumentModal
+          template={editDocModal.template}
+          initialValues={editDocModal.doc.field_values}
+          initialTitle={editDocModal.doc.title}
+          initialNotes={editDocModal.doc.notes}
+          submitLabel={
+            isCEO
+              ? 'Save Changes'
+              : editDocModal.doc.doc_status === 'Rejected' ?'Save & Resubmit for Approval' :'Save & Resubmit for Approval'
+          }
+          onSave={isCEO ? ceoEditDocument : submitterEditAndResubmit}
+          onClose={() => setEditDocModal(null)}
+        />
+      )}
+
+      {/* Reject modal */}
+      {rejectDocModal && (
+        <RejectDocumentModal
+          doc={rejectDocModal}
+          onReject={rejectDocument}
+          onClose={() => setRejectDocModal(null)}
         />
       )}
     </div>
