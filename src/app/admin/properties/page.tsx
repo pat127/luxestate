@@ -10,6 +10,7 @@ import PinLocationMap from '@/components/ui/PinLocationMap';
 import { useRole } from '@/contexts/RoleContext';
 import { usePropertyFields } from '@/hooks/usePropertyFields';
 import { useCommunities } from '@/hooks/useCommunities';
+import { useApprovalWorkflow } from '@/hooks/useApprovalWorkflow';
 
 type PropertyType = 'All' | 'Residential' | 'Commercial';
 type ModalTab = 'basic' | 'dimensions' | 'features' | 'location' | 'media';
@@ -166,7 +167,6 @@ function resolvePropertyTypesForCategory(
         : [...residential, ...commercial.filter((t) => !residential.includes(t))];
     return { filter: 'all', types, residential, commercial };
   }
-  // Off-Plan and other categories default to residential types
   return { filter: 'residential', types: residential, residential, commercial };
 }
 
@@ -179,12 +179,24 @@ function defaultPropertyTypeForCategory(
   return resolvePropertyTypesForCategory(category, residentialTypes, commercialTypes, allTypes).types[0] ?? 'Apartment';
 }
 
+// Approval status for a property
+interface PropertyApprovalStatus {
+  status: 'none' | 'pending' | 'approved' | 'rejected';
+  comments?: string;
+  requestId?: string;
+}
+
 export default function PropertiesPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { isAgentScoped, isAssignedAgent, canViewAll, canEditProperty } = useRole();
+  const { isAgentScoped, isAssignedAgent, canViewAll, canEditProperty, currentUser, isRole } = useRole();
   const pf = usePropertyFields();
   const comm = useCommunities();
+  const { submitForApproval, getApprovalStatus } = useApprovalWorkflow();
+
+  const isCeo = isRole('super_admin');
+  // Non-CEO roles must go through approval
+  const requiresApproval = !isCeo;
 
   const [activeType, setActiveType] = useState<PropertyType>('All');
   const [search, setSearch] = useState('');
@@ -220,6 +232,12 @@ export default function PropertiesPage() {
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
+
+  // Approval state
+  const [approvalStatuses, setApprovalStatuses] = useState<Record<string, PropertyApprovalStatus>>({});
+  const [editingApprovalStatus, setEditingApprovalStatus] = useState<PropertyApprovalStatus>({ status: 'none' });
+  const [sendingApproval, setSendingApproval] = useState(false);
+  const [approvalSuccess, setApprovalSuccess] = useState<string | null>(null);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -280,7 +298,39 @@ export default function PropertiesPage() {
     }
   }, [supabase]);
 
+  // Load approval statuses for all properties
+  const loadApprovalStatuses = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from('approval_requests')
+      .select('item_id, status, comments, id')
+      .eq('item_type', 'property')
+      .in('item_id', ids)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      const map: Record<string, PropertyApprovalStatus> = {};
+      // Take the most recent request per item
+      for (const row of data) {
+        if (!map[row.item_id]) {
+          map[row.item_id] = {
+            status: row.status as any,
+            comments: row.comments,
+            requestId: row.id,
+          };
+        }
+      }
+      setApprovalStatuses(map);
+    }
+  }, [supabase]);
+
   useEffect(() => { loadProperties(); loadAgentNames(); }, [loadProperties, loadAgentNames]);
+
+  useEffect(() => {
+    if (propertyList.length > 0) {
+      loadApprovalStatuses(propertyList.map(p => p.id));
+    }
+  }, [propertyList, loadApprovalStatuses]);
 
   const filtered = propertyList.filter((p) => {
     const matchType = activeType === 'All' || p.propCategory === activeType;
@@ -318,6 +368,10 @@ export default function PropertiesPage() {
   };
 
   const handleBulkPublish = async (publish: boolean) => {
+    if (requiresApproval && publish) {
+      // Non-CEO cannot bulk publish directly — they must use Send for Approval
+      return;
+    }
     const ids = Array.from(selectedIds);
     await supabase.from('properties').update({ published: publish }).in('id', ids);
     setSelectedIds(new Set());
@@ -337,6 +391,10 @@ export default function PropertiesPage() {
   };
 
   const handleTogglePublished = async (id: string, current: boolean) => {
+    if (requiresApproval && !current) {
+      // Non-CEO cannot publish directly
+      return;
+    }
     await supabase.from('properties').update({ published: !current }).eq('id', id);
     loadProperties();
   };
@@ -344,6 +402,7 @@ export default function PropertiesPage() {
   const openNew = () => {
     setEditingId(null);
     setFormData({ ...defaultFormData, referenceNumber: generateRefNumber(defaultFormData.listingType) });
+    setEditingApprovalStatus({ status: 'none' });
     setActiveTab('basic');
     loadAgentNames();
     setShowModal(true);
@@ -402,6 +461,9 @@ export default function PropertiesPage() {
       if (data.location_area) setAvailableCommunities(comm.getCommunitiesForArea(data.location_area));
       setEditingId(id);
       setActiveTab('basic');
+      // Load approval status for this property
+      const approvalStatus = approvalStatuses[id] || { status: 'none' };
+      setEditingApprovalStatus(approvalStatus);
       loadAgentNames();
       setShowModal(true);
     }
@@ -442,7 +504,8 @@ export default function PropertiesPage() {
       private_garden: formData.privateGarden,
       amenities: formData.amenities,
       featured: formData.featured,
-      published: formData.published,
+      // Non-CEO cannot set published=true directly
+      published: requiresApproval ? false : formData.published,
       emirate: formData.emirate,
       location_area: formData.locationArea,
       community: formData.community,
@@ -465,12 +528,14 @@ export default function PropertiesPage() {
     };
 
     let error: any = null;
+    let savedId = editingId;
     if (editingId) {
       const result = await supabase.from('properties').update(payload).eq('id', editingId);
       error = result.error;
     } else {
-      const result = await supabase.from('properties').insert(payload);
+      const result = await supabase.from('properties').insert(payload).select('id').single();
       error = result.error;
+      if (result.data) savedId = result.data.id;
     }
 
     if (!error && formData.ownerName) {
@@ -509,6 +574,55 @@ export default function PropertiesPage() {
     }
     setShowModal(false);
     setSaveError(null);
+    loadProperties();
+    return savedId;
+  };
+
+  const handleSendForApproval = async () => {
+    if (!formData.title) {
+      setSaveError('Please fill in the property title before submitting for approval.');
+      return;
+    }
+    setSendingApproval(true);
+    setSaveError(null);
+
+    // Save first
+    let savedId = await handleSave();
+    if (!savedId) {
+      setSendingApproval(false);
+      return;
+    }
+
+    // Submit for approval
+    const result = await submitForApproval({
+      itemType: 'property',
+      itemId: savedId,
+      itemTitle: formData.title,
+      itemRef: formData.referenceNumber,
+      submittedBy: currentUser.id,
+      submittedByName: currentUser.name,
+      submittedByEmail: currentUser.email,
+      submittedByRole: currentUser.role,
+    });
+
+    setSendingApproval(false);
+    if (result.success) {
+      setApprovalSuccess(`"${formData.title}" has been submitted for CEO approval. You will be notified once reviewed.`);
+      setTimeout(() => setApprovalSuccess(null), 5000);
+      loadProperties();
+      loadApprovalStatuses([savedId]);
+    } else {
+      setSaveError(result.error || 'Failed to submit for approval');
+    }
+  };
+
+  const handlePublishApproved = async (id: string, currentPublished: boolean) => {
+    // CEO can publish directly; non-CEO can publish only if approved
+    const approvalStatus = approvalStatuses[id];
+    if (requiresApproval && !currentPublished && approvalStatus?.status !== 'approved') {
+      return; // Should not happen — button is hidden
+    }
+    await supabase.from('properties').update({ published: !currentPublished }).eq('id', id);
     loadProperties();
   };
 
@@ -572,8 +686,25 @@ export default function PropertiesPage() {
     return list[0] || '';
   };
 
+  const getApprovalBadge = (propertyId: string) => {
+    const s = approvalStatuses[propertyId];
+    if (!s || s.status === 'none') return null;
+    if (s.status === 'pending') return { label: 'Pending Approval', cls: 'bg-amber-500/20 text-amber-400' };
+    if (s.status === 'approved') return { label: 'Approved', cls: 'bg-emerald-500/20 text-emerald-400' };
+    if (s.status === 'rejected') return { label: 'Changes Needed', cls: 'bg-orange-500/20 text-orange-400' };
+    return null;
+  };
+
   return (
     <div className="p-6">
+      {/* Approval success toast */}
+      {approvalSuccess && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30">
+          <Icon name="CheckCircleIcon" size={16} className="text-emerald-400 flex-shrink-0" />
+          <p className="text-sm text-emerald-400">{approvalSuccess}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Properties</h1>
@@ -592,6 +723,14 @@ export default function PropertiesPage() {
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 text-xs text-primary">
           <Icon name="InformationCircleIcon" size={14} />
           <span>All properties are visible. Owner and contact details are restricted to the listing agent only.</span>
+        </div>
+      )}
+
+      {/* Approval workflow notice for non-CEO */}
+      {requiresApproval && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
+          <Icon name="ShieldCheckIcon" size={14} />
+          <span>Properties require CEO approval before publishing. Use <strong>"Send for Approval"</strong> after saving.</span>
         </div>
       )}
 
@@ -631,8 +770,12 @@ export default function PropertiesPage() {
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
-            <button onClick={() => handleBulkPublish(true)} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors">Publish</button>
-            <button onClick={() => handleBulkPublish(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unpublish</button>
+            {isCeo && (
+              <>
+                <button onClick={() => handleBulkPublish(true)} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors">Publish</button>
+                <button onClick={() => handleBulkPublish(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unpublish</button>
+              </>
+            )}
             <button onClick={() => handleBulkFeatured(true)} className="px-3 py-1.5 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">Featured</button>
             <button onClick={() => handleBulkFeatured(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unfeatured</button>
             <button onClick={() => setBulkDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
@@ -678,6 +821,9 @@ export default function PropertiesPage() {
             {filtered.map((property) => {
               const img = firstImage(property.imageUrls);
               const isListing = isAssignedAgent(property.agentName);
+              const approvalBadge = getApprovalBadge(property.id);
+              const approvalStatus = approvalStatuses[property.id];
+              const canPublishNow = isCeo || (approvalStatus?.status === 'approved');
               return (
                 <div key={property.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(property.id) ? 'border-primary/40' : 'border-border'}`}>
                   <div className="relative h-44 overflow-hidden">
@@ -689,11 +835,14 @@ export default function PropertiesPage() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute top-3 left-3 flex gap-2 items-center">
+                    <div className="absolute top-3 left-3 flex gap-2 items-center flex-wrap">
                       <input type="checkbox" checked={selectedIds.has(property.id)} onChange={() => toggleSelect(property.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" onClick={(e) => e.stopPropagation()} />
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[property.availability] || 'text-gray-400 bg-gray-400/10'}`}>{property.availability}</span>
                       {property.featured && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-yellow-500/20 text-yellow-400">Featured</span>}
-                      {!property.published && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
+                      {!property.published && !approvalBadge && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
+                      {approvalBadge && (
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${approvalBadge.cls}`}>{approvalBadge.label}</span>
+                      )}
                     </div>
                     <div className="absolute bottom-3 left-4 right-4">
                       <h3 className="text-base font-bold text-white truncate">{property.title}</h3>
@@ -718,7 +867,7 @@ export default function PropertiesPage() {
                         <p className="text-sm font-semibold text-foreground mt-0.5">{property.areaSqft ? `${property.areaSqft} sqft` : '—'}</p>
                       </div>
                     </div>
-                    {/* Listing agent info — restricted to assigned agent or admins */}
+                    {/* Listing agent info */}
                     <div className="mb-3">
                       <p className="text-xs text-muted-foreground">Listing Agent</p>
                       <p className="text-xs font-medium text-foreground mt-0.5">{property.agentName || '—'}</p>
@@ -732,6 +881,15 @@ export default function PropertiesPage() {
                         </p>
                       ) : null}
                     </div>
+
+                    {/* Rejection comments */}
+                    {approvalStatus?.status === 'rejected' && approvalStatus.comments && (
+                      <div className="mb-3 px-2.5 py-2 bg-orange-400/5 border border-orange-400/20">
+                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mb-0.5">CEO Comments</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">{approvalStatus.comments}</p>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       {canEditProperty(property.agentName) && (
                         <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
@@ -743,6 +901,15 @@ export default function PropertiesPage() {
                         className={`px-3 py-2 border text-xs transition-colors ${property.featured ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20' : 'border-border text-muted-foreground hover:text-yellow-400 hover:border-yellow-400/30'}`}>
                         <Icon name="StarIcon" size={13} />
                       </button>
+                      {/* Publish button: CEO always, others only if approved */}
+                      {canPublishNow && (
+                        <button
+                          onClick={() => handlePublishApproved(property.id, property.published)}
+                          title={property.published ? 'Unpublish' : 'Publish'}
+                          className={`px-3 py-2 border text-xs transition-colors ${property.published ? 'border-emerald-400/40 text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20' : 'border-border text-muted-foreground hover:text-emerald-400 hover:border-emerald-400/30'}`}>
+                          <Icon name={property.published ? 'EyeIcon' : 'EyeSlashIcon'} size={13} />
+                        </button>
+                      )}
                       <button onClick={() => handleDelete(property.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors">
                         <Icon name="TrashIcon" size={13} />
                       </button>
@@ -962,17 +1129,45 @@ export default function PropertiesPage() {
                     <textarea className={inputCls} rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Property description..." />
                   </section>
 
-                  {/* Toggles */}
+                  {/* Toggles / Approval Status */}
                   <section className="pt-5 border-t border-[#2a3040]">
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 flex-wrap">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
                         <span className="text-xs text-[#aaa]">Featured</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={formData.published} onChange={(e) => setFormData({ ...formData, published: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
-                        <span className="text-xs text-[#aaa]">Published</span>
-                      </label>
+                      {isCeo ? (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={formData.published} onChange={(e) => setFormData({ ...formData, published: e.target.checked })} className="w-4 h-4 accent-[#c9a84c]" />
+                          <span className="text-xs text-[#aaa]">Published</span>
+                        </label>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {editingApprovalStatus.status === 'pending' && (
+                            <span className="flex items-center gap-1.5 text-xs text-amber-400 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30">
+                              <Icon name="ClockIcon" size={12} />Pending CEO Approval
+                            </span>
+                          )}
+                          {editingApprovalStatus.status === 'approved' && (
+                            <span className="flex items-center gap-1.5 text-xs text-emerald-400 px-2.5 py-1 bg-emerald-400/10 border border-emerald-400/30">
+                              <Icon name="CheckCircleIcon" size={12} />Approved — Ready to Publish
+                            </span>
+                          )}
+                          {editingApprovalStatus.status === 'rejected' && (
+                            <div>
+                              <span className="flex items-center gap-1.5 text-xs text-orange-400 px-2.5 py-1 bg-orange-400/10 border border-orange-400/30 mb-1">
+                                <Icon name="ExclamationCircleIcon" size={12} />Changes Requested
+                              </span>
+                              {editingApprovalStatus.comments && (
+                                <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">{editingApprovalStatus.comments}</p>
+                              )}
+                            </div>
+                          )}
+                          {editingApprovalStatus.status === 'none' && (
+                            <span className="text-xs text-muted-foreground">Not yet submitted for approval</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </section>
                 </div>
@@ -1234,16 +1429,69 @@ export default function PropertiesPage() {
               })()}
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040] flex-wrap gap-3">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {saveError && <p className="text-xs text-red-400 max-w-xs text-right">{saveError}</p>}
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !formData.title}
-                  className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
-                  {saving ? 'Saving...' : editingId ? 'Update Property' : 'Save Property'}
-                </button>
+                {/* CEO: normal Save + Published toggle */}
+                {isCeo ? (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !formData.title}
+                    className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+                    {saving ? 'Saving...' : editingId ? 'Update Property' : 'Save Property'}
+                  </button>
+                ) : (
+                  <>
+                    {/* Save as Draft */}
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || sendingApproval || !formData.title}
+                      className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors disabled:opacity-50">
+                      {saving ? 'Saving...' : 'Save Draft'}
+                    </button>
+                    {/* Send for Approval */}
+                    {(editingApprovalStatus.status === 'none' || editingApprovalStatus.status === 'rejected') && (
+                      <button
+                        onClick={handleSendForApproval}
+                        disabled={saving || sendingApproval || !formData.title}
+                        className="flex items-center gap-2 px-5 py-2 bg-amber-500 text-black text-xs font-bold uppercase tracking-wider hover:bg-amber-400 transition-colors disabled:opacity-50">
+                        {sendingApproval ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Icon name="PaperAirplaneIcon" size={13} />
+                            Send for Approval
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {/* Publish (only if approved) */}
+                    {editingApprovalStatus.status === 'approved' && !formData.published && (
+                      <button
+                        onClick={async () => {
+                          if (editingId) {
+                            await supabase.from('properties').update({ published: true }).eq('id', editingId);
+                            setFormData(prev => ({ ...prev, published: true }));
+                            loadProperties();
+                          }
+                        }}
+                        className="flex items-center gap-2 px-5 py-2 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider hover:bg-emerald-400 transition-colors">
+                        <Icon name="GlobeAltIcon" size={13} />
+                        Publish
+                      </button>
+                    )}
+                    {editingApprovalStatus.status === 'pending' && (
+                      <span className="flex items-center gap-1.5 text-xs text-amber-400 px-3 py-2 bg-amber-400/10 border border-amber-400/30">
+                        <Icon name="ClockIcon" size={12} />Awaiting CEO Review
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>

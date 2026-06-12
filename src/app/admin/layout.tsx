@@ -17,6 +17,7 @@ const allCrmLinks = [
   { label: 'Inquiries', href: '/admin/inquiries', icon: 'InboxIcon', permission: 'view_leads' as Permission },
   { label: 'Properties', href: '/admin/properties', icon: 'HomeIcon', permission: 'view_properties' as Permission },
   { label: 'Projects', href: '/admin/projects', icon: 'BuildingOffice2Icon', permission: 'view_projects' as Permission },
+  { label: 'Approvals', href: '/admin/approvals', icon: 'CheckBadgeIcon', permission: 'view_properties' as Permission },
   { label: 'Agents', href: '/admin/agents', icon: 'IdentificationIcon', permission: 'view_agents' as Permission },
   { label: 'Deals', href: '/admin/deals', icon: 'BriefcaseIcon', permission: 'view_deals' as Permission },
   { label: 'Calendar', href: '/admin/calendar', icon: 'CalendarIcon', permission: 'view_calendar' as Permission },
@@ -62,10 +63,11 @@ interface NavItemProps {
   label: string;
   active: boolean;
   collapsed: boolean;
+  badge?: number;
   onClick?: () => void;
 }
 
-function NavItem({ href, icon, label, active, collapsed, onClick }: NavItemProps) {
+function NavItem({ href, icon, label, active, collapsed, badge, onClick }: NavItemProps) {
   return (
     <Link
       href={href}
@@ -77,7 +79,12 @@ function NavItem({ href, icon, label, active, collapsed, onClick }: NavItemProps
       }`}
     >
       <Icon name={icon as any} size={16} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
-      {!collapsed && <span className="truncate">{label}</span>}
+      {!collapsed && <span className="truncate flex-1">{label}</span>}
+      {!collapsed && badge && badge > 0 ? (
+        <span className="ml-auto w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+          <span className="text-[9px] font-bold text-black">{badge > 9 ? '9+' : badge}</span>
+        </span>
+      ) : null}
       {collapsed && (
         <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border text-xs text-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
           {label}
@@ -87,11 +94,23 @@ function NavItem({ href, icon, label, active, collapsed, onClick }: NavItemProps
   );
 }
 
+interface ApprovalNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  approval_requests?: { item_type: string; item_id: string } | null;
+}
+
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<{ id: string; item_title: string; item_type: string; submitted_by_name: string; submitted_at: string }[]>([]);
+  const [approvalNotifications, setApprovalNotifications] = useState<ApprovalNotification[]>([]);
   const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -147,13 +166,51 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (data) setPendingDocs(data);
   }, [supabase, currentUser.role]);
 
+  const fetchApprovalData = useCallback(async () => {
+    if (!currentUser.id || currentUser.id === '1') return; // skip mock users
+
+    if (currentUser.role === 'super_admin') {
+      // CEO: fetch pending approval requests
+      const { data } = await supabase
+        .from('approval_requests')
+        .select('id, item_title, item_type, submitted_by_name, submitted_at')
+        .eq('status', 'pending')
+        .order('submitted_at', { ascending: false });
+      if (data) setPendingApprovals(data);
+    }
+
+    // All users: fetch their unread approval notifications
+    const { data: notifs } = await supabase
+      .from('approval_notifications')
+      .select('id, type, title, message, read, created_at, approval_requests(item_type, item_id)')
+      .eq('recipient_id', currentUser.id)
+      .eq('read', false)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (notifs) setApprovalNotifications(notifs as ApprovalNotification[]);
+  }, [supabase, currentUser.id, currentUser.role]);
+
   useEffect(() => {
     fetchPendingDocs();
-  }, [fetchPendingDocs]);
+    fetchApprovalData();
+  }, [fetchPendingDocs, fetchApprovalData]);
 
   const handleBellClick = () => {
     setShowNotifications(!showNotifications);
-    if (!showNotifications) fetchPendingDocs();
+    if (!showNotifications) {
+      fetchPendingDocs();
+      fetchApprovalData();
+    }
+  };
+
+  const handleMarkApprovalNotificationsRead = async () => {
+    if (!currentUser.id || currentUser.id === '1') return;
+    await supabase
+      .from('approval_notifications')
+      .update({ read: true })
+      .eq('recipient_id', currentUser.id)
+      .eq('read', false);
+    setApprovalNotifications([]);
   };
 
   const crmLinks = allCrmLinks.filter((l) => can(l.permission));
@@ -163,7 +220,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   });
   const mobileBottomLinks = bottomNavItems.filter((l) => can(l.permission));
 
-  const totalNotifications = currentUser.role === 'super_admin' ? pendingDocs.length : 0;
+  const pendingApprovalsCount = currentUser.role === 'super_admin' ? pendingApprovals.length : 0;
+  const approvalNotifsCount = approvalNotifications.length;
+  const totalNotifications = (currentUser.role === 'super_admin' ? pendingDocs.length : 0) + pendingApprovalsCount + approvalNotifsCount;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -182,6 +241,103 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   // Get current page label for mobile header
   const currentPageLabel = [...allCrmLinks, ...allCmsLinks].find(l => l.href === pathname)?.label || 'Admin';
+
+  const notificationTypeIcon = (type: string) => {
+    if (type === 'review_requested') return { icon: 'ClockIcon', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' };
+    if (type === 'approved') return { icon: 'CheckCircleIcon', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' };
+    if (type === 'rejected') return { icon: 'ExclamationCircleIcon', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' };
+    return { icon: 'BellIcon', color: 'text-primary', bg: 'bg-primary/10 border-primary/20' };
+  };
+
+  const NotificationPanel = () => (
+    <div className="divide-y divide-border max-h-72 overflow-y-auto">
+      {/* Approval notifications for current user (approved/rejected) */}
+      {approvalNotifications.map((notif) => {
+        const { icon, color, bg } = notificationTypeIcon(notif.type);
+        const href = notif.approval_requests
+          ? `/admin/${notif.approval_requests.item_type === 'project' ? 'projects' : 'properties'}`
+          : '/admin/approvals';
+        return (
+          <Link
+            key={notif.id}
+            href={href}
+            onClick={() => { setShowNotifications(false); handleMarkApprovalNotificationsRead(); }}
+            className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            <div className={`w-8 h-8 flex items-center justify-center border flex-shrink-0 mt-0.5 ${bg}`}>
+              <Icon name={icon as any} size={14} className={color} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground">{notif.title}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
+            </div>
+            <span className={`text-[10px] flex-shrink-0 font-medium ${color}`}>New</span>
+          </Link>
+        );
+      })}
+
+      {/* Pending approvals for CEO */}
+      {currentUser.role === 'super_admin' && pendingApprovals.map((req) => (
+        <Link
+          key={req.id}
+          href="/admin/approvals"
+          onClick={() => setShowNotifications(false)}
+          className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
+            <Icon name="CheckBadgeIcon" size={14} className="text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">Approval Required</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+              {req.item_type === 'project' ? 'Project' : 'Property'}: {req.item_title}
+            </p>
+            <p className="text-[10px] text-muted-foreground/60 mt-0.5">by {req.submitted_by_name}</p>
+          </div>
+          <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
+        </Link>
+      ))}
+
+      {/* Pending docs for CEO */}
+      {currentUser.role === 'super_admin' && pendingDocs.map((doc) => (
+        <Link key={doc.id} href="/admin/documents" onClick={() => setShowNotifications(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
+          <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
+            <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">Document Pending Approval</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{doc.title || doc.template_name}</p>
+          </div>
+          <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
+        </Link>
+      ))}
+
+      {/* Static notifications */}
+      {[
+        { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
+        { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
+        { icon: 'BriefcaseIcon', title: 'Deal updated', desc: 'Palm Villa deal moved to Negotiation', time: '3 hr ago', color: 'text-purple-400' },
+        { icon: 'CalendarIcon', title: 'Viewing scheduled', desc: 'Tomorrow at 10:00 AM — Downtown Apt', time: 'Yesterday', color: 'text-emerald-400' },
+      ].map((n, i) => (
+        <div key={`static-${i}`} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
+          <div className="w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5">
+            <Icon name={n.icon as any} size={14} className={n.color} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">{n.title}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.desc}</p>
+          </div>
+          <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
+        </div>
+      ))}
+
+      {totalNotifications === 0 && (
+        <div className="px-4 py-3">
+          <p className="text-[11px] text-muted-foreground">No new notifications</p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -225,7 +381,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               )}
               {collapsed && <div className="border-t border-border my-2" />}
               {crmLinks.map((link) => (
-                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={collapsed} />
+                <NavItem
+                  key={link.href}
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  active={pathname === link.href}
+                  collapsed={collapsed}
+                  badge={link.href === '/admin/approvals' ? (pendingApprovalsCount + approvalNotifsCount) || undefined : undefined}
+                />
               ))}
             </div>
           )}
@@ -304,7 +468,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="mb-1">
               <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">CRM</p>
               {crmLinks.map((link) => (
-                <NavItem key={link.href} href={link.href} icon={link.icon} label={link.label} active={pathname === link.href} collapsed={false} onClick={() => setMobileDrawerOpen(false)} />
+                <NavItem
+                  key={link.href}
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  active={pathname === link.href}
+                  collapsed={false}
+                  badge={link.href === '/admin/approvals' ? (pendingApprovalsCount + approvalNotifsCount) || undefined : undefined}
+                  onClick={() => setMobileDrawerOpen(false)}
+                />
               ))}
             </div>
           )}
@@ -361,44 +534,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       <Icon name="XMarkIcon" size={14} />
                     </button>
                   </div>
-                  <div className="divide-y divide-border max-h-72 overflow-y-auto">
-                    {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
-                      <Link key={doc.id} href="/admin/documents" onClick={() => setShowNotifications(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
-                          <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">Pending Approval</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{doc.title || doc.template_name}</p>
-                        </div>
-                        <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
-                      </Link>
-                    ))}
-                    {[
-                      { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
-                      { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
-                      { icon: 'BriefcaseIcon', title: 'Deal updated', desc: 'Palm Villa deal moved to Negotiation', time: '3 hr ago', color: 'text-purple-400' },
-                      { icon: 'CalendarIcon', title: 'Viewing scheduled', desc: 'Tomorrow at 10:00 AM — Downtown Apt', time: 'Yesterday', color: 'text-emerald-400' },
-                    ].map((n, i) => (
-                      <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5">
-                          <Icon name={n.icon as any} size={14} className={n.color} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">{n.title}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.desc}</p>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
-                      </div>
-                    ))}
-                    {currentUser.role === 'super_admin' && pendingDocs.length === 0 && (
-                      <div className="px-4 py-3">
-                        <p className="text-[11px] text-muted-foreground">No documents pending your approval</p>
-                      </div>
-                    )}
-                  </div>
+                  <NotificationPanel />
                   <div className="px-4 py-2.5 border-t border-border">
-                    <p className="text-[10px] text-center text-muted-foreground">All caught up</p>
+                    <Link href="/admin/approvals" onClick={() => setShowNotifications(false)} className="text-[10px] text-center text-primary hover:text-accent block transition-colors">
+                      View all approvals →
+                    </Link>
                   </div>
                 </div>
               )}
@@ -457,37 +597,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       <Icon name="XMarkIcon" size={14} />
                     </button>
                   </div>
-                  <div className="divide-y divide-border max-h-64 overflow-y-auto">
-                    {currentUser.role === 'super_admin' && pendingDocs.length > 0 && pendingDocs.map((doc) => (
-                      <Link key={doc.id} href="/admin/documents" onClick={() => setShowNotifications(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 flex items-center justify-center bg-amber-500/10 border border-amber-500/20 flex-shrink-0 mt-0.5">
-                          <Icon name="DocumentTextIcon" size={14} className="text-amber-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">Pending Approval</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{doc.title || doc.template_name}</p>
-                        </div>
-                        <span className="text-[10px] text-amber-400 flex-shrink-0 font-medium">Review</span>
-                      </Link>
-                    ))}
-                    {[
-                      { icon: 'UserPlusIcon', title: 'New lead received', desc: 'A new enquiry from the website', time: '2 min ago', color: 'text-blue-400' },
-                      { icon: 'HomeIcon', title: 'Property published', desc: 'Marina Heights listing is now live', time: '1 hr ago', color: 'text-primary' },
-                    ].map((n, i) => (
-                      <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 flex items-center justify-center bg-card border border-border flex-shrink-0 mt-0.5">
-                          <Icon name={n.icon as any} size={14} className={n.color} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">{n.title}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.desc}</p>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{n.time}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <NotificationPanel />
                   <div className="px-4 py-2.5 border-t border-border">
-                    <p className="text-[10px] text-center text-muted-foreground">All caught up</p>
+                    <Link href="/admin/approvals" onClick={() => setShowNotifications(false)} className="text-[10px] text-center text-primary hover:text-accent block transition-colors">
+                      View all approvals →
+                    </Link>
                   </div>
                 </div>
               )}

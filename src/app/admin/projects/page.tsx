@@ -9,6 +9,7 @@ import PinLocationMap from '@/components/ui/PinLocationMap';
 import { useRole } from '@/contexts/RoleContext';
 import { usePropertyFields } from '@/hooks/usePropertyFields';
 import { useCommunities } from '@/hooks/useCommunities';
+import { useApprovalWorkflow } from '@/hooks/useApprovalWorkflow';
 
 interface Project {
   id: string;
@@ -84,11 +85,15 @@ export default function ProjectsPage() {
 function ProjectsPageInner() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { isAgentScoped, canViewAll, canEditProject } = useRole();
+  const { isAgentScoped, canViewAll, canEditProject, currentUser, isRole } = useRole();
   const pf = usePropertyFields();
   const comm = useCommunities();
+  const { submitForApproval } = useApprovalWorkflow();
   const PROPERTY_TYPES = pf.loaded ? pf.types : PROPERTY_TYPES_FALLBACK;
   const AMENITIES_LIST = pf.loaded ? pf.amenities : AMENITIES_LIST_FALLBACK;
+
+  const isCeo = isRole('super_admin');
+  const requiresApproval = !isCeo;
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -102,6 +107,12 @@ function ProjectsPageInner() {
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
+
+  // Approval state
+  const [approvalStatuses, setApprovalStatuses] = useState<Record<string, { status: string; comments?: string }>>({});
+  const [editingApprovalStatus, setEditingApprovalStatus] = useState<{ status: string; comments?: string }>({ status: 'none' });
+  const [sendingApproval, setSendingApproval] = useState(false);
+  const [approvalSuccess, setApprovalSuccess] = useState<string | null>(null);
 
   // Basic tab
   const [name, setName] = useState('');
@@ -190,7 +201,32 @@ function ProjectsPageInner() {
     setLoading(false);
   }, [supabase]);
 
+  const loadApprovalStatuses = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from('approval_requests')
+      .select('item_id, status, comments, id')
+      .eq('item_type', 'project')
+      .in('item_id', ids)
+      .order('created_at', { ascending: false });
+    if (data) {
+      const map: Record<string, { status: string; comments?: string }> = {};
+      for (const row of data) {
+        if (!map[row.item_id]) {
+          map[row.item_id] = { status: row.status, comments: row.comments };
+        }
+      }
+      setApprovalStatuses(map);
+    }
+  }, [supabase]);
+
   useEffect(() => { loadProjects(); }, [loadProjects]);
+
+  useEffect(() => {
+    if (projectList.length > 0) {
+      loadApprovalStatuses(projectList.map(p => p.id));
+    }
+  }, [projectList, loadApprovalStatuses]);
 
   const filtered = projectList.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -213,6 +249,7 @@ function ProjectsPageInner() {
     setSelectedIds(new Set()); setBulkDeleteConfirm(false); loadProjects();
   };
   const handleBulkPublish = async (pub: boolean) => {
+    if (requiresApproval && pub) return; // Non-CEO cannot bulk publish
     await supabase.from('projects').update({ published: pub }).in('id', Array.from(selectedIds));
     setSelectedIds(new Set()); loadProjects();
   };
@@ -236,7 +273,7 @@ function ProjectsPageInner() {
     setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
   };
 
-  const openNew = () => { setEditId(null); resetModal(); setActiveTab('basic'); setShowModal(true); };
+  const openNew = () => { setEditId(null); resetModal(); setActiveTab('basic'); setEditingApprovalStatus({ status: 'none' }); setShowModal(true); };
 
   const openEdit = async (id: string) => {
     const { data } = await supabase.from('projects').select('*').eq('id', id).single();
@@ -265,6 +302,9 @@ function ProjectsPageInner() {
     setFloorPlans((Array.isArray(data.floor_plans) ? data.floor_plans : []).map((fp: any, i: number) => ({ id: Date.now() + i, url: fp.url || '', label: fp.label || '' })));
     setMasterPlanUrl(data.master_plan_url || ''); setVideoUrl(data.video_url || ''); setVirtualTourUrl(data.virtual_tour_url || '');
     setBrochureUrl(data.brochure_url || ''); setFactsheetUrl(data.factsheet_url || ''); setPriceListUrl(data.price_list_url || '');
+    // Load approval status for this project
+    const approvalStatus = approvalStatuses[id] || { status: 'none' };
+    setEditingApprovalStatus(approvalStatus);
     setEditId(id); setActiveTab('basic'); setShowModal(true);
   };
 
@@ -282,7 +322,10 @@ function ProjectsPageInner() {
     const payload = {
       name, developer, description, project_type: projectType, status,
       starting_price: startingPrice, handover_date: handoverDate,
-      featured, published, international, country,
+      featured,
+      // Non-CEO cannot set published=true directly
+      published: requiresApproval ? false : published,
+      international, country,
       total_units: parseInt(totalUnits) || 0,
       available_units: parseInt(availableUnits) || 0,
       sold_units: 0,
@@ -303,25 +346,63 @@ function ProjectsPageInner() {
     };
 
     let error: any = null;
+    let savedId = editId;
     if (editId) {
       const result = await supabase.from('projects').update(payload).eq('id', editId);
       error = result.error;
     } else {
-      const result = await supabase.from('projects').insert({ ...payload, sold_units: 0 });
+      const result = await supabase.from('projects').insert({ ...payload, sold_units: 0 }).select('id').single();
       error = result.error;
+      if (result.data) savedId = result.data.id;
     }
 
     setSaving(false);
     if (error) {
       console.error('Save error:', error);
       setSaveError(error.message || 'Failed to save project. Please try again.');
-      return;
+      return null;
     }
     setShowModal(false);
     setSaveError(null);
     resetModal();
     setEditId(null);
     loadProjects();
+    return savedId;
+  };
+
+  const handleSendForApproval = async () => {
+    if (!name) {
+      setSaveError('Please fill in the project name before submitting for approval.');
+      return;
+    }
+    setSendingApproval(true);
+    setSaveError(null);
+
+    let savedId = await handleSave();
+    if (!savedId) {
+      setSendingApproval(false);
+      return;
+    }
+
+    const result = await submitForApproval({
+      itemType: 'project',
+      itemId: savedId,
+      itemTitle: name,
+      submittedBy: currentUser.id,
+      submittedByName: currentUser.name,
+      submittedByEmail: currentUser.email,
+      submittedByRole: currentUser.role,
+    });
+
+    setSendingApproval(false);
+    if (result.success) {
+      setApprovalSuccess(`"${name}" has been submitted for CEO approval. You will be notified once reviewed.`);
+      setTimeout(() => setApprovalSuccess(null), 5000);
+      loadProjects();
+      loadApprovalStatuses([savedId]);
+    } else {
+      setSaveError(result.error || 'Failed to submit for approval');
+    }
   };
 
   const handleUploadToStorage = async () => {
@@ -389,6 +470,14 @@ function ProjectsPageInner() {
 
   return (
     <div className="p-6">
+      {/* Approval success toast */}
+      {approvalSuccess && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30">
+          <Icon name="CheckCircleIcon" size={16} className="text-emerald-400 flex-shrink-0" />
+          <p className="text-sm text-emerald-400">{approvalSuccess}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Projects</h1>
@@ -407,6 +496,14 @@ function ProjectsPageInner() {
         </div>
       )}
 
+      {/* Approval workflow notice for non-CEO */}
+      {requiresApproval && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
+          <Icon name="ShieldCheckIcon" size={14} />
+          <span>Projects require CEO approval before publishing. Use <strong>"Send for Approval"</strong> after saving.</span>
+        </div>
+      )}
+
       <div className="relative max-w-sm mb-5">
         <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input type="text" placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
@@ -417,8 +514,12 @@ function ProjectsPageInner() {
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
-            <button onClick={() => handleBulkPublish(true)} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors">Publish</button>
-            <button onClick={() => handleBulkPublish(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unpublish</button>
+            {isCeo && (
+              <>
+                <button onClick={() => handleBulkPublish(true)} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors">Publish</button>
+                <button onClick={() => handleBulkPublish(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unpublish</button>
+              </>
+            )}
             <button onClick={() => handleBulkFeatured(true)} className="px-3 py-1.5 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">Featured</button>
             <button onClick={() => handleBulkFeatured(false)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">Unfeatured</button>
             <button onClick={() => setBulkDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
@@ -448,6 +549,8 @@ function ProjectsPageInner() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filtered.map((project) => {
               const coverImg = getProjectCoverImage(project);
+              const approvalStatus = approvalStatuses[project.id];
+              const canPublishNow = isCeo || (approvalStatus?.status === 'approved');
               return (
                 <div key={project.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(project.id) ? 'border-primary/40' : 'border-border'}`}>
                   <div className="relative h-44 overflow-hidden">
@@ -459,13 +562,16 @@ function ProjectsPageInner() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute top-3 left-3 flex gap-2 items-center">
+                    <div className="absolute top-3 left-3 flex gap-2 items-center flex-wrap">
                       <input type="checkbox" checked={selectedIds.has(project.id)} onChange={() => toggleSelect(project.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" onClick={(e) => e.stopPropagation()} />
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-primary text-primary-foreground">{project.projectType}</span>
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[project.status] || ''}`}>{project.status}</span>
                       {project.featured && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-yellow-500/20 text-yellow-400">Featured</span>}
                       {project.international && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-blue-500/20 text-blue-400">🌐 Intl</span>}
-                      {!project.published && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
+                      {!project.published && !approvalStatus && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
+                      {approvalStatus?.status === 'pending' && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/20 text-amber-400">Pending Approval</span>}
+                      {approvalStatus?.status === 'approved' && !project.published && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-emerald-500/20 text-emerald-400">Approved</span>}
+                      {approvalStatus?.status === 'rejected' && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-orange-500/20 text-orange-400">Changes Needed</span>}
                     </div>
                     <div className="absolute bottom-3 left-4 right-4">
                       <h3 className="text-base font-bold text-white">{project.name}</h3>
@@ -478,11 +584,31 @@ function ProjectsPageInner() {
                       <div><p className="text-xs text-muted-foreground">Handover</p><p className="text-sm font-semibold text-foreground mt-0.5">{project.handoverDate || '—'}</p></div>
                       <div><p className="text-xs text-muted-foreground">Starting Price</p><p className="text-sm font-semibold text-primary mt-0.5 truncate">{project.startingPrice ? `AED ${project.startingPrice}` : '—'}</p></div>
                     </div>
+
+                    {/* Rejection comments */}
+                    {approvalStatus?.status === 'rejected' && approvalStatus.comments && (
+                      <div className="mb-3 px-2.5 py-2 bg-orange-400/5 border border-orange-400/20">
+                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mb-0.5">CEO Comments</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">{approvalStatus.comments}</p>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       {canEditProject && (
                         <button onClick={() => openEdit(project.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
                       )}
                       <button onClick={() => router.push(`/admin/projects/${project.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View Details</button>
+                      {canPublishNow && (
+                        <button
+                          onClick={async () => {
+                            await supabase.from('projects').update({ published: !project.published }).eq('id', project.id);
+                            loadProjects();
+                          }}
+                          title={project.published ? 'Unpublish' : 'Publish'}
+                          className={`px-3 py-2 border text-xs transition-colors ${project.published ? 'border-emerald-400/40 text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20' : 'border-border text-muted-foreground hover:text-emerald-400 hover:border-emerald-400/30'}`}>
+                          <Icon name={project.published ? 'EyeIcon' : 'EyeSlashIcon'} size={13} />
+                        </button>
+                      )}
                       <button onClick={() => handleDelete(project.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={13} /></button>
                     </div>
                   </div>
@@ -525,10 +651,40 @@ function ProjectsPageInner() {
                   <div><label className={labelCls}>Starting Price (AED)</label><input className={inputCls} value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)} placeholder="e.g. 1,200,000" /></div>
                   <div><label className={labelCls}>Handover Date</label><input className={inputCls} value={handoverDate} onChange={(e) => setHandoverDate(e.target.value)} placeholder="e.g. Q4 2026" /></div>
                   <div className="col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Project description..." /></div>
-                  <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">Featured</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">Published</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={international} onChange={(e) => setInternational(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">International</span></label>
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-6 flex-wrap">
+                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">Featured</span></label>
+                      {isCeo ? (
+                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">Published</span></label>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {editingApprovalStatus.status === 'pending' && (
+                            <span className="flex items-center gap-1.5 text-xs text-amber-400 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30">
+                              <Icon name="ClockIcon" size={12} />Pending CEO Approval
+                            </span>
+                          )}
+                          {editingApprovalStatus.status === 'approved' && (
+                            <span className="flex items-center gap-1.5 text-xs text-emerald-400 px-2.5 py-1 bg-emerald-400/10 border border-emerald-400/30">
+                              <Icon name="CheckCircleIcon" size={12} />Approved — Ready to Publish
+                            </span>
+                          )}
+                          {editingApprovalStatus.status === 'rejected' && (
+                            <div>
+                              <span className="flex items-center gap-1.5 text-xs text-orange-400 px-2.5 py-1 bg-orange-400/10 border border-orange-400/30">
+                                <Icon name="ExclamationCircleIcon" size={12} />Changes Requested
+                              </span>
+                              {editingApprovalStatus.comments && (
+                                <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">{editingApprovalStatus.comments}</p>
+                              )}
+                            </div>
+                          )}
+                          {editingApprovalStatus.status === 'none' && (
+                            <span className="text-xs text-muted-foreground">Not yet submitted for approval</span>
+                          )}
+                        </div>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={international} onChange={(e) => setInternational(e.target.checked)} className="w-4 h-4 accent-[#c9a84c]" /><span className="text-xs text-[#aaa]">International</span></label>
+                    </div>
                   </div>
                   {international && (
                     <div className="col-span-2 relative">
@@ -622,11 +778,7 @@ function ProjectsPageInner() {
                     <div className="col-span-2">
                       <PinLocationMap
                         label="Pin Location on Map"
-                        value={{
-                          lat: parseFloat(latitude) || 25.0657,
-                          lng: parseFloat(longitude) || 55.1713,
-                          address: fullAddress,
-                        }}
+                        value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
                         onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
                       />
                     </div>
@@ -654,31 +806,19 @@ function ProjectsPageInner() {
                       </select>
                     </div>
                   )}
-                  {!international && (
-                    <div><label className={labelCls}>Sub-Community</label><input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} /></div>
-                  )}
-                  {!international && (
-                    <div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
-                  )}
+                  {!international && (<div><label className={labelCls}>Sub-Community</label><input className={inputCls} value={subCommunity} onChange={(e) => setSubCommunity(e.target.value)} /></div>)}
+                  {!international && (<div className="col-span-2"><label className={labelCls}>Full Address</label><input className={inputCls} value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>)}
                   {!international && (
                     <div className="col-span-2">
                       <PinLocationMap
                         label="Pin Location on Map"
-                        value={{
-                          lat: parseFloat(latitude) || 25.0657,
-                          lng: parseFloat(longitude) || 55.1713,
-                          address: fullAddress,
-                        }}
+                        value={{ lat: parseFloat(latitude) || 25.0657, lng: parseFloat(longitude) || 55.1713, address: fullAddress }}
                         onChange={(val) => { setLatitude(String(val.lat)); setLongitude(String(val.lng)); if (val.address) setFullAddress(val.address); }}
                       />
                     </div>
                   )}
-                  {!international && (
-                    <div><label className={labelCls}>Latitude</label><input className={inputCls} value={latitude} onChange={(e) => setLatitude(e.target.value)} /></div>
-                  )}
-                  {!international && (
-                    <div><label className={labelCls}>Longitude</label><input className={inputCls} value={longitude} onChange={(e) => setLongitude(e.target.value)} /></div>
-                  )}
+                  {!international && (<div><label className={labelCls}>Latitude</label><input className={inputCls} value={latitude} onChange={(e) => setLatitude(e.target.value)} /></div>)}
+                  {!international && (<div><label className={labelCls}>Longitude</label><input className={inputCls} value={longitude} onChange={(e) => setLongitude(e.target.value)} /></div>)}
                 </div>
               )}
 
@@ -707,100 +847,27 @@ function ProjectsPageInner() {
                 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
                 const imageList = imageUrlsText.split(',').map(u => u.trim()).filter(Boolean);
                 const externalCount = imageList.filter(u => !u.includes(supabaseHost)).length;
-
                 return (
                   <div className="space-y-6">
                     <section>
                       <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">Images</p>
-                      <textarea
-                        className={inputCls}
-                        rows={5}
-                        value={imageUrlsText}
-                        onChange={(e) => setImageUrlsText(e.target.value)}
-                        placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg, ..."
-                      />
+                      <textarea className={inputCls} rows={5} value={imageUrlsText} onChange={(e) => setImageUrlsText(e.target.value)} placeholder="https://example.com/image1.jpg, ..." />
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-[10px] text-[#555]">Paste image URLs separated by commas</p>
                         {imageList.length > 0 && externalCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={handleUploadToStorage}
-                            disabled={uploading}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a84c] text-black text-[11px] font-bold uppercase tracking-wider hover:bg-[#d4b86a] transition-colors disabled:opacity-50"
-                          >
-                            {uploading ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                Uploading {uploadProgress.done}/{uploadProgress.total}...
-                              </>
-                            ) : (
-                              <>
-                                <Icon name="CloudArrowUpIcon" size={13} />
-                                Upload {externalCount} to Storage
-                              </>
-                            )}
+                          <button type="button" onClick={handleUploadToStorage} disabled={uploading} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a84c] text-black text-[11px] font-bold uppercase tracking-wider hover:bg-[#d4b86a] transition-colors disabled:opacity-50">
+                            {uploading ? (<><div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />Uploading {uploadProgress.done}/{uploadProgress.total}...</>) : (<><Icon name="CloudArrowUpIcon" size={13} />Upload {externalCount} to Storage</>)}
                           </button>
                         )}
                       </div>
-
-                      {uploadProgress.done > 0 && !uploading && (
-                        <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-                          <Icon name="CheckCircleIcon" size={13} />
-                          {uploadProgress.done} image{uploadProgress.done > 1 ? 's' : ''} uploaded to Supabase Storage
-                        </div>
-                      )}
-
-                      {uploadProgress.errors.length > 0 && !uploading && (
-                        <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400 space-y-1">
-                          <p className="font-semibold flex items-center gap-1.5">
-                            <Icon name="ExclamationTriangleIcon" size={13} />
-                            Some uploads failed:
-                          </p>
-                          {uploadProgress.errors.map((err, i) => (
-                            <p key={i} className="text-[11px] pl-5">{err}</p>
-                          ))}
-                        </div>
-                      )}
-
-                      {imageList.length > 0 && (
-                        <div className="mt-3">
-                          <div className="flex gap-2 flex-wrap">
-                            {imageList.slice(0, 12).map((url, i) => {
-                              const isStored = url.includes(supabaseHost);
-                              return (
-                                <div key={i} className="relative group">
-                                  <div className={`relative w-20 h-14 border overflow-hidden ${isStored ? 'border-emerald-500/40' : 'border-[#333]'}`}>
-                                    <AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" />
-                                  </div>
-                                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold ${isStored ? 'bg-emerald-500 text-white' : 'bg-[#333] text-[#888]'}`}>
-                                    {isStored ? <Icon name="CheckIcon" size={9} /> : i + 1}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                            {imageList.length > 12 && (
-                              <div className="w-20 h-14 border border-[#333] flex items-center justify-center text-xs text-[#666]">
-                                +{imageList.length - 12}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      {uploadProgress.done > 0 && !uploading && (<div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400"><Icon name="CheckCircleIcon" size={13} />{uploadProgress.done} image{uploadProgress.done > 1 ? 's' : ''} uploaded</div>)}
+                      {uploadProgress.errors.length > 0 && !uploading && (<div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/20 text-xs text-red-400 space-y-1"><p className="font-semibold flex items-center gap-1.5"><Icon name="ExclamationTriangleIcon" size={13} />Some uploads failed:</p>{uploadProgress.errors.map((err, i) => <p key={i} className="text-[11px] pl-5">{err}</p>)}</div>)}
+                      {imageList.length > 0 && (<div className="mt-3 flex gap-2 flex-wrap">{imageList.slice(0, 12).map((url, i) => { const isStored = url.includes(supabaseHost); return (<div key={i} className="relative"><div className={`relative w-20 h-14 border overflow-hidden ${isStored ? 'border-emerald-500/40' : 'border-[#333]'}`}><AppImage src={url} alt={`Preview ${i + 1}`} fill className="object-cover" sizes="80px" /></div><span className={`absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold ${isStored ? 'bg-emerald-500 text-white' : 'bg-[#333] text-[#888]'}`}>{isStored ? <Icon name="CheckIcon" size={9} /> : i + 1}</span></div>); })}{imageList.length > 12 && <div className="w-20 h-14 border border-[#333] flex items-center justify-center text-xs text-[#666]">+{imageList.length - 12}</div>}</div>)}
                     </section>
-
                     <section className="pt-5 border-t border-[#2a3040]">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider">Floor Plans</p>
-                        <button type="button" onClick={() => setFloorPlans([...floorPlans, { id: Date.now(), url: '', label: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Floor Plan</button>
-                      </div>
-                      {floorPlans.map((fp) => (
-                        <div key={fp.id} className="grid grid-cols-3 gap-2 mb-2">
-                          <input className={`${inputCls} col-span-2`} value={fp.url} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, url: e.target.value } : x))} placeholder="Floor plan URL" />
-                          <input className={inputCls} value={fp.label} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, label: e.target.value } : x))} placeholder="Label" />
-                        </div>
-                      ))}
+                      <div className="flex items-center justify-between mb-2"><p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider">Floor Plans</p><button type="button" onClick={() => setFloorPlans([...floorPlans, { id: Date.now(), url: '', label: '' }])} className="text-xs text-primary hover:text-accent transition-colors">+ Add Floor Plan</button></div>
+                      {floorPlans.map((fp) => (<div key={fp.id} className="grid grid-cols-3 gap-2 mb-2"><input className={`${inputCls} col-span-2`} value={fp.url} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, url: e.target.value } : x))} placeholder="Floor plan URL" /><input className={inputCls} value={fp.label} onChange={(e) => setFloorPlans(floorPlans.map(x => x.id === fp.id ? { ...x, label: e.target.value } : x))} placeholder="Label" /></div>))}
                     </section>
-
                     <section className="pt-5 border-t border-[#2a3040] space-y-4">
                       <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-wider">Plans & Tours</p>
                       <div><label className={labelCls}>Master Plan URL</label><input className={inputCls} value={masterPlanUrl} onChange={(e) => setMasterPlanUrl(e.target.value)} /></div>
@@ -820,13 +887,45 @@ function ProjectsPageInner() {
               )}
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040] flex-wrap gap-3">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {saveError && <p className="text-xs text-red-400 max-w-xs text-right">{saveError}</p>}
-                <button onClick={handleSave} disabled={saving || !name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
-                  {saving ? 'Saving...' : editId ? 'Update Project' : 'Save Project'}
-                </button>
+                {isCeo ? (
+                  <button onClick={handleSave} disabled={saving || !name} className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50">
+                    {saving ? 'Saving...' : editId ? 'Update Project' : 'Save Project'}
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={handleSave} disabled={saving || sendingApproval || !name} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors disabled:opacity-50">
+                      {saving ? 'Saving...' : 'Save Draft'}
+                    </button>
+                    {(editingApprovalStatus.status === 'none' || editingApprovalStatus.status === 'rejected') && (
+                      <button onClick={handleSendForApproval} disabled={saving || sendingApproval || !name} className="flex items-center gap-2 px-5 py-2 bg-amber-500 text-black text-xs font-bold uppercase tracking-wider hover:bg-amber-400 transition-colors disabled:opacity-50">
+                        {sendingApproval ? (<><div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />Submitting...</>) : (<><Icon name="PaperAirplaneIcon" size={13} />Send for Approval</>)}
+                      </button>
+                    )}
+                    {editingApprovalStatus.status === 'approved' && !published && (
+                      <button
+                        onClick={async () => {
+                          if (editId) {
+                            await supabase.from('projects').update({ published: true }).eq('id', editId);
+                            setPublished(true);
+                            loadProjects();
+                          }
+                        }}
+                        className="flex items-center gap-2 px-5 py-2 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider hover:bg-emerald-400 transition-colors">
+                        <Icon name="GlobeAltIcon" size={13} />Publish
+                      </button>
+                    )}
+                    {editingApprovalStatus.status === 'pending' && (
+                      <span className="flex items-center gap-1.5 text-xs text-amber-400 px-3 py-2 bg-amber-400/10 border border-amber-400/30">
+                        <Icon name="ClockIcon" size={12} />Awaiting CEO Review
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
