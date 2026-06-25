@@ -524,7 +524,7 @@ export const DEFAULT_FEATURED_PROPERTIES: FeaturedPropertiesContent = {
   properties: [
   { id: 1, name: 'Obsidian Penthouse', location: 'Manhattan, New York', price: '$28,500,000', beds: 5, baths: 6, sqft: '8,200', tag: 'Penthouse', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_14bda165d-1772198562370.png", alt: 'Ultra-modern penthouse living room, floor-to-ceiling windows, Manhattan skyline at night' },
   { id: 2, name: 'Meridian Villa', location: 'Beverly Hills, CA', price: '$42,000,000', beds: 7, baths: 9, sqft: '14,500', tag: 'Villa', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_177c45a3d-1772197748060.png", alt: 'Contemporary Beverly Hills villa exterior at dusk, dramatic cantilever architecture' },
-  { id: 3, name: 'The Whitmore', location: 'Tribeca, New York', price: '$9,800,000', beds: 3, baths: 3, sqft: '3,600', tag: 'Townhouse', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d1ee6f9a-1772996729777.png", alt: 'Luxury Tribeca townhouse facade, dark brick and steel' },
+  { id: 3, name: 'The Whitmore', location: 'Tribeca, New York', price: '$9,800,000', beds: 3, baths: 3, sqft: '3,600', tag: 'Townhouse', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16b1063fe-1769250021551.png", alt: 'Luxury Tribeca townhouse facade, dark brick and steel' },
   { id: 4, name: 'Atlas Loft', location: 'Chicago, IL', price: '$6,200,000', beds: 2, baths: 2, sqft: '2,800', tag: 'Loft', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1463039ae-1772202574460.png", alt: 'Industrial luxury loft interior, exposed concrete ceiling, Chicago skyline' },
   { id: 5, name: 'Vantage Estate', location: 'Malibu, CA', price: '$65,000,000', beds: 9, baths: 11, sqft: '22,000', tag: 'Estate', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d77ade9b-1773162376685.png", alt: 'Sprawling Malibu oceanfront estate, dramatic cliffside setting' },
   { id: 6, name: 'The Crescent', location: 'Miami Beach, FL', price: '$18,500,000', beds: 4, baths: 5, sqft: '6,400', tag: 'Residence', href: '/residential', image: "https://images.unsplash.com/photo-1726808856053-88a76debd4e1", alt: 'Miami Beach luxury residence, white geometric facade' }]
@@ -539,8 +539,8 @@ export const DEFAULT_FEATURED_PROJECTS: FeaturedProjectsContent = {
   cta_text: 'View All Projects',
   cta_link: '/projects',
   projects: [
-  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d4a4c643-1772201743362.png", alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
-  { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', completion: 'Q2 2027', price: 'AED 900K+', units: 320, sold: 65, image: "https://images.unsplash.com/photo-1653965013889-e791d268b778", alt: 'Twin towers rising over Dubai Marina waterfront, golden hour reflections on glass', tag: 'New Launch' },
+  { id: 1, name: 'Skyline Residences', developer: 'Emaar', location: 'Downtown Dubai', type: 'Off-Plan', completion: 'Q4 2026', price: 'AED 1.2M+', units: 240, sold: 75, image: "https://img.rocket.new/generatedImages/rocket_gen_img_13a2e0b28-1772151212727.png", alt: 'Modern residential tower in Downtown Dubai at dusk, glass facade, dramatic lighting', tag: 'Selling Fast' },
+  { id: 2, name: 'Marina Bay Towers', developer: 'DAMAC', location: 'Dubai Marina', type: 'Off-Plan', completion: 'Q2 2027', price: 'AED 900K+', units: 320, sold: 65, image: "https://images.unsplash.com/photo-1735561650147-27d4d3e1002c", alt: 'Twin towers rising over Dubai Marina waterfront, golden hour reflections on glass', tag: 'New Launch' },
   { id: 3, name: 'Creek Horizon', developer: 'Meraas', location: 'Dubai Creek', type: 'Off-Plan', completion: 'Q3 2028', price: 'AED 1.8M+', units: 180, sold: 0, image: "https://img.rocket.new/generatedImages/rocket_gen_img_10e7e337d-1772064904447.png", alt: 'Luxury waterfront development along Dubai Creek, contemporary architecture', tag: 'Launching Soon' }]
 
 };
@@ -556,7 +556,7 @@ export const DEFAULT_WHY_LUXESTATE: WhyLuxEstateContent = {
   cta_link: '#contact',
   steps: [
   { id: '1', number: '01', title: 'Curated Discovery', description: 'We begin with a confidential consultation to understand your vision — lifestyle requirements, investment objectives, and the architectural character that resonates with you. No mass listings. Only properties that match your precise criteria.', badge: 'Bespoke Matching', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1c136d863-1766818210862.png", imageAlt: 'Luxury real estate consultation, dark mahogany desk, architectural blueprints' },
-  { id: '2', number: '02', title: 'Private Access', description: 'Seventy percent of our portfolio never reaches the open market. Through 18 years of relationships with developers, estate families, and institutional owners, we unlock properties before they are ever listed publicly.', badge: 'Off-Market Network', image: "https://img.rocket.new/generatedImages/rocket_gen_img_10466e713-1772203436672.png", imageAlt: 'Exclusive private estate driveway at dusk, iron gates, dramatic architectural lighting' },
+  { id: '2', number: '02', title: 'Private Access', description: 'Seventy percent of our portfolio never reaches the open market. Through 18 years of relationships with developers, estate families, and institutional owners, we unlock properties before they are ever listed publicly.', badge: 'Off-Market Network', image: "https://img.rocket.new/generatedImages/rocket_gen_img_19a27d91f-1778631641621.png", imageAlt: 'Exclusive private estate driveway at dusk, iron gates, dramatic architectural lighting' },
   { id: '3', number: '03', title: 'White-Glove Acquisition', description: 'From due diligence and negotiation to legal structuring and post-purchase management, we orchestrate every dimension of the transaction. Our clients close with certainty, not uncertainty.', badge: 'Full Service', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1faf1fcce-1772783285186.png", imageAlt: 'Luxury office interior, dark walls, gold accents, architectural details' }]
 
 };
@@ -574,7 +574,7 @@ export const DEFAULT_TESTIMONIALS: TestimonialsContent = {
   { name: 'Thomas Blackwell', location: 'Upper East Side, New York', quote: 'The caliber of off-market opportunities they surfaced was extraordinary.', role: 'Investment Banker', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1bfef8bd5-1763295388609.png', imageAlt: 'Professional man in tailored dark suit, confident expression, studio portrait' },
   { name: 'Priya Mehta', location: 'Beverly Hills, California', quote: "From first consultation to keys in hand — Cove Estates handled every detail with precision I've only ever seen in the most elite service firms.", role: 'Technology Entrepreneur', image: "https://img.rocket.new/generatedImages/rocket_gen_img_135fed5ac-1772395890088.png", imageAlt: 'Professional woman with elegant styling, warm smile, portrait', isCenter: true },
   { name: 'James Whitfield', location: 'Palm Beach, Florida', quote: 'Truly exceptional service.', role: 'Family Office Director', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1651cfc0b-1763295052209.png', imageAlt: 'Professional man in dark jacket, confident posture, studio portrait' },
-  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1636200063467-5408d3d08473", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
+  { name: 'Catherine Novak', location: 'Miami, Florida', quote: 'The network is unmatched.', role: 'Art Collector', image: "https://images.unsplash.com/photo-1727107045061-42e6158551c6", imageAlt: 'Stylish woman in dark outfit, professional portrait' }],
 
   awards: [
   { title: 'Forbes Global Properties', category: 'Top 10 Luxury Brokerages', year: '2025' },
@@ -677,7 +677,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
   { label: 'Burj Al Arab', distance: '5 min' }],
 
   similar: [
-  { id: 2, name: 'Sky Villa, Address Sky View', location: 'Downtown Dubai', price: 'AED 62,000,000', beds: 4, baths: 5, sqft: 7200, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_169be6201-1772109576210.png', alt: 'Sky villa with Downtown Dubai skyline and Burj Khalifa views, modern luxury interior', href: '/properties/2' },
+  { id: 2, name: 'Sky Villa, Address Sky View', location: 'Downtown Dubai', price: 'AED 62,000,000', beds: 4, baths: 5, sqft: 7200, tag: 'For Sale', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f8add369-1771884478759.png", alt: 'Sky villa with Downtown Dubai skyline and Burj Khalifa views, modern luxury interior', href: '/properties/2' },
   { id: 3, name: 'Signature Villa, Emirates Hills', location: 'Emirates Hills, Dubai', price: 'AED 120,000,000', beds: 7, baths: 8, sqft: 18000, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_10c4732d9-1772210224317.png', alt: 'Grand Emirates Hills villa with golf course views, private pool, and lush landscaping', href: '/properties/3' },
   { id: 4, name: 'Penthouse, DIFC Living', location: 'DIFC, Dubai', price: 'AED 45,000,000', beds: 3, baths: 4, sqft: 5800, tag: 'For Sale', image: 'https://img.rocket.new/generatedImages/rocket_gen_img_15dbdfb47-1773138915166.png', alt: 'DIFC penthouse with city skyline views, contemporary design, and rooftop terrace', href: '/properties/4' }]
 
@@ -778,7 +778,7 @@ export const DEFAULT_PROJECT_DETAIL: ProjectDetailContent = {
   similar: [
   { id: 2, name: 'Seraphine Residences', location: 'Beverly Hills, CA', priceFrom: 'From AED 14,000,000', completion: 'Q1 2027', units: 32, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1a5a737aa-1778059435159.png", alt: 'Seraphine Residences luxury tower rendering, flowing organic architecture, dramatic dusk lighting', href: '/projects/2' },
   { id: 3, name: 'The Monarch', location: 'Miami Beach, FL', priceFrom: 'From AED 4,200,000', completion: 'Q4 2026', units: 120, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1064062a9-1778059435164.png", alt: 'The Monarch luxury mixed-use development, geometric white facade, ocean backdrop, golden hour', href: '/projects/3' },
-  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1db286f0f-1778059435816.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
+  { id: 4, name: 'The Halcyon', location: 'Greenwich, CT', priceFrom: 'From AED 18,000,000', completion: 'Q1 2028', units: 22, image: "https://img.rocket.new/generatedImages/rocket_gen_img_1faf938f1-1778137755172.png", alt: 'The Halcyon estate development, classical modern architecture, Connecticut countryside, overcast sky', href: '/projects/4' }]
 
 };
 
@@ -789,7 +789,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Where Architecture Becomes Legacy',
   hero_subheadline: 'Ultra-premium properties for discerning buyers',
   hero_description: 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.',
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f44c47c7-1767955717672.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f930205d-1764676806048.png",
   hero_eyebrow: 'Curated Luxury Properties',
   cta_primary_text: 'Explore Properties',
   cta_primary_link: '/residential',
@@ -843,7 +843,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Off-Plan & New Developments',
   hero_subheadline: "Exclusive access to Dubai's most anticipated new projects",
   hero_description: "Invest in tomorrow's landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai's leading developers.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1c67149c5-1780295407942.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1daea8c2c-1782366223260.png",
   cta_primary_text: 'View Projects',
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
@@ -873,7 +873,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Market Insights & News',
   hero_subheadline: "Expert analysis on Dubai's luxury real estate market",
   hero_description: "Stay informed with the latest market trends, investment insights, and property news from Cove Estates's expert team.",
-  hero_image: "https://images.unsplash.com/photo-1728584747000-a7e5924242cd",
+  hero_image: "https://images.unsplash.com/photo-1583743145829-6186e8c43589",
   cta_primary_text: 'Read Latest',
   cta_primary_link: '/blog#latest',
   cta_secondary_text: 'Subscribe',
@@ -902,7 +902,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'World-Class Properties, Every Continent',
   hero_subheadline: 'Global Portfolio',
   hero_description: "Curated international developments from the world's most sought-after cities — exclusively sourced for UAE-based investors seeking global diversification.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d8677203-1780295407682.png",
+  hero_image: "https://images.unsplash.com/photo-1573151644820-a590e2737744",
   cta_primary_text: 'Explore Global',
   cta_primary_link: '/international#gallery',
   cta_secondary_text: 'Register Interest',
@@ -1003,12 +1003,12 @@ function parseCMSData(data: CMSData) {
 export function CMSProvider({
   children,
   initialCmsData = null,
-  initialUpdatedAt = null,
-}: {
-  children: React.ReactNode;
-  initialCmsData?: CMSData | null;
-  initialUpdatedAt?: string | null;
-}) {
+  initialUpdatedAt = null
+
+
+
+
+}: {children: React.ReactNode;initialCmsData?: CMSData | null;initialUpdatedAt?: string | null;}) {
   const hasServerBoot = !!(initialCmsData && Object.keys(initialCmsData).length > 0);
   const boot = hasServerBoot ? parseCMSData(initialCmsData!) : null;
 
@@ -1047,7 +1047,7 @@ export function CMSProvider({
     then(async ({ data, error }) => {
       if (cancelled) return;
       if (!error && data?.data && Object.keys(data.data).length > 0) {
-        const nextUpdatedAt = (data as { updated_at?: string })?.updated_at ?? null;
+        const nextUpdatedAt = (data as {updated_at?: string;})?.updated_at ?? null;
         if (serverBootRef.current && nextUpdatedAt && nextUpdatedAt === serverUpdatedAtRef.current) {
           setLoaded(true);
           return;
@@ -1140,9 +1140,9 @@ export function CMSProvider({
 
 
 
+
         // ignore transient network errors
-      }}, 4000);return () => clearInterval(interval);
-  }, []);
+      }}, 4000);return () => clearInterval(interval);}, []);
 
   const getPage = useCallback(
     (key: PageKey): PageConfig => pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0],

@@ -313,8 +313,7 @@ export default function PropertyDetailPage() {
 
   const imageList: string[] = Array.isArray(property.image_urls)
     ? property.image_urls
-    : typeof property.image_urls === 'string'
-      ? property.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+    : typeof property.image_urls === 'string' ? property.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
       : [];
 
   const amenityList: string[] = property.amenities
