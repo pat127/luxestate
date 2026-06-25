@@ -180,6 +180,72 @@ export default function LeadsPage() {
     } else {
       await supabase.from('leads').insert(payload);
     }
+
+    // Auto-sync to contacts: every lead must also exist as a contact
+    const contactPayload = {
+      name: form.name,
+      email: form.email || null,
+      phone: form.phone || null,
+      source: form.source || 'Website',
+      nationality: form.nationality || null,
+      assigned_agent: form.assignedAgent || null,
+      budget: form.budget || null,
+      notes: notesWithExtras || null,
+      type: 'Buyer',
+      status: 'Active',
+      last_contact: new Date().toISOString().split('T')[0],
+    };
+
+    if (form.email) {
+      // Check if a contact with this email already exists
+      const { data: existing } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('email', form.email)
+        .maybeSingle();
+
+      if (existing) {
+        // Update the existing contact to keep it in sync
+        await supabase.from('contacts').update({
+          name: contactPayload.name,
+          phone: contactPayload.phone,
+          source: contactPayload.source,
+          nationality: contactPayload.nationality,
+          assigned_agent: contactPayload.assigned_agent,
+          budget: contactPayload.budget,
+          notes: contactPayload.notes,
+          last_contact: contactPayload.last_contact,
+        }).eq('id', existing.id);
+      } else {
+        // Insert new contact
+        await supabase.from('contacts').insert(contactPayload);
+      }
+    } else {
+      // No email — match by name + phone if available
+      let existingContact = null;
+      if (form.phone) {
+        const { data } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('name', form.name)
+          .eq('phone', form.phone)
+          .maybeSingle();
+        existingContact = data;
+      }
+      if (existingContact) {
+        await supabase.from('contacts').update({
+          source: contactPayload.source,
+          nationality: contactPayload.nationality,
+          assigned_agent: contactPayload.assigned_agent,
+          budget: contactPayload.budget,
+          notes: contactPayload.notes,
+          last_contact: contactPayload.last_contact,
+        }).eq('id', existingContact.id);
+      } else {
+        await supabase.from('contacts').insert(contactPayload);
+      }
+    }
+
     setSaving(false);
     setShowModal(false);
     loadLeads();

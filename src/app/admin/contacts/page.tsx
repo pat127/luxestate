@@ -145,10 +145,23 @@ export default function ContactsPage() {
     loadContacts();
   };
 
-  const handleConvertToLead = () => {
+  const handleConvertToLead = async () => {
+    const selectedContacts = contacts.filter(c => selectedIds.has(c.id));
+    const leadsToInsert = selectedContacts.map(c => ({
+      name: c.name,
+      email: c.email || null,
+      phone: c.phone || null,
+      source: c.source || 'Website',
+      status: 'New',
+      nationality: c.nationality || null,
+      assigned_agent: c.assignedAgent || null,
+      notes: c.notes || null,
+    }));
+    if (leadsToInsert.length > 0) {
+      await supabase.from('leads').insert(leadsToInsert);
+    }
     setConvertConfirm(false);
     clearSelection();
-    alert(`${selectedIds.size} contact(s) converted to leads successfully.`);
   };
 
   const handleBulkDelete = async () => {
