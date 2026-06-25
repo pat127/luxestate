@@ -123,9 +123,9 @@ export default function HeroSection() {
           alt={heroHeadline || 'Luxury real estate hero'}
           fill
           priority
-          quality={75}
+          quality={65}
           className="object-cover"
-          sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, (max-width: 1280px) 1280px, 100vw"
+          sizes="(max-width: 480px) 480px, (max-width: 768px) 828px, (max-width: 1280px) 1080px, 1920px"
         />
         <div className="absolute inset-0 hero-overlay" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent" />

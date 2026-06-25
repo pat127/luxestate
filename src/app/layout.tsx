@@ -18,6 +18,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ['400', '800'],
   variable: '--font-plus-jakarta-sans',
   display: 'swap',
+  preload: true,
 });
 
 export const viewport: Viewport = {
@@ -185,21 +186,10 @@ function heroPreloadSrcSet(heroUrl?: string): string | null {
   const encoded = encodeURIComponent(heroUrl);
   // Provide srcset covering mobile breakpoints so the browser picks the right size
   return [
-    `/_next/image?url=${encoded}&w=480&q=75 480w`,
-    `/_next/image?url=${encoded}&w=828&q=75 828w`,
+    `/_next/image?url=${encoded}&w=480&q=60 480w`,
+    `/_next/image?url=${encoded}&w=828&q=70 828w`,
     `/_next/image?url=${encoded}&w=1080&q=75 1080w`,
   ].join(', ');
-}
-
-/** Emit a raw <link rel="preload"> with lowercase HTML attributes that React
- *  would otherwise strip (imagesrcset, imagesizes, fetchpriority).
- *  Using dangerouslySetInnerHTML on a <meta> placeholder is not possible for
- *  <link>, so we inject via a tiny inline <script> that runs synchronously
- *  in <head> — this is the only reliable way to get these attrs into the DOM
- *  before the browser's preload scanner finishes. */
-function HeroPreloadScript({ href, srcSet }: { href: string; srcSet: string }) {
-  const script = `(function(){var l=document.createElement('link');l.rel='preload';l.as='image';l.href=${JSON.stringify(href)};l.setAttribute('imagesrcset',${JSON.stringify(srcSet)});l.setAttribute('imagesizes','100vw');l.setAttribute('fetchpriority','high');document.head.appendChild(l);})();`;
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -211,14 +201,28 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Critical preconnects first — reduces DNS+TLS latency for LCP resources */}
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
-        {/* Hero image preload is handled via HeroPreloadScript below — inline script
-            is the only reliable way to emit imagesrcset/imagesizes/fetchpriority
-            since React strips unknown camelCase props from <link> elements. */}
+        {/* Native <link rel="preload"> for hero image — no JS execution overhead.
+            React 19 supports imageSrcSet / imageSizes props on <link> elements,
+            emitting the correct lowercase HTML attributes without an inline script. */}
+        {heroPreload && (
+          // @ts-expect-error — React 19 supports imageSrcSet/imageSizes/fetchPriority on <link>
+          <link
+            rel="preload"
+            as="image"
+            href={heroPreload}
+            // eslint-disable-next-line react/no-unknown-property
+            imageSrcSet={heroSrcSet || undefined}
+            // eslint-disable-next-line react/no-unknown-property
+            imageSizes="100vw"
+            fetchPriority="high"
+          />
+        )}
         <meta name="geo.region" content="AE-DU" />
         <meta name="geo.placename" content="Dubai, United Arab Emirates" />
         <meta name="geo.position" content="25.2048;55.2708" />
@@ -235,7 +239,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-        {heroPreload && <HeroPreloadScript href={heroPreload} srcSet={heroSrcSet || ''} />}      
 
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.19" />
         <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
