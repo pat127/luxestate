@@ -88,28 +88,28 @@ export default function MortgageCalculator({ content }: Props) {
           <div className="bg-card border border-border p-8 md:p-10 space-y-10">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Home Price</label>
+                <label htmlFor="home-price-range" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Home Price</label>
                 <span className="text-primary font-bold text-lg">{fmt(homePrice)}</span>
               </div>
-              <input type="range" min={500000} max={100000000} step={500000} value={homePrice} onChange={(e) => setHomePrice(Number(e.target.value))} className="w-full cursor-pointer" />
+              <input id="home-price-range" type="range" min={500000} max={100000000} step={500000} value={homePrice} onChange={(e) => setHomePrice(Number(e.target.value))} className="w-full cursor-pointer" />
               <div className="flex justify-between text-xs text-muted-foreground"><span>$500K</span><span>$100M</span></div>
             </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Down Payment</label>
+                <label htmlFor="down-payment-range" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Down Payment</label>
                 <span className="text-primary font-bold text-lg">{downPayment}% · {fmt(homePrice * downPayment / 100)}</span>
               </div>
-              <input type="range" min={5} max={80} step={1} value={downPayment} onChange={(e) => setDownPayment(Number(e.target.value))} className="w-full cursor-pointer" />
+              <input id="down-payment-range" type="range" min={5} max={80} step={1} value={downPayment} onChange={(e) => setDownPayment(Number(e.target.value))} className="w-full cursor-pointer" />
               <div className="flex justify-between text-xs text-muted-foreground"><span>5%</span><span>80%</span></div>
             </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Interest Rate</label>
+                <label htmlFor="interest-rate-range" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Interest Rate</label>
                 <span className="text-primary font-bold text-lg">{interestRate.toFixed(1)}%</span>
               </div>
-              <input type="range" min={2} max={12} step={0.1} value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} className="w-full cursor-pointer" />
+              <input id="interest-rate-range" type="range" min={2} max={12} step={0.1} value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} className="w-full cursor-pointer" />
               <div className="flex justify-between text-xs text-muted-foreground"><span>2%</span><span>12%</span></div>
             </div>
 
