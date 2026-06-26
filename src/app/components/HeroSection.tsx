@@ -123,7 +123,7 @@ export default function HeroSection() {
           alt={heroHeadline || 'Luxury real estate hero'}
           fill
           priority
-          quality={65}
+          quality={55}
           className="object-cover"
           sizes="(max-width: 480px) 480px, (max-width: 768px) 828px, (max-width: 1280px) 1080px, 1920px"
         />

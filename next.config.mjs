@@ -29,7 +29,6 @@ const nextConfig = {
     // Mobile-first device sizes: prioritise smaller breakpoints for faster LCP on mobile
     deviceSizes: [480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Lower default quality reduces transfer size on mobile without visible degradation
     dangerouslyAllowSVG: false,
   },
 
