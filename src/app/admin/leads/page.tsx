@@ -19,6 +19,7 @@ interface Lead {
   nationality?: string;
   notes?: string;
   follow_up_date?: string;
+  project?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -38,6 +39,7 @@ const sourceColors: Record<string, string> = {
   'Walk-in': 'text-orange-400',
   'Property Finder': 'text-red-400',
   Bayut: 'text-orange-400',
+  'WhatsApp Outsourced': 'text-green-400',
 };
 
 interface LeadForm {
@@ -48,12 +50,14 @@ interface LeadForm {
   companyName: string;
   referralName: string;
   referralFee: string;
+  project: string;
 }
 
 const emptyForm: LeadForm = {
   name: '', email: '', phone: '', whatsapp: '', source: 'Website', status: 'New',
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
   buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
+  project: '',
 };
 
 export default function LeadsPage() {
@@ -148,6 +152,7 @@ export default function LeadsPage() {
       nationality: lead.nationality || '', assignedAgent: lead.assigned_agent || '',
       notes: lead.notes || '', followUpDate: lead.follow_up_date || '',
       buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
+      project: lead.project || '',
     });
     setShowModal(true);
   };
@@ -174,6 +179,7 @@ export default function LeadsPage() {
       interest: form.interest, nationality: form.nationality,
       assigned_agent: form.assignedAgent, notes: notesWithExtras,
       follow_up_date: form.followUpDate || null,
+      project: form.project || null,
     };
     if (editLead) {
       await supabase.from('leads').update(payload).eq('id', editLead.id);
@@ -425,7 +431,7 @@ export default function LeadsPage() {
                 <div><label className={labelCls}>Phone</label><input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                 <div><label className={labelCls}>Source</label>
                   <select className={inputCls} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
-                    {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'Other'].map(s => <option key={s}>{s}</option>)}
+                    {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div><label className={labelCls}>Status</label>
@@ -461,6 +467,15 @@ export default function LeadsPage() {
                 <div><label className={labelCls}>Budget</label><input className={inputCls} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. AED 2M–5M" /></div>
                 <div><label className={labelCls}>Nationality</label><input className={inputCls} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></div>
                 <div className="col-span-2"><label className={labelCls}>Interest / Property</label><input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" /></div>
+                <div className="col-span-2">
+                  <label className={labelCls}>Project Enquired</label>
+                  <input
+                    className={inputCls}
+                    value={form.project}
+                    onChange={(e) => setForm({ ...form, project: e.target.value })}
+                    placeholder="e.g. Emaar Beachfront, Creek Harbour"
+                  />
+                </div>
                 <div>
                   <label className={labelCls}>Assigned To</label>
                   <select
