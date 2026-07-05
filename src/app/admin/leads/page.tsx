@@ -67,6 +67,8 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterSource, setFilterSource] = useState('All');
+  const [filterProject, setFilterProject] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
@@ -102,12 +104,16 @@ export default function LeadsPage() {
   }, [loadLeads, loadAgentNames]);
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
+  const sources = ['All', 'Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'];
+  const projectOptions = ['All', ...Array.from(new Set(leads.map(l => l.project).filter(Boolean) as string[])).sort()];
 
   const filtered = leads.filter((l) => {
     const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) ||
       (l.email || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'All' || l.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchSource = filterSource === 'All' || l.source === filterSource;
+    const matchProject = filterProject === 'All' || l.project === filterProject;
+    return matchSearch && matchStatus && matchSource && matchProject;
   });
 
   const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id));
@@ -297,6 +303,26 @@ export default function LeadsPage() {
           <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input type="text" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
         </div>
+        <select
+          value={filterSource}
+          onChange={(e) => setFilterSource(e.target.value)}
+          className="px-3 py-2 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50 min-w-[160px]"
+        >
+          {sources.map(s => (
+            <option key={s} value={s}>{s === 'All' ? 'All Sources' : s}</option>
+          ))}
+        </select>
+        {projectOptions.length > 1 && (
+          <select
+            value={filterProject}
+            onChange={(e) => setFilterProject(e.target.value)}
+            className="px-3 py-2 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50 min-w-[160px]"
+          >
+            {projectOptions.map(p => (
+              <option key={p} value={p}>{p === 'All' ? 'All Projects' : p}</option>
+            ))}
+          </select>
+        )}
         <div className="flex gap-1 flex-wrap">
           {statuses.map((s) => (
             <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>{s}</button>
@@ -349,6 +375,7 @@ export default function LeadsPage() {
                       <p className="text-sm font-bold text-foreground">{lead.name}</p>
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>{lead.status}</span>
                       {lead.source && <span className={`text-[10px] font-bold uppercase tracking-wider ${sourceColors[lead.source] || 'text-muted-foreground'}`}>{lead.source}</span>}
+                      {lead.project && <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5">{lead.project}</span>}
                     </div>
                     <div className="flex items-center gap-4 mt-1 flex-wrap">
                       {lead.email && <p className="text-xs text-muted-foreground">{lead.email}</p>}
