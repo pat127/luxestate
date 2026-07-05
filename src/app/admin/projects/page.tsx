@@ -582,7 +582,7 @@ function ProjectsPageInner() {
                     <div className="grid grid-cols-3 gap-3 mb-4">
                       <div><p className="text-xs text-muted-foreground">Developer</p><p className="text-sm font-semibold text-foreground mt-0.5 truncate">{project.developer || '—'}</p></div>
                       <div><p className="text-xs text-muted-foreground">Handover</p><p className="text-sm font-semibold text-foreground mt-0.5">{project.handoverDate || '—'}</p></div>
-                      <div><p className="text-xs text-muted-foreground">Starting Price</p><p className="text-sm font-semibold text-primary mt-0.5 truncate">{project.startingPrice ? `AED ${project.startingPrice}` : '—'}</p></div>
+                      <div><p className="text-xs text-muted-foreground">Starting Price</p><p className="text-sm font-semibold text-primary mt-0.5 truncate">{project.startingPrice ? `AED ${Number(project.startingPrice).toLocaleString()}` : '—'}</p></div>
                     </div>
 
                     {/* Rejection comments */}

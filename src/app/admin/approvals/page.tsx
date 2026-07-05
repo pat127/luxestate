@@ -92,7 +92,7 @@ export default function ApprovalsPage() {
     setActionError(null);
     const result = await approveRequest(item.id, currentUser.id, currentUser.name);
     if (result.success) {
-      setSuccessMsg(`"${item.itemTitle}" has been approved. The lister can now publish it.`);
+      setSuccessMsg(`"${item.itemTitle}" has been approved and is now live on the website.`);
       setTimeout(() => setSuccessMsg(null), 4000);
       loadApprovals();
     } else {

@@ -80,7 +80,7 @@ export default function ProjectsGallery() {
             location: p.location_area || '',
             completion: p.handover_date || '',
             units: p.total_units || 0,
-            priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}+` : '',
+            priceFrom: p.starting_price ? `AED ${Number(p.starting_price).toLocaleString()}` : '',
             status: p.status || 'Active',
             statusColor: getStatusColor(p.status),
             sold: p.sold_units || 0,
@@ -195,7 +195,12 @@ export default function ProjectsGallery() {
                       <Icon name="MapPinIcon" size={11} className="text-primary" />{project.location}
                     </p>
                   </div>
-                  {project.priceFrom && <span className="text-primary font-bold text-sm text-right">{project.priceFrom}</span>}
+                  {project.priceFrom && (
+                    <div className="text-right">
+                      <span className="text-primary font-bold text-sm">{project.priceFrom}</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">onwards</p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
                   <span className="text-primary font-bold text-base">{project.developer}</span>

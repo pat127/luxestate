@@ -154,13 +154,17 @@ export function useApprovalWorkflow() {
 
     if (error) return { success: false, error: error.message };
 
+    // Auto-publish the item upon approval
+    const table = request.item_type === 'project' ? 'projects' : 'properties';
+    await supabase.from(table).update({ published: true }).eq('id', request.item_id);
+
     // Notify the submitter
     await supabase.from('approval_notifications').insert({
       recipient_id: request.submitted_by,
       approval_request_id: requestId,
       type: 'approved',
-      title: `${request.item_type === 'project' ? 'Project' : 'Property'} Approved`,
-      message: `"${request.item_title}" has been approved. You can now publish it.`,
+      title: `${request.item_type === 'project' ? 'Project' : 'Property'} Approved & Published`,
+      message: `"${request.item_title}" has been approved and is now live on the website.`,
     });
 
     // Send email to submitter
