@@ -84,6 +84,7 @@ export default function LeadsPage() {
   const [bulkAgentOpen, setBulkAgentOpen] = useState(false);
   const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false);
   const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [bulkSourceOpen, setBulkSourceOpen] = useState(false);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -169,6 +170,14 @@ export default function LeadsPage() {
     await supabase.from('leads').update({ campaign: campaignName }).in('id', Array.from(selectedIds));
     setSelectedIds(new Set());
     setBulkCampaignOpen(false);
+    loadLeads();
+  };
+
+  const handleBulkUpdateSource = async (newSource: string) => {
+    if (!newSource) return;
+    await supabase.from('leads').update({ source: newSource }).in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkSourceOpen(false);
     loadLeads();
   };
 
@@ -447,7 +456,7 @@ export default function LeadsPage() {
             {/* Assign Agent dropdown */}
             <div className="relative">
               <button
-                onClick={() => { setBulkAgentOpen(!bulkAgentOpen); setBulkCampaignOpen(false); setBulkStatusOpen(false); }}
+                onClick={() => { setBulkAgentOpen(!bulkAgentOpen); setBulkCampaignOpen(false); setBulkStatusOpen(false); setBulkSourceOpen(false); }}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Icon name="UserCircleIcon" size={12} />
@@ -474,7 +483,7 @@ export default function LeadsPage() {
             {/* Update Status dropdown */}
             <div className="relative">
               <button
-                onClick={() => { setBulkStatusOpen(!bulkStatusOpen); setBulkAgentOpen(false); setBulkCampaignOpen(false); }}
+                onClick={() => { setBulkStatusOpen(!bulkStatusOpen); setBulkAgentOpen(false); setBulkCampaignOpen(false); setBulkSourceOpen(false); }}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Icon name="ArrowPathIcon" size={12} />
@@ -499,7 +508,7 @@ export default function LeadsPage() {
             {/* Add Campaign Tag dropdown */}
             <div className="relative">
               <button
-                onClick={() => { setBulkCampaignOpen(!bulkCampaignOpen); setBulkAgentOpen(false); setBulkStatusOpen(false); }}
+                onClick={() => { setBulkCampaignOpen(!bulkCampaignOpen); setBulkAgentOpen(false); setBulkStatusOpen(false); setBulkSourceOpen(false); }}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Icon name="TagIcon" size={12} />
@@ -523,13 +532,38 @@ export default function LeadsPage() {
               )}
             </div>
 
+            {/* Update Source dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setBulkSourceOpen(!bulkSourceOpen); setBulkAgentOpen(false); setBulkStatusOpen(false); setBulkCampaignOpen(false); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="GlobeAltIcon" size={12} />
+                Update Source
+                <Icon name="ChevronDownIcon" size={10} />
+              </button>
+              {bulkSourceOpen && (
+                <div className="absolute top-full left-0 mt-1 z-40 bg-card border border-border shadow-lg min-w-[160px]">
+                  {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp', 'Other'].map(src => (
+                    <button
+                      key={src}
+                      onClick={() => handleBulkUpdateSource(src)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors"
+                    >
+                      {src}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Delete */}
             <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors">
               <Icon name="TrashIcon" size={11} />Delete
             </button>
 
             <button
-              onClick={() => { setSelectedIds(new Set()); setBulkAgentOpen(false); setBulkCampaignOpen(false); setBulkStatusOpen(false); }}
+              onClick={() => { setSelectedIds(new Set()); setBulkAgentOpen(false); setBulkCampaignOpen(false); setBulkStatusOpen(false); setBulkSourceOpen(false); }}
               className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
             >
               <Icon name="XMarkIcon" size={14} />
