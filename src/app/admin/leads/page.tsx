@@ -40,7 +40,7 @@ const sourceColors: Record<string, string> = {
   'Walk-in': 'text-orange-400',
   'Property Finder': 'text-red-400',
   Bayut: 'text-orange-400',
-  'WhatsApp Outsourced': 'text-green-400',
+  WhatsApp: 'text-green-400',
 };
 
 interface LeadForm {
@@ -80,6 +80,7 @@ export default function LeadsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [campaignNames, setCampaignNames] = useState<string[]>([]);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -88,6 +89,14 @@ export default function LeadsPage() {
       .eq('agent_status', 'Active')
       .order('name', { ascending: true });
     if (data) setAgentNames(data.map((a: any) => a.name as string));
+  }, []);
+
+  const loadCampaigns = useCallback(async () => {
+    const { data } = await supabase
+      .from('campaigns')
+      .select('name')
+      .order('name', { ascending: true });
+    if (data) setCampaignNames(data.map((c: any) => c.name as string));
   }, []);
 
   const loadLeads = useCallback(async () => {
@@ -104,12 +113,16 @@ export default function LeadsPage() {
   useEffect(() => {
     loadLeads();
     loadAgentNames();
-  }, [loadLeads, loadAgentNames]);
+    loadCampaigns();
+  }, [loadLeads, loadAgentNames, loadCampaigns]);
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
-  const sources = ['All', 'Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'];
+  const sources = ['All', 'Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp', 'Other'];
   const projectOptions = ['All', ...Array.from(new Set(leads.map(l => l.project).filter(Boolean) as string[])).sort()];
-  const campaignOptions = ['All', ...Array.from(new Set(leads.map(l => l.campaign).filter(Boolean) as string[])).sort()];
+  const campaignOptions = ['All', ...Array.from(new Set([
+    ...campaignNames,
+    ...leads.map(l => l.campaign).filter(Boolean) as string[],
+  ])).sort()];
 
   const filtered = leads.filter((l) => {
     const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -453,7 +466,6 @@ export default function LeadsPage() {
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Lead</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Phone / Email</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Source</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Project</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Campaign</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Edit</th>
@@ -508,15 +520,6 @@ export default function LeadsPage() {
                             {lead.source}
                           </span>
                         ) : <span className="text-muted-foreground">—</span>}
-                      </td>
-
-                      {/* Project */}
-                      <td className="px-4 py-3">
-                        {lead.project ? (
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 whitespace-nowrap">
-                            {lead.project}
-                          </span>
-                        ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
 
                       {/* Campaign */}
@@ -712,7 +715,7 @@ export default function LeadsPage() {
                 <div>
                   <label className={labelCls}>Source</label>
                   <select className={inputCls} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
-                    {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'].map(s => <option key={s}>{s}</option>)}
+                    {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp', 'Other'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
