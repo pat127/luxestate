@@ -20,6 +20,7 @@ interface Lead {
   notes?: string;
   follow_up_date?: string;
   project?: string;
+  campaign?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -51,13 +52,14 @@ interface LeadForm {
   referralName: string;
   referralFee: string;
   project: string;
+  campaign: string;
 }
 
 const emptyForm: LeadForm = {
   name: '', email: '', phone: '', whatsapp: '', source: 'Website', status: 'New',
   budget: '', interest: '', nationality: '', assignedAgent: '', notes: '', followUpDate: '',
   buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
-  project: '',
+  project: '', campaign: '',
 };
 
 export default function LeadsPage() {
@@ -69,6 +71,7 @@ export default function LeadsPage() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterSource, setFilterSource] = useState('All');
   const [filterProject, setFilterProject] = useState('All');
+  const [filterCampaign, setFilterCampaign] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
@@ -76,6 +79,7 @@ export default function LeadsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [agentNames, setAgentNames] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -89,7 +93,6 @@ export default function LeadsPage() {
   const loadLeads = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
-    // Agents see only their own leads
     if (isAgentScoped) {
       query = query.eq('assigned_agent', currentUser.name);
     }
@@ -106,6 +109,7 @@ export default function LeadsPage() {
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
   const sources = ['All', 'Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'];
   const projectOptions = ['All', ...Array.from(new Set(leads.map(l => l.project).filter(Boolean) as string[])).sort()];
+  const campaignOptions = ['All', ...Array.from(new Set(leads.map(l => l.campaign).filter(Boolean) as string[])).sort()];
 
   const filtered = leads.filter((l) => {
     const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -113,7 +117,8 @@ export default function LeadsPage() {
     const matchStatus = filterStatus === 'All' || l.status === filterStatus;
     const matchSource = filterSource === 'All' || l.source === filterSource;
     const matchProject = filterProject === 'All' || l.project === filterProject;
-    return matchSearch && matchStatus && matchSource && matchProject;
+    const matchCampaign = filterCampaign === 'All' || l.campaign === filterCampaign;
+    return matchSearch && matchStatus && matchSource && matchProject && matchCampaign;
   });
 
   const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id));
@@ -159,6 +164,7 @@ export default function LeadsPage() {
       notes: lead.notes || '', followUpDate: lead.follow_up_date || '',
       buyerType: 'individual', companyName: '', referralName: '', referralFee: '',
       project: lead.project || '',
+      campaign: lead.campaign || '',
     });
     setShowModal(true);
   };
@@ -186,6 +192,7 @@ export default function LeadsPage() {
       assigned_agent: form.assignedAgent, notes: notesWithExtras,
       follow_up_date: form.followUpDate || null,
       project: form.project || null,
+      campaign: form.campaign || null,
     };
     if (editLead) {
       await supabase.from('leads').update(payload).eq('id', editLead.id);
@@ -193,7 +200,6 @@ export default function LeadsPage() {
       await supabase.from('leads').insert(payload);
     }
 
-    // Auto-sync to contacts: every lead must also exist as a contact
     const contactPayload = {
       name: form.name,
       email: form.email || null,
@@ -209,15 +215,12 @@ export default function LeadsPage() {
     };
 
     if (form.email) {
-      // Check if a contact with this email already exists
       const { data: existing } = await supabase
         .from('contacts')
         .select('id')
         .eq('email', form.email)
         .maybeSingle();
-
       if (existing) {
-        // Update the existing contact to keep it in sync
         await supabase.from('contacts').update({
           name: contactPayload.name,
           phone: contactPayload.phone,
@@ -229,11 +232,9 @@ export default function LeadsPage() {
           last_contact: contactPayload.last_contact,
         }).eq('id', existing.id);
       } else {
-        // Insert new contact
         await supabase.from('contacts').insert(contactPayload);
       }
     } else {
-      // No email — match by name + phone if available
       let existingContact = null;
       if (form.phone) {
         const { data } = await supabase
@@ -252,7 +253,7 @@ export default function LeadsPage() {
           budget: contactPayload.budget,
           notes: contactPayload.notes,
           last_contact: contactPayload.last_contact,
-        }).eq('id', existingContact.id);
+        }).eq('id', (existingContact as any).id);
       } else {
         await supabase.from('contacts').insert(contactPayload);
       }
@@ -266,154 +267,291 @@ export default function LeadsPage() {
   const inputCls = "w-full bg-[#1a1a1a] border border-[#333] text-sm text-white placeholder:text-[#555] px-3 py-2 focus:outline-none focus:border-[#c9a84c]/60";
   const labelCls = "block text-xs text-[#aaa] mb-1";
 
-  // Stats
   const newCount = leads.filter(l => l.status === 'New').length;
   const qualifiedCount = leads.filter(l => l.status === 'Qualified').length;
   const totalCount = leads.length;
 
+  const activeFilterCount = [
+    filterStatus !== 'All',
+    filterSource !== 'All',
+    filterProject !== 'All',
+    filterCampaign !== 'All',
+  ].filter(Boolean).length;
+
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-background">
+      {/* Mobile-style sticky header */}
+      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage enquiries and lead pipeline</p>
+          <h1 className="text-lg font-bold text-foreground leading-tight">Leads</h1>
+          <p className="text-[11px] text-muted-foreground">{totalCount} total · {newCount} new</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-          <Icon name="PlusIcon" size={14} />Add Lead
+        <button
+          onClick={openNew}
+          className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+        >
+          <Icon name="PlusIcon" size={13} />
+          <span className="hidden sm:inline">Add Lead</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          { label: 'Total Leads', value: totalCount, color: 'text-foreground' },
-          { label: 'New', value: newCount, color: 'text-blue-400' },
-          { label: 'Qualified', value: qualifiedCount, color: 'text-primary' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-card border border-border p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <div className="px-4 py-4 space-y-4">
+        {/* Stats row — horizontal scroll on mobile */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Total', value: totalCount, color: 'text-foreground' },
+            { label: 'New', value: newCount, color: 'text-blue-400' },
+            { label: 'Qualified', value: qualifiedCount, color: 'text-primary' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-card border border-border p-3 text-center">
+              <p className={`text-xl font-bold ${color}`}>{value}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Search + Filter toggle row */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            />
           </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="relative flex-1 max-w-sm">
-          <Icon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input type="text" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50" />
-        </div>
-        <select
-          value={filterSource}
-          onChange={(e) => setFilterSource(e.target.value)}
-          className="px-3 py-2 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50 min-w-[160px]"
-        >
-          {sources.map(s => (
-            <option key={s} value={s}>{s === 'All' ? 'All Sources' : s}</option>
-          ))}
-        </select>
-        {projectOptions.length > 1 && (
-          <select
-            value={filterProject}
-            onChange={(e) => setFilterProject(e.target.value)}
-            className="px-3 py-2 bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary/50 min-w-[160px]"
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`relative flex items-center gap-1.5 px-3 py-2.5 border text-xs font-semibold transition-colors ${showFilters || activeFilterCount > 0 ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-card border-border text-muted-foreground hover:text-foreground'}`}
           >
-            {projectOptions.map(p => (
-              <option key={p} value={p}>{p === 'All' ? 'All Projects' : p}</option>
-            ))}
-          </select>
-        )}
-        <div className="flex gap-1 flex-wrap">
-          {statuses.map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>{s}</button>
-          ))}
+            <Icon name="FunnelIcon" size={14} />
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
-      </div>
 
-      {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
-          <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
-          <div className="flex items-center gap-2 flex-wrap ml-2">
-            {['Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => (
-              <button key={s} onClick={() => handleBulkStatusChange(s)} className="px-3 py-1.5 bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{s}</button>
-            ))}
-            <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
-              <Icon name="TrashIcon" size={13} />Delete
+        {/* Expandable filter panel */}
+        {showFilters && (
+          <div className="bg-card border border-border p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Source</label>
+                <select
+                  value={filterSource}
+                  onChange={(e) => setFilterSource(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                >
+                  {sources.map(s => (
+                    <option key={s} value={s}>{s === 'All' ? 'All Sources' : s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Project</label>
+                <select
+                  value={filterProject}
+                  onChange={(e) => setFilterProject(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                >
+                  {projectOptions.map(p => (
+                    <option key={p} value={p}>{p === 'All' ? 'All Projects' : p}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Campaign</label>
+                <select
+                  value={filterCampaign}
+                  onChange={(e) => setFilterCampaign(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                >
+                  {campaignOptions.map(c => (
+                    <option key={c} value={c}>{c === 'All' ? 'All Campaigns' : c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={() => { setFilterSource('All'); setFilterProject('All'); setFilterCampaign('All'); setFilterStatus('All'); }}
+                    className="w-full px-2.5 py-2 border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Status pills */}
+            <div>
+              <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Status</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {statuses.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFilterStatus(s)}
+                    className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'bg-background border border-border text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 bg-primary/5 border border-primary/20 px-3 py-2.5">
+            <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
+            <div className="flex items-center gap-1.5 flex-wrap ml-1">
+              {['Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => (
+                <button key={s} onClick={() => handleBulkStatusChange(s)} className="px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors">{s}</button>
+              ))}
+              <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors">
+                <Icon name="TrashIcon" size={11} />Delete
+              </button>
+            </div>
+            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+              <Icon name="XMarkIcon" size={14} />
             </button>
           </div>
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"><Icon name="XMarkIcon" size={14} /></button>
-        </div>
-      )}
+        )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 border border-border">
-          <Icon name="UserGroupIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">No leads found.</p>
-          <button onClick={openNew} className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">Add First Lead</button>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
-            <span className="text-xs text-muted-foreground">Select all {filtered.length} leads</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-          <div className="space-y-2">
-            {filtered.map((lead) => (
-              <div key={lead.id} className={`bg-card border overflow-hidden hover:border-primary/30 transition-colors ${selectedIds.has(lead.id) ? 'border-primary/40' : 'border-border'}`}>
-                <div className="p-4 flex items-center gap-4">
-                  <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={() => toggleSelect(lead.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer flex-shrink-0" />
-                  <div className="w-10 h-10 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Icon name="UserIcon" size={18} className="text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className="text-sm font-bold text-foreground">{lead.name}</p>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>{lead.status}</span>
-                      {lead.source && <span className={`text-[10px] font-bold uppercase tracking-wider ${sourceColors[lead.source] || 'text-muted-foreground'}`}>{lead.source}</span>}
-                      {lead.project && <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5">{lead.project}</span>}
-                    </div>
-                    <div className="flex items-center gap-4 mt-1 flex-wrap">
-                      {lead.email && <p className="text-xs text-muted-foreground">{lead.email}</p>}
-                      {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
-                      {lead.interest && <p className="text-xs text-primary truncate max-w-xs">{lead.interest}</p>}
-                    </div>
-                    {lead.budget && <p className="text-xs text-muted-foreground mt-0.5">Budget: {lead.budget}</p>}
-                    {lead.assigned_agent && (
-                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                        <Icon name="UserCircleIcon" size={11} className="text-primary" />
-                        Agent: <span className="text-foreground font-medium">{lead.assigned_agent}</span>
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB') : '—'}</p>
-                    <div className="flex gap-2 mt-2">
-                      <button onClick={() => openEdit(lead)} className="px-3 py-1.5 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
-                      <button onClick={() => handleDelete(lead.id)} className="px-3 py-1.5 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={12} /></button>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 border border-border bg-card">
+            <Icon name="UserGroupIcon" size={36} className="text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm font-medium">No leads found</p>
+            <p className="text-muted-foreground text-xs mt-1 mb-4">Try adjusting your filters or add a new lead</p>
+            <button onClick={openNew} className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">Add First Lead</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 px-1">
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+              <span className="text-xs text-muted-foreground">{filtered.length} lead{filtered.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Lead cards — mobile-first card layout */}
+            <div className="space-y-2">
+              {filtered.map((lead) => (
+                <div
+                  key={lead.id}
+                  className={`bg-card border overflow-hidden transition-colors ${selectedIds.has(lead.id) ? 'border-primary/40' : 'border-border hover:border-primary/30'}`}
+                >
+                  {/* Card top row */}
+                  <div className="p-3 sm:p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(lead.id)}
+                        onChange={() => toggleSelect(lead.id)}
+                        className="w-4 h-4 accent-[#C5A47E] cursor-pointer flex-shrink-0 mt-0.5"
+                      />
+                      <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Icon name="UserIcon" size={16} className="text-primary" />
+                      </div>
+
+                      {/* Main content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Name + status row */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-foreground">{lead.name}</p>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>
+                            {lead.status}
+                          </span>
+                        </div>
+
+                        {/* Contact info */}
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                          {lead.email && <p className="text-xs text-muted-foreground truncate max-w-[180px]">{lead.email}</p>}
+                          {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                        </div>
+
+                        {/* Tags row: source, project, campaign */}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {lead.source && (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${sourceColors[lead.source] || 'text-muted-foreground'}`}>
+                              {lead.source}
+                            </span>
+                          )}
+                          {lead.project && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5">
+                              {lead.project}
+                            </span>
+                          )}
+                          {lead.campaign && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-400 bg-violet-400/10 px-2 py-0.5">
+                              {lead.campaign}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Interest + budget */}
+                        {lead.interest && <p className="text-xs text-primary truncate mt-1">{lead.interest}</p>}
+                        {lead.budget && <p className="text-xs text-muted-foreground mt-0.5">Budget: {lead.budget}</p>}
+                        {lead.assigned_agent && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Icon name="UserCircleIcon" size={11} className="text-primary" />
+                            <span className="text-foreground font-medium">{lead.assigned_agent}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Right side: date + actions */}
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB') : '—'}
+                        </p>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => openEdit(lead)}
+                            className="px-2.5 py-1.5 border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            className="px-2.5 py-1.5 border border-red-400/20 text-[11px] text-red-400 hover:bg-red-400/5 transition-colors"
+                          >
+                            <Icon name="TrashIcon" size={11} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg bg-[#0f1117] border border-[#2a3040] shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a3040]">
+          <div className="relative w-full sm:max-w-lg bg-[#0f1117] border border-[#2a3040] shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh] sm:mx-4">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a3040]">
               <h2 className="text-base font-bold text-white">{editLead ? 'Edit Lead' : 'Add New Lead'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white transition-colors"><Icon name="XMarkIcon" size={18} /></button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white transition-colors p-1">
+                <Icon name="XMarkIcon" size={18} />
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+
+            {/* Modal body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
 
                 {/* Buyer Type Toggle */}
@@ -437,7 +575,6 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                {/* Company Name — shown only when company is selected */}
                 {form.buyerType === 'company' && (
                   <div className="col-span-2">
                     <label className={labelCls}>Company Name *</label>
@@ -456,18 +593,19 @@ export default function LeadsPage() {
                 </div>
                 <div><label className={labelCls}>Email</label><input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div><label className={labelCls}>Phone</label><input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-                <div><label className={labelCls}>Source</label>
+                <div>
+                  <label className={labelCls}>Source</label>
                   <select className={inputCls} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
                     {['Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp Outsourced', 'Other'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <div><label className={labelCls}>Status</label>
+                <div>
+                  <label className={labelCls}>Status</label>
                   <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
 
-                {/* Referral fields — shown only when source is Referral */}
                 {form.source === 'Referral' && (
                   <>
                     <div>
@@ -493,16 +631,31 @@ export default function LeadsPage() {
 
                 <div><label className={labelCls}>Budget</label><input className={inputCls} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. AED 2M–5M" /></div>
                 <div><label className={labelCls}>Nationality</label><input className={inputCls} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></div>
-                <div className="col-span-2"><label className={labelCls}>Interest / Property</label><input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" /></div>
                 <div className="col-span-2">
+                  <label className={labelCls}>Interest / Property</label>
+                  <input className={inputCls} value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} placeholder="e.g. 2BR in Downtown Dubai" />
+                </div>
+
+                {/* Project + Campaign side by side */}
+                <div>
                   <label className={labelCls}>Project Enquired</label>
                   <input
                     className={inputCls}
                     value={form.project}
                     onChange={(e) => setForm({ ...form, project: e.target.value })}
-                    placeholder="e.g. Emaar Beachfront, Creek Harbour"
+                    placeholder="e.g. Emaar Beachfront"
                   />
                 </div>
+                <div>
+                  <label className={labelCls}>Campaign</label>
+                  <input
+                    className={inputCls}
+                    value={form.campaign}
+                    onChange={(e) => setForm({ ...form, campaign: e.target.value })}
+                    placeholder="e.g. Summer 2025"
+                  />
+                </div>
+
                 <div>
                   <label className={labelCls}>Assigned To</label>
                   <select
@@ -515,11 +668,19 @@ export default function LeadsPage() {
                     {agentNames.filter(n => n !== 'CEO Pawan').map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
-                <div><label className={labelCls}>Follow-up Date</label><input type="date" className={inputCls} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} /></div>
-                <div className="col-span-2"><label className={labelCls}>Notes</label><textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <div>
+                  <label className={labelCls}>Follow-up Date</label>
+                  <input type="date" className={inputCls} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelCls}>Notes</label>
+                  <textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                </div>
               </div>
             </div>
-            <div className="flex items-center justify-between px-6 py-4 border-t border-[#2a3040]">
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-between px-5 py-4 border-t border-[#2a3040]">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors">Cancel</button>
               <button
                 onClick={handleSave}
