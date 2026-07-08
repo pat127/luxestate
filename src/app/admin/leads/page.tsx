@@ -442,8 +442,124 @@ export default function LeadsPage() {
               <span className="text-xs text-muted-foreground">{filtered.length} lead{filtered.length !== 1 ? 's' : ''}</span>
             </div>
 
-            {/* Lead cards — mobile-first card layout */}
-            <div className="space-y-2">
+            {/* ── DESKTOP TABLE (lg+) ── */}
+            <div className="hidden lg:block border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-card border-b border-border">
+                    <th className="w-8 px-3 py-3">
+                      <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Lead</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Phone / Email</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Source</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Project</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Campaign</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Edit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtered.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      className={`transition-colors ${selectedIds.has(lead.id) ? 'bg-primary/5' : 'bg-background hover:bg-card/60'}`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => toggleSelect(lead.id)}
+                          className="w-4 h-4 accent-[#C5A47E] cursor-pointer"
+                        />
+                      </td>
+
+                      {/* Lead name + agent */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                            <Icon name="UserIcon" size={14} className="text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">{lead.name}</p>
+                            {lead.assigned_agent && (
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Icon name="UserCircleIcon" size={10} className="text-primary flex-shrink-0" />
+                                <span className="truncate max-w-[140px]">{lead.assigned_agent}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Phone / Email */}
+                      <td className="px-4 py-3">
+                        <div className="space-y-0.5">
+                          {lead.phone && <p className="text-xs text-foreground">{lead.phone}</p>}
+                          {lead.email && <p className="text-xs text-muted-foreground truncate max-w-[180px]">{lead.email}</p>}
+                        </div>
+                      </td>
+
+                      {/* Source */}
+                      <td className="px-4 py-3">
+                        {lead.source ? (
+                          <span className={`text-[11px] font-bold uppercase tracking-wider ${sourceColors[lead.source] || 'text-muted-foreground'}`}>
+                            {lead.source}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+
+                      {/* Project */}
+                      <td className="px-4 py-3">
+                        {lead.project ? (
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 whitespace-nowrap">
+                            {lead.project}
+                          </span>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+
+                      {/* Campaign */}
+                      <td className="px-4 py-3">
+                        {lead.campaign ? (
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400 bg-violet-400/10 px-2 py-0.5 whitespace-nowrap">
+                            {lead.campaign}
+                          </span>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 whitespace-nowrap ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>
+                          {lead.status}
+                        </span>
+                      </td>
+
+                      {/* Edit / Delete */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => openEdit(lead)}
+                            className="px-2.5 py-1.5 border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            className="px-2 py-1.5 border border-red-400/20 text-[11px] text-red-400 hover:bg-red-400/5 transition-colors"
+                          >
+                            <Icon name="TrashIcon" size={11} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── MOBILE CARDS (below lg) ── */}
+            <div className="space-y-2 lg:hidden">
               {filtered.map((lead) => (
                 <div
                   key={lead.id}
