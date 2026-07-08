@@ -81,6 +81,9 @@ export default function LeadsPage() {
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [campaignNames, setCampaignNames] = useState<string[]>([]);
+  const [bulkAgentOpen, setBulkAgentOpen] = useState(false);
+  const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -149,6 +152,23 @@ export default function LeadsPage() {
     if (!newStatus) return;
     await supabase.from('leads').update({ status: newStatus }).in('id', Array.from(selectedIds));
     setSelectedIds(new Set());
+    setBulkStatusOpen(false);
+    loadLeads();
+  };
+
+  const handleBulkAssignAgent = async (agentName: string) => {
+    if (!agentName) return;
+    await supabase.from('leads').update({ assigned_agent: agentName }).in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkAgentOpen(false);
+    loadLeads();
+  };
+
+  const handleBulkAddCampaign = async (campaignName: string) => {
+    if (!campaignName) return;
+    await supabase.from('leads').update({ campaign: campaignName }).in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkCampaignOpen(false);
     loadLeads();
   };
 
@@ -422,16 +442,96 @@ export default function LeadsPage() {
         {/* Bulk Action Bar */}
         {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 bg-primary/5 border border-primary/20 px-3 py-2.5">
-            <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
-            <div className="flex items-center gap-1.5 flex-wrap ml-1">
-              {['Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => (
-                <button key={s} onClick={() => handleBulkStatusChange(s)} className="px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors">{s}</button>
-              ))}
-              <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors">
-                <Icon name="TrashIcon" size={11} />Delete
+            <span className="text-sm font-semibold text-primary mr-1">{selectedIds.size} selected</span>
+
+            {/* Assign Agent dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setBulkAgentOpen(!bulkAgentOpen); setBulkCampaignOpen(false); setBulkStatusOpen(false); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="UserCircleIcon" size={12} />
+                Assign Agent
+                <Icon name="ChevronDownIcon" size={10} />
               </button>
+              {bulkAgentOpen && (
+                <div className="absolute top-full left-0 mt-1 z-40 bg-card border border-border shadow-lg min-w-[160px] max-h-48 overflow-y-auto">
+                  {agentNames.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">No agents found</p>
+                  ) : agentNames.map(name => (
+                    <button
+                      key={name}
+                      onClick={() => handleBulkAssignAgent(name)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+
+            {/* Update Status dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setBulkStatusOpen(!bulkStatusOpen); setBulkAgentOpen(false); setBulkCampaignOpen(false); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="ArrowPathIcon" size={12} />
+                Update Status
+                <Icon name="ChevronDownIcon" size={10} />
+              </button>
+              {bulkStatusOpen && (
+                <div className="absolute top-full left-0 mt-1 z-40 bg-card border border-border shadow-lg min-w-[140px]">
+                  {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => handleBulkStatusChange(s)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add Campaign Tag dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setBulkCampaignOpen(!bulkCampaignOpen); setBulkAgentOpen(false); setBulkStatusOpen(false); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-border text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="TagIcon" size={12} />
+                Campaign Tag
+                <Icon name="ChevronDownIcon" size={10} />
+              </button>
+              {bulkCampaignOpen && (
+                <div className="absolute top-full left-0 mt-1 z-40 bg-card border border-border shadow-lg min-w-[160px] max-h-48 overflow-y-auto">
+                  {campaignNames.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">No campaigns found</p>
+                  ) : campaignNames.map(name => (
+                    <button
+                      key={name}
+                      onClick={() => handleBulkAddCampaign(name)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Delete */}
+            <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors">
+              <Icon name="TrashIcon" size={11} />Delete
+            </button>
+
+            <button
+              onClick={() => { setSelectedIds(new Set()); setBulkAgentOpen(false); setBulkCampaignOpen(false); setBulkStatusOpen(false); }}
+              className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Icon name="XMarkIcon" size={14} />
             </button>
           </div>
