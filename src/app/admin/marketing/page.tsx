@@ -63,6 +63,8 @@ interface CampaignForm {
   endDate: string;
   content: string;
   budget: string;
+  spent: string;
+  description: string;
 }
 
 const emptyForm: CampaignForm = {
@@ -75,6 +77,8 @@ const emptyForm: CampaignForm = {
   endDate: '',
   content: '',
   budget: '',
+  spent: '',
+  description: '',
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -577,9 +581,15 @@ export default function MarketingPage() {
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Target Audience</label>
                 <input type="text" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="e.g. HNW Investors, All Leads..." />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Budget (AED)</label>
-                <input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="0" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Budget (AED)</label>
+                  <input type="number" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="0" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Amount Spent (AED)</label>
+                  <input type="number" min="0" value={form.spent} onChange={(e) => setForm({ ...form, spent: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" placeholder="0" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
