@@ -783,8 +783,7 @@ export default function LeadsPage() {
                     onChange={(e) => setForm({ ...form, assignedAgent: e.target.value })}
                   >
                     <option value="">— Select —</option>
-                    <option value="CEO Pawan">CEO Pawan</option>
-                    {agentNames.filter(n => n !== 'CEO Pawan').map(name => <option key={name} value={name}>{name}</option>)}
+                    {agentNames.map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
                 <div>
