@@ -106,6 +106,18 @@ interface ApprovalNotification {
   approval_requests?: { item_type: string; item_id: string } | null;
 }
 
+interface FollowUpNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  lead_id: string | null;
+  lead_name: string | null;
+  action_url: string;
+  read: boolean;
+  created_at: string;
+}
+
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -113,6 +125,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [pendingDocs, setPendingDocs] = useState<{ id: string; title: string; template_name: string; created_at: string }[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<{ id: string; item_title: string; item_type: string; submitted_by_name: string; submitted_at: string }[]>([]);
   const [approvalNotifications, setApprovalNotifications] = useState<ApprovalNotification[]>([]);
+  const [followUpNotifications, setFollowUpNotifications] = useState<FollowUpNotification[]>([]);
   const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -169,10 +182,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }, [supabase, currentUser.role]);
 
   const fetchApprovalData = useCallback(async () => {
-    if (!currentUser.id || currentUser.id === '1') return; // skip mock users
+    if (!currentUser.id || currentUser.id === '1') return;
 
     if (currentUser.role === 'super_admin') {
-      // CEO: fetch pending approval requests
       const { data } = await supabase
         .from('approval_requests')
         .select('id, item_title, item_type, submitted_by_name, submitted_at')
@@ -181,7 +193,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       if (data) setPendingApprovals(data);
     }
 
-    // All users: fetch their unread approval notifications
     const { data: notifs } = await supabase
       .from('approval_notifications')
       .select('id, type, title, message, read, created_at, approval_requests(item_type, item_id)')
@@ -192,16 +203,37 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (notifs) setApprovalNotifications(notifs as ApprovalNotification[]);
   }, [supabase, currentUser.id, currentUser.role]);
 
+  const fetchFollowUpNotifications = useCallback(async () => {
+    const { data } = await supabase
+      .from('crm_notifications')
+      .select('id, type, title, message, lead_id, lead_name, action_url, read, created_at')
+      .eq('read', false)
+      .eq('type', 'follow_up')
+      .order('created_at', { ascending: false })
+      .limit(15);
+    if (data) setFollowUpNotifications(data as FollowUpNotification[]);
+  }, [supabase]);
+
   useEffect(() => {
     fetchPendingDocs();
     fetchApprovalData();
-  }, [fetchPendingDocs, fetchApprovalData]);
+    fetchFollowUpNotifications();
+  }, [fetchPendingDocs, fetchApprovalData, fetchFollowUpNotifications]);
+
+  // Poll for new follow-up notifications every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchFollowUpNotifications();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchFollowUpNotifications]);
 
   const handleBellClick = () => {
     setShowNotifications(!showNotifications);
     if (!showNotifications) {
       fetchPendingDocs();
       fetchApprovalData();
+      fetchFollowUpNotifications();
     }
   };
 
@@ -215,6 +247,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     setApprovalNotifications([]);
   };
 
+  const handleMarkFollowUpRead = async (id: string) => {
+    await supabase.from('crm_notifications').update({ read: true }).eq('id', id);
+    setFollowUpNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const handleMarkAllFollowUpsRead = async () => {
+    const ids = followUpNotifications.map((n) => n.id);
+    if (ids.length === 0) return;
+    await supabase.from('crm_notifications').update({ read: true }).in('id', ids);
+    setFollowUpNotifications([]);
+  };
+
   const crmLinks = allCrmLinks.filter((l) => can(l.permission));
   const cmsLinks = allCmsLinks.filter((l) => {
     if (!isRole('super_admin', 'admin', 'marketing')) return false;
@@ -224,7 +268,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const pendingApprovalsCount = currentUser.role === 'super_admin' ? pendingApprovals.length : 0;
   const approvalNotifsCount = approvalNotifications.length;
-  const totalNotifications = (currentUser.role === 'super_admin' ? pendingDocs.length : 0) + pendingApprovalsCount + approvalNotifsCount;
+  const followUpNotifsCount = followUpNotifications.length;
+  const totalNotifications = (currentUser.role === 'super_admin' ? pendingDocs.length : 0) + pendingApprovalsCount + approvalNotifsCount + followUpNotifsCount;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -252,7 +297,37 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   };
 
   const NotificationPanel = () => (
-    <div className="divide-y divide-border max-h-72 overflow-y-auto">
+    <div className="divide-y divide-border max-h-96 overflow-y-auto">
+      {/* Follow-up reminders */}
+      {followUpNotifications.length > 0 && (
+        <div className="px-4 py-2 flex items-center justify-between bg-orange-500/5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Follow-up Reminders ({followUpNotifsCount})</p>
+          <button
+            onClick={handleMarkAllFollowUpsRead}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Mark all read
+          </button>
+        </div>
+      )}
+      {followUpNotifications.map((notif) => (
+        <Link
+          key={notif.id}
+          href={notif.action_url || '/admin/leads'}
+          onClick={() => { setShowNotifications(false); handleMarkFollowUpRead(notif.id); }}
+          className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 flex items-center justify-center bg-orange-500/10 border border-orange-500/20 flex-shrink-0 mt-0.5">
+            <Icon name="CalendarDaysIcon" size={14} className="text-orange-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">{notif.title}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
+          </div>
+          <span className="text-[10px] text-orange-400 flex-shrink-0 font-medium">Follow-up</span>
+        </Link>
+      ))}
+
       {/* Approval notifications for current user (approved/rejected) */}
       {approvalNotifications.map((notif) => {
         const { icon, color, bg } = notificationTypeIcon(notif.type);

@@ -85,6 +85,8 @@ export default function LeadsPage() {
   const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false);
   const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
   const [bulkSourceOpen, setBulkSourceOpen] = useState(false);
+  const [reminderRunning, setReminderRunning] = useState(false);
+  const [reminderResult, setReminderResult] = useState<string | null>(null);
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -119,6 +121,21 @@ export default function LeadsPage() {
     loadAgentNames();
     loadCampaigns();
   }, [loadLeads, loadAgentNames, loadCampaigns]);
+
+  const runReminders = async () => {
+    setReminderRunning(true);
+    setReminderResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-lead-reminder', { body: {} });
+      if (error) throw error;
+      setReminderResult(`✓ Processed ${data?.processed ?? 0} reminder${data?.processed !== 1 ? 's' : ''}`);
+    } catch (err: any) {
+      setReminderResult(`Error: ${err.message}`);
+    } finally {
+      setReminderRunning(false);
+      setTimeout(() => setReminderResult(null), 4000);
+    }
+  };
 
   const statuses = ['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Lost'];
   const sources = ['All', 'Website', 'Referral', 'Instagram', 'LinkedIn', 'Walk-in', 'Property Finder', 'Bayut', 'WhatsApp', 'Other'];
@@ -280,16 +297,77 @@ export default function LeadsPage() {
     const newAgent = form.assignedAgent;
     const agentChanged = newAgent && newAgent !== previousAgent;
 
+    let savedLeadId = editLead?.id || '';
     if (editLead) {
       await supabase.from('leads').update(payload).eq('id', editLead.id);
     } else {
-      await supabase.from('leads').insert(payload);
+      const { data: inserted } = await supabase.from('leads').insert(payload).select('id').single();
+      if (inserted) savedLeadId = inserted.id;
+    }
+
+    // Handle follow-up reminder upsert
+    if (form.followUpDate && savedLeadId) {
+      // Fetch agent email if assigned
+      let agentEmail: string | null = null;
+      if (form.assignedAgent) {
+        const { data: agentData } = await supabase
+          .from('agents')
+          .select('email')
+          .eq('name', form.assignedAgent)
+          .maybeSingle();
+        agentEmail = agentData?.email || null;
+      }
+
+      // Check if reminder already exists for this lead
+      const { data: existingReminder } = await supabase
+        .from('lead_reminders')
+        .select('id, status')
+        .eq('lead_id', savedLeadId)
+        .maybeSingle();
+
+      const reminderPayload = {
+        lead_id: savedLeadId,
+        lead_name: form.name,
+        lead_email: form.email || null,
+        lead_phone: form.phone || null,
+        assigned_agent: form.assignedAgent || null,
+        agent_email: agentEmail,
+        follow_up_date: form.followUpDate,
+        status: form.status === 'Lost' ? 'resolved' : 'pending',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingReminder) {
+        await supabase
+          .from('lead_reminders')
+          .update(reminderPayload)
+          .eq('id', existingReminder.id);
+      } else {
+        await supabase.from('lead_reminders').insert({
+          ...reminderPayload,
+          push_count: 0,
+        });
+      }
+    } else if (savedLeadId && !form.followUpDate) {
+      // If follow-up date was cleared, resolve any existing reminder
+      await supabase
+        .from('lead_reminders')
+        .update({ status: 'resolved', updated_at: new Date().toISOString() })
+        .eq('lead_id', savedLeadId);
+    }
+
+    // Resolve reminder if lead is marked Lost
+    if (form.status === 'Lost' && savedLeadId) {
+      await supabase
+        .from('lead_reminders')
+        .update({ status: 'resolved', updated_at: new Date().toISOString() })
+        .eq('lead_id', savedLeadId);
     }
 
     // Send email notification if agent was assigned or reassigned
     if (agentChanged) {
       const leadForEmail: Lead = {
-        id: editLead?.id || '',
+        id: savedLeadId,
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -379,6 +457,24 @@ export default function LeadsPage() {
   const qualifiedCount = leads.filter(l => l.status === 'Qualified').length;
   const totalCount = leads.length;
 
+  const isFollowUpDue = (followUpDate?: string) => {
+    if (!followUpDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(followUpDate);
+    due.setHours(0, 0, 0, 0);
+    return due <= today;
+  };
+
+  const isFollowUpOverdue = (followUpDate?: string) => {
+    if (!followUpDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(followUpDate);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
   const activeFilterCount = [
     filterStatus !== 'All',
     filterSource !== 'All',
@@ -394,14 +490,30 @@ export default function LeadsPage() {
           <h1 className="text-lg font-bold text-foreground leading-tight">Leads</h1>
           <p className="text-[11px] text-muted-foreground">{totalCount} total · {newCount} new</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
-          <Icon name="PlusIcon" size={13} />
-          <span className="hidden sm:inline">Add Lead</span>
-          <span className="sm:hidden">Add</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {reminderResult && (
+            <span className={`text-[11px] font-medium px-2 py-1 border ${reminderResult.startsWith('Error') ? 'text-red-400 border-red-400/20 bg-red-400/5' : 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5'}`}>
+              {reminderResult}
+            </span>
+          )}
+          <button
+            onClick={runReminders}
+            disabled={reminderRunning}
+            title="Run follow-up reminders now"
+            className="flex items-center gap-1.5 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors disabled:opacity-50"
+          >
+            <Icon name="BellAlertIcon" size={13} className={reminderRunning ? 'animate-pulse text-orange-400' : ''} />
+            <span className="hidden sm:inline">{reminderRunning ? 'Running...' : 'Reminders'}</span>
+          </button>
+          <button
+            onClick={openNew}
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          >
+            <Icon name="PlusIcon" size={13} />
+            <span className="hidden sm:inline">Add Lead</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+        </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
@@ -694,11 +806,25 @@ export default function LeadsPage() {
                             <Icon name="UserIcon" size={14} className="text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">{lead.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">{lead.name}</p>
+                              {isFollowUpOverdue(lead.follow_up_date) && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">Overdue</span>
+                              )}
+                              {!isFollowUpOverdue(lead.follow_up_date) && isFollowUpDue(lead.follow_up_date) && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 whitespace-nowrap">Follow-up Today</span>
+                              )}
+                            </div>
                             {lead.assigned_agent && (
                               <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                 <Icon name="UserCircleIcon" size={10} className="text-primary flex-shrink-0" />
                                 <span className="truncate max-w-[140px]">{lead.assigned_agent}</span>
+                              </p>
+                            )}
+                            {lead.follow_up_date && (
+                              <p className={`text-[10px] flex items-center gap-1 mt-0.5 ${isFollowUpOverdue(lead.follow_up_date) ? 'text-red-400' : isFollowUpDue(lead.follow_up_date) ? 'text-orange-400' : 'text-muted-foreground'}`}>
+                                <Icon name="CalendarIcon" size={9} />
+                                {lead.follow_up_date}
                               </p>
                             )}
                           </div>
@@ -789,6 +915,12 @@ export default function LeadsPage() {
                           <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[lead.status] || 'text-gray-400 bg-gray-400/10'}`}>
                             {lead.status}
                           </span>
+                          {isFollowUpOverdue(lead.follow_up_date) && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20">Overdue</span>
+                          )}
+                          {!isFollowUpOverdue(lead.follow_up_date) && isFollowUpDue(lead.follow_up_date) && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-orange-500/10 text-orange-400 border border-orange-500/20">Follow-up Today</span>
+                          )}
                         </div>
 
                         {/* Contact info */}
