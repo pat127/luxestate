@@ -34,6 +34,7 @@ const allCmsLinks = [
   { label: 'Site Settings', href: '/admin/settings', icon: 'Cog6ToothIcon', permission: 'view_settings' as Permission },
   { label: 'User Management', href: '/admin/users', icon: 'UserGroupIcon', permission: 'view_users' as Permission },
   { label: 'Blog Posts', href: '/admin/blog', icon: 'DocumentDuplicateIcon', permission: 'view_blog' as Permission },
+  { label: 'FAQs', href: '/admin/faqs', icon: 'QuestionMarkCircleIcon', permission: 'view_blog' as Permission },
 ];
 
 // Bottom nav items (most used — shown on mobile)

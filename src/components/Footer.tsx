@@ -200,6 +200,7 @@ export default function Footer() {
   const companyLinks = [
     { label: t('footer.company_about'), href: '/about' },
     { label: t('footer.company_blog'), href: '/blog' },
+    { label: 'FAQs', href: '/faqs' },
     { label: t('footer.company_careers'), href: '#careers-popup' },
     { label: t('footer.company_contact'), href: '/#contact' },
     { label: 'Reagle Advisory', href: 'https://reagle.ae', gold: true },
