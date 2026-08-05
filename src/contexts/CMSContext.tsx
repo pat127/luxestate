@@ -527,7 +527,7 @@ export const DEFAULT_FEATURED_PROPERTIES: FeaturedPropertiesContent = {
   { id: 3, name: 'The Whitmore', location: 'Tribeca, New York', price: '$9,800,000', beds: 3, baths: 3, sqft: '3,600', tag: 'Townhouse', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_16b1063fe-1769250021551.png", alt: 'Luxury Tribeca townhouse facade, dark brick and steel' },
   { id: 4, name: 'Atlas Loft', location: 'Chicago, IL', price: '$6,200,000', beds: 2, baths: 2, sqft: '2,800', tag: 'Loft', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1463039ae-1772202574460.png", alt: 'Industrial luxury loft interior, exposed concrete ceiling, Chicago skyline' },
   { id: 5, name: 'Vantage Estate', location: 'Malibu, CA', price: '$65,000,000', beds: 9, baths: 11, sqft: '22,000', tag: 'Estate', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1d77ade9b-1773162376685.png", alt: 'Sprawling Malibu oceanfront estate, dramatic cliffside setting' },
-  { id: 6, name: 'The Crescent', location: 'Miami Beach, FL', price: '$18,500,000', beds: 4, baths: 5, sqft: '6,400', tag: 'Residence', href: '/residential', image: "https://images.unsplash.com/photo-1726808856053-88a76debd4e1", alt: 'Miami Beach luxury residence, white geometric facade' }]
+  { id: 6, name: 'The Crescent', location: 'Miami Beach, FL', price: '$18,500,000', beds: 4, baths: 5, sqft: '6,400', tag: 'Residence', href: '/residential', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1ac0cbc6e-1772816226219.png", alt: 'Miami Beach luxury residence, white geometric facade' }]
 
 };
 
@@ -555,9 +555,9 @@ export const DEFAULT_WHY_LUXESTATE: WhyLuxEstateContent = {
   cta_text: 'Begin Your Search',
   cta_link: '#contact',
   steps: [
-  { id: '1', number: '01', title: 'Curated Discovery', description: 'We begin with a confidential consultation to understand your vision — lifestyle requirements, investment objectives, and the architectural character that resonates with you. No mass listings. Only properties that match your precise criteria.', badge: 'Bespoke Matching', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1c136d863-1766818210862.png", imageAlt: 'Luxury real estate consultation, dark mahogany desk, architectural blueprints' },
+  { id: '1', number: '01', title: 'Curated Discovery', description: 'We begin with a confidential consultation to understand your vision — lifestyle requirements, investment objectives, and the architectural character that resonates with you. No mass listings. Only properties that match your precise criteria.', badge: 'Bespoke Matching', image: "https://img.rocket.new/generatedImages/rocket_gen_img_10dd4a727-1784392947764.png", imageAlt: 'Luxury real estate consultation, dark mahogany desk, architectural blueprints' },
   { id: '2', number: '02', title: 'Private Access', description: 'Seventy percent of our portfolio never reaches the open market. Through 18 years of relationships with developers, estate families, and institutional owners, we unlock properties before they are ever listed publicly.', badge: 'Off-Market Network', image: "https://img.rocket.new/generatedImages/rocket_gen_img_19a27d91f-1778631641621.png", imageAlt: 'Exclusive private estate driveway at dusk, iron gates, dramatic architectural lighting' },
-  { id: '3', number: '03', title: 'White-Glove Acquisition', description: 'From due diligence and negotiation to legal structuring and post-purchase management, we orchestrate every dimension of the transaction. Our clients close with certainty, not uncertainty.', badge: 'Full Service', image: "https://img.rocket.new/generatedImages/rocket_gen_img_1faf1fcce-1772783285186.png", imageAlt: 'Luxury office interior, dark walls, gold accents, architectural details' }]
+  { id: '3', number: '03', title: 'White-Glove Acquisition', description: 'From due diligence and negotiation to legal structuring and post-purchase management, we orchestrate every dimension of the transaction. Our clients close with certainty, not uncertainty.', badge: 'Full Service', image: "https://img.rocket.new/generatedImages/rocket_gen_img_10dd4a727-1784392947764.png", imageAlt: 'Luxury office interior, dark walls, gold accents, architectural details' }]
 
 };
 
@@ -663,7 +663,7 @@ export const DEFAULT_PROPERTY_DETAIL: PropertyDetailContent = {
     phone: '+971 50 886 2683',
     whatsapp: '971508862683',
     email: 'alexandra@coveestates.com',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15831eb38-1768374767097.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16f0638be-1763300671799.png",
     avatarAlt: 'Alexandra Voss, Senior Luxury Property Consultant at Cove Estates',
     listings: 47,
     experience: '12 Years',
@@ -789,7 +789,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Where Architecture Becomes Legacy',
   hero_subheadline: 'Ultra-premium properties for discerning buyers',
   hero_description: 'Exclusively curated residences, estates, and commercial assets for those who measure value in lifetimes, not years.',
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1f930205d-1764676806048.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1de1aff6c-1773039815800.png",
   hero_eyebrow: 'Curated Luxury Properties',
   cta_primary_text: 'Explore Properties',
   cta_primary_link: '/residential',
@@ -843,7 +843,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'Off-Plan & New Developments',
   hero_subheadline: "Exclusive access to Dubai's most anticipated new projects",
   hero_description: "Invest in tomorrow's landmarks today. Our off-plan portfolio features the most sought-after developments from Dubai's leading developers.",
-  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1daea8c2c-1782366223260.png",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_1eaa24b52-1785931196345.png",
   cta_primary_text: 'View Projects',
   cta_primary_link: '/projects#gallery',
   cta_secondary_text: 'Register Interest',
@@ -902,7 +902,7 @@ export const DEFAULT_PAGES: PageConfig[] = [
   hero_headline: 'World-Class Properties, Every Continent',
   hero_subheadline: 'Global Portfolio',
   hero_description: "Curated international developments from the world's most sought-after cities — exclusively sourced for UAE-based investors seeking global diversification.",
-  hero_image: "https://images.unsplash.com/photo-1573151644820-a590e2737744",
+  hero_image: "https://img.rocket.new/generatedImages/rocket_gen_img_18d71bb9d-1767170624569.png",
   cta_primary_text: 'Explore Global',
   cta_primary_link: '/international#gallery',
   cta_secondary_text: 'Register Interest',
@@ -1141,9 +1141,9 @@ export function CMSProvider({
 
 
 
+
         // ignore transient network errors
       }}, 4000);return () => clearInterval(interval);}, []);
-
   const getPage = useCallback(
     (key: PageKey): PageConfig => pages.find((p) => p.key === key) || DEFAULT_PAGES.find((p) => p.key === key) || DEFAULT_PAGES[0],
     [pages]
