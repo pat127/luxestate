@@ -157,9 +157,48 @@ export default function LeadsPage() {
     loadLeads();
   };
 
+  const sendLeadAssignmentEmail = async (agentName: string, assignedLeads: Lead[]) => {
+    try {
+      // Fetch agent email from agents table
+      const { data: agentData } = await supabase
+        .from('agents')
+        .select('email')
+        .eq('name', agentName)
+        .maybeSingle();
+
+      if (!agentData?.email) return;
+
+      await supabase.functions.invoke('send-lead-assignment', {
+        body: {
+          agent_name: agentName,
+          agent_email: agentData.email,
+          leads: assignedLeads.map((l) => ({
+            name: l.name,
+            phone: l.phone,
+            email: l.email,
+            status: l.status,
+            source: l.source,
+            budget: l.budget,
+            interest: l.interest,
+          })),
+          is_bulk: assignedLeads.length > 1,
+          assigned_by: currentUser?.name || null,
+        },
+      });
+    } catch (_err) {
+      // Silent fail — email is non-blocking
+    }
+  };
+
   const handleBulkAssignAgent = async (agentName: string) => {
     if (!agentName) return;
-    await supabase.from('leads').update({ assigned_agent: agentName }).in('id', Array.from(selectedIds));
+    const ids = Array.from(selectedIds);
+    await supabase.from('leads').update({ assigned_agent: agentName }).in('id', ids);
+
+    // Send email notification to assigned agent
+    const assignedLeads = leads.filter((l) => ids.includes(l.id));
+    sendLeadAssignmentEmail(agentName, assignedLeads);
+
     setSelectedIds(new Set());
     setBulkAgentOpen(false);
     loadLeads();
@@ -236,10 +275,37 @@ export default function LeadsPage() {
       project: form.project || null,
       campaign: form.campaign || null,
     };
+
+    const previousAgent = editLead?.assigned_agent || '';
+    const newAgent = form.assignedAgent;
+    const agentChanged = newAgent && newAgent !== previousAgent;
+
     if (editLead) {
       await supabase.from('leads').update(payload).eq('id', editLead.id);
     } else {
       await supabase.from('leads').insert(payload);
+    }
+
+    // Send email notification if agent was assigned or reassigned
+    if (agentChanged) {
+      const leadForEmail: Lead = {
+        id: editLead?.id || '',
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        source: form.source,
+        status: form.status,
+        budget: form.budget,
+        interest: form.interest,
+        created_at: editLead?.created_at || new Date().toISOString(),
+        assigned_agent: newAgent,
+        nationality: form.nationality,
+        notes: notesWithExtras,
+        follow_up_date: form.followUpDate || undefined,
+        project: form.project || undefined,
+        campaign: form.campaign || undefined,
+      };
+      sendLeadAssignmentEmail(newAgent, [leadForEmail]);
     }
 
     const contactPayload = {
