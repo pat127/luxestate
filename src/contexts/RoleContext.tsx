@@ -30,7 +30,7 @@ interface RoleContextType {
 }
 
 export type Permission =
-  | 'view_dashboard' |'view_contacts' |'view_all_contacts' |'view_leads' |'view_all_leads' |'view_properties' |'view_projects' |'view_agents' |'view_deals' |'view_all_deals' |'view_calendar' |'view_all_calendars' |'view_tasks' |'view_all_tasks' |'view_marketing' |'view_documents' |'view_syndication' |'view_bulk_import' |'view_analytics' |'view_settings' |'view_users' |'view_blog' |'manage_users' |'view_property_owners';
+  | 'view_dashboard' |'view_contacts' |'view_all_contacts' |'view_leads' |'view_all_leads' |'view_properties' |'view_projects' |'view_agents' |'view_deals' |'view_all_deals' |'view_calendar' |'view_all_calendars' |'view_tasks' |'view_all_tasks' |'view_marketing' |'view_documents' |'view_syndication' |'view_bulk_import' |'view_analytics' |'view_settings' |'view_users' |'view_blog' |'manage_users' |'view_property_owners' |'view_whatsapp';
 
 const rolePermissions: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -38,20 +38,22 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_properties', 'view_projects', 'view_agents', 'view_deals', 'view_all_deals',
     'view_calendar', 'view_all_calendars', 'view_tasks', 'view_all_tasks',
     'view_marketing', 'view_documents', 'view_syndication', 'view_bulk_import',
-    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'manage_users', 'view_property_owners',
+    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'manage_users',
+    'view_property_owners', 'view_whatsapp',
   ],
   admin: [
     'view_dashboard', 'view_contacts', 'view_all_contacts', 'view_leads', 'view_all_leads',
     'view_properties', 'view_projects', 'view_agents', 'view_deals', 'view_all_deals',
     'view_calendar', 'view_all_calendars', 'view_tasks', 'view_all_tasks',
     'view_marketing', 'view_documents', 'view_syndication', 'view_bulk_import',
-    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'view_property_owners',
+    'view_analytics', 'view_settings', 'view_users', 'view_blog',
+    'view_property_owners', 'view_whatsapp',
   ],
   marketing: [
     'view_dashboard', 'view_leads', 'view_all_leads',
     'view_properties', 'view_projects',
     'view_marketing', 'view_analytics', 'view_calendar',
-    'view_blog', 'view_settings', 'view_property_owners',
+    'view_blog', 'view_settings', 'view_property_owners', 'view_whatsapp',
   ],
   agent: [
     // Agents see only their own records for: dashboard, contacts, leads, deals, calendar, tasks

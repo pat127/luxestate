@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { useRole } from '@/contexts/RoleContext';
+import WhatsAppConversationPanel from '@/components/WhatsAppConversationPanel';
 
 interface Lead {
   id: string;
@@ -1128,6 +1129,18 @@ export default function LeadsPage() {
                 </div>
               </div>
             </div>
+
+            {/* WhatsApp Conversation History (edit mode only) */}
+            {editLead && (
+              <div className="px-5 py-4 border-t border-[#2a3040] bg-[#0a0d14]">
+                <WhatsAppConversationPanel
+                  contactId={editLead.id}
+                  contactName={editLead.name}
+                  contactPhone={editLead.phone || ''}
+                  contactType="lead"
+                />
+              </div>
+            )}
 
             {/* Modal footer */}
             <div className="flex items-center justify-between px-5 py-4 border-t border-[#2a3040]">

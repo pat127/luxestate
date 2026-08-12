@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Icon from '@/components/ui/AppIcon';
 import { useRole } from '@/contexts/RoleContext';
 import { createClient } from '@/lib/supabase/client';
+import WhatsAppConversationPanel from '@/components/WhatsAppConversationPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PropertyOwner {
@@ -578,6 +579,18 @@ export default function PropertyOwnersPage() {
                 </div>
               )}
             </div>
+            {/* WhatsApp Conversation History (edit mode only) */}
+            {editOwner && (
+              <div className="px-6 py-4 border-t border-border bg-background/50">
+                <WhatsAppConversationPanel
+                  contactId={editOwner.id}
+                  contactName={editOwner.name}
+                  contactPhone={editOwner.mobile || ''}
+                  contactType="property_owner"
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 transition-colors">Cancel</button>
               <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
