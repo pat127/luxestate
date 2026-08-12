@@ -17,6 +17,7 @@ const allCrmLinks = [
   { label: 'Inquiries', href: '/admin/inquiries', icon: 'InboxIcon', permission: 'view_leads' as Permission },
   { label: 'Properties', href: '/admin/properties', icon: 'HomeIcon', permission: 'view_properties' as Permission },
   { label: 'Projects', href: '/admin/projects', icon: 'BuildingOffice2Icon', permission: 'view_projects' as Permission },
+  { label: 'Property Owners', href: '/admin/property-owners', icon: 'KeyIcon', permission: 'view_property_owners' as Permission },
   { label: 'Approvals', href: '/admin/approvals', icon: 'CheckBadgeIcon', permission: 'view_properties' as Permission },
   { label: 'Agents', href: '/admin/agents', icon: 'IdentificationIcon', permission: 'view_agents' as Permission },
   { label: 'Deals', href: '/admin/deals', icon: 'BriefcaseIcon', permission: 'view_deals' as Permission },
