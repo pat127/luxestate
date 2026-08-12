@@ -3,18 +3,65 @@ import { createClient } from '@/lib/supabase/server';
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM; // e.g. whatsapp:+14155238886
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
+
+// Placeholder/default values that indicate credentials are not set
+const PLACEHOLDER_VALUES = [
+  'your-twilio-account-sid-here',
+  'your-twilio-auth-token-here',
+  'your_twilio_account_sid',
+  'your_twilio_auth_token',
+  'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+];
+
+function isPlaceholder(value?: string) {
+  if (!value) return true;
+  return PLACEHOLDER_VALUES.some(p => value.toLowerCase().includes(p.toLowerCase().split('-')[0]));
+}
+
+/**
+ * Normalize a phone number to E.164 format for WhatsApp.
+ * Handles UAE numbers (05x, 971x), international (+xx), and plain digits.
+ */
+function normalizePhone(raw: string): string {
+  // Strip all non-digit characters except leading +
+  const stripped = raw.trim().replace(/[\s\-().]/g, '');
+
+  // Already has whatsapp: prefix
+  if (stripped.startsWith('whatsapp:')) {
+    return stripped;
+  }
+
+  let digits = stripped.replace(/^\+/, '');
+
+  // UAE local format: starts with 05 → 9715
+  if (digits.startsWith('05') && digits.length === 10) {
+    digits = '971' + digits.slice(1); // 05x → 9715x
+  }
+  // UAE local format: starts with 5 and 9 digits → 9715x
+  else if (digits.startsWith('5') && digits.length === 9) {
+    digits = '971' + digits;
+  }
+  // Already has country code (10+ digits, no leading 0)
+  // e.g. 971501234567, 447911123456 — keep as-is
+
+  return `whatsapp:+${digits}`;
+}
 
 async function sendTwilioWhatsApp(to: string, body: string) {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
-    throw new Error('Twilio credentials not configured');
+  if (
+    !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM ||
+    isPlaceholder(TWILIO_ACCOUNT_SID) || isPlaceholder(TWILIO_AUTH_TOKEN)
+  ) {
+    throw new Error(
+      'Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM in your environment variables.'
+    );
   }
 
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
   const credentials = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
 
-  // Normalize phone: ensure whatsapp: prefix
-  const toFormatted = to.startsWith('whatsapp:') ? to : `whatsapp:${to.startsWith('+') ? to : '+' + to}`;
+  const toFormatted = normalizePhone(to);
 
   const formData = new URLSearchParams({
     To: toFormatted,
@@ -33,7 +80,10 @@ async function sendTwilioWhatsApp(to: string, body: string) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.message || 'Twilio API error');
+    // Twilio error codes: https://www.twilio.com/docs/api/errors
+    const twilioMsg = data?.message || 'Twilio API error';
+    const twilioCode = data?.code ? ` (code ${data.code})` : '';
+    throw new Error(`${twilioMsg}${twilioCode}`);
   }
   return data;
 }
@@ -55,6 +105,23 @@ export async function POST(req: NextRequest) {
 
     if (!recipients?.length || !message) {
       return NextResponse.json({ error: 'Missing recipients or message' }, { status: 400 });
+    }
+
+    // Validate at least one recipient has a phone number
+    const recipientsWithPhone = recipients.filter(r => r.phone?.trim());
+    if (recipientsWithPhone.length === 0) {
+      return NextResponse.json({ error: 'No recipients have a phone number' }, { status: 400 });
+    }
+
+    // Early check: fail fast if Twilio not configured
+    if (
+      !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM ||
+      isPlaceholder(TWILIO_ACCOUNT_SID) || isPlaceholder(TWILIO_AUTH_TOKEN)
+    ) {
+      return NextResponse.json(
+        { error: 'Twilio credentials are not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM in your environment variables.' },
+        { status: 503 }
+      );
     }
 
     // Get sender profile
@@ -92,14 +159,20 @@ export async function POST(req: NextRequest) {
       let status: 'sent' | 'failed' = 'sent';
       let errorMsg: string | null = null;
 
-      try {
-        const twilioResult = await sendTwilioWhatsApp(recipient.phone, message);
-        twilioSid = twilioResult.sid;
-        sentCount++;
-      } catch (err: any) {
+      if (!recipient.phone?.trim()) {
         status = 'failed';
-        errorMsg = err.message;
+        errorMsg = 'No phone number';
         failedCount++;
+      } else {
+        try {
+          const twilioResult = await sendTwilioWhatsApp(recipient.phone, message);
+          twilioSid = twilioResult.sid;
+          sentCount++;
+        } catch (err: any) {
+          status = 'failed';
+          errorMsg = err.message;
+          failedCount++;
+        }
       }
 
       // Log message to DB

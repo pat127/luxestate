@@ -67,6 +67,10 @@ export default function WhatsAppConversationPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Send failed');
+      // Check if the single message actually failed
+      if (data.failedCount > 0 && data.results?.[0]?.error) {
+        throw new Error(data.results[0].error);
+      }
       setSendSuccess(true);
       setQuickMessage('');
       setTimeout(() => setSendSuccess(false), 3000);
@@ -139,7 +143,7 @@ export default function WhatsAppConversationPanel({
       </div>
 
       {/* Quick Send */}
-      {contactPhone && (
+      {contactPhone ? (
         <div className="border-t border-border pt-3 space-y-2">
           <div className="flex gap-2">
             <input
@@ -162,8 +166,17 @@ export default function WhatsAppConversationPanel({
               )}
             </button>
           </div>
-          {sendError && <p className="text-[11px] text-red-400">{sendError}</p>}
+          {sendError && (
+            <p className="text-[11px] text-red-400 break-words">{sendError}</p>
+          )}
           {sendSuccess && <p className="text-[11px] text-emerald-400">✓ Message sent successfully</p>}
+        </div>
+      ) : (
+        <div className="border-t border-border pt-3">
+          <p className="text-[11px] text-amber-400 flex items-center gap-1">
+            <Icon name="ExclamationTriangleIcon" size={11} />
+            No phone number on record — add one to enable WhatsApp messaging.
+          </p>
         </div>
       )}
     </div>
