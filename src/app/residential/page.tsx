@@ -7,6 +7,7 @@ import ResidentialHero from '@/app/residential/components/ResidentialHero';
 import ResidentialSearch from '@/app/residential/components/ResidentialSearch';
 import ResidentialListings from '@/app/residential/components/ResidentialListings';
 import TeamSection from '@/app/residential/components/TeamSection';
+import ResidentialInquiry from '@/app/residential/components/ResidentialInquiry';
 import { useCMSPage } from '@/contexts/CMSContext';
 import { generateListingCollectionSchema } from '@/lib/seo/schemas';
 
@@ -35,6 +36,7 @@ export default function ResidentialPage() {
         {sections?.search_bar !== false && <ResidentialSearch />}
         {sections?.listings_grid !== false && <ResidentialListings />}
         {sections?.team_section !== false && <TeamSection />}
+        <ResidentialInquiry />
         <Footer />
       </main>
     </>

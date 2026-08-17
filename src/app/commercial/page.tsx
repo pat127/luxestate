@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import CommercialHero from '@/app/commercial/components/CommercialHero';
 import CommercialListings from '@/app/commercial/components/CommercialListings';
 import MarketInsights from '@/app/commercial/components/MarketInsights';
+import CommercialInquiry from '@/app/commercial/components/CommercialInquiry';
 import CommercialStats from '@/app/commercial/components/CommercialStats';
 import { useCMSPage } from '@/contexts/CMSContext';
 import { generateListingCollectionSchema } from '@/lib/seo/schemas';
@@ -36,6 +37,7 @@ export default function CommercialPage() {
         {sections?.listings_grid !== false && <CommercialListings />}
         {sections?.commercial_stats !== false && <CommercialStats />}
         {sections?.market_insights !== false && <MarketInsights />}
+        <CommercialInquiry />
         <Footer />
       </main>
     </>
