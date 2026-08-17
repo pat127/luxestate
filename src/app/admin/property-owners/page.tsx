@@ -138,28 +138,45 @@ export default function PropertyOwnersPage() {
   // ── Load owners ─────────────────────────────────────────────────────────────
   const loadOwners = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from('property_owners').select('*').order('created_at', { ascending: false });
-    if (!canAccess) {
-      query = query.eq('assigned_to_id', currentUser.id);
+    const PAGE_SIZE = 1000;
+    let allData: any[] = [];
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('property_owners')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (!canAccess) {
+        query = query.eq('assigned_to_id', currentUser.id);
+      }
+      const { data } = await query;
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        from += PAGE_SIZE;
+        hasMore = data.length === PAGE_SIZE;
+      } else {
+        hasMore = false;
+      }
     }
-    const { data } = await query;
-    if (data) {
-      setOwners(data.map((o: any) => ({
-        id: o.id,
-        name: o.name || '',
-        mobile: o.mobile || '',
-        project: o.project || '',
-        community: o.community || '',
-        buildingCluster: o.building_cluster || '',
-        unitNumber: o.unit_number || '',
-        unitType: o.unit_type || 'Apartment',
-        nationality: o.nationality || '',
-        notes: o.notes || '',
-        assignedTo: o.assigned_to || '',
-        assignedToId: o.assigned_to_id || '',
-        createdAt: o.created_at || '',
-      })));
-    }
+
+    setOwners(allData.map((o: any) => ({
+      id: o.id,
+      name: o.name || '',
+      mobile: o.mobile || '',
+      project: o.project || '',
+      community: o.community || '',
+      buildingCluster: o.building_cluster || '',
+      unitNumber: o.unit_number || '',
+      unitType: o.unit_type || 'Apartment',
+      nationality: o.nationality || '',
+      notes: o.notes || '',
+      assignedTo: o.assigned_to || '',
+      assignedToId: o.assigned_to_id || '',
+      createdAt: o.created_at || '',
+    })));
     setLoading(false);
   }, [supabase, canAccess, currentUser.id]);
 
