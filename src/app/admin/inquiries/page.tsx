@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 
 interface Inquiry {
   id: string;
@@ -67,6 +68,7 @@ function formatTime(iso: string) {
 
 export default function InquiriesPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { isAgentScoped, currentUser } = useRole();
 
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,13 +87,19 @@ export default function InquiriesPage() {
 
   const loadInquiries = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('leads')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (isAgentScoped) {
+      query = query.eq('assigned_agent', currentUser.name);
+    }
+
+    const { data } = await query;
     if (data) setInquiries(data);
     setLoading(false);
-  }, []);
+  }, [isAgentScoped, currentUser.name]);
 
   useEffect(() => {
     loadInquiries();

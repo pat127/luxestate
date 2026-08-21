@@ -483,9 +483,11 @@ function ProjectsPageInner() {
           <h1 className="text-2xl font-bold text-foreground">Projects</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage new development projects</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-          <Icon name="PlusIcon" size={14} />Add Project
-        </button>
+        {!isAgentScoped && (
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+            <Icon name="PlusIcon" size={14} />Add Project
+          </button>
+        )}
       </div>
 
       {/* Agent scope notice */}
@@ -538,7 +540,9 @@ function ProjectsPageInner() {
         <div className="text-center py-20 border border-border">
           <Icon name="BuildingOffice2Icon" size={40} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">No projects found.</p>
-          <button onClick={openNew} className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">Add First Project</button>
+          {!isAgentScoped && (
+            <button onClick={openNew} className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">Add First Project</button>
+          )}
         </div>
       ) : (
         <>
