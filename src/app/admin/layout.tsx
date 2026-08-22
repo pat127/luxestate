@@ -30,6 +30,7 @@ const allCrmLinks = [
   { label: 'Syndication', href: '/admin/syndication', icon: 'RssIcon', permission: 'view_syndication' as Permission },
   { label: 'Bulk Import', href: '/admin/bulk-import', icon: 'ArrowUpTrayIcon', permission: 'view_bulk_import' as Permission },
   { label: 'Analytics', href: '/admin/analytics', icon: 'ChartBarIcon', permission: 'view_analytics' as Permission },
+  { label: 'Agent Performance', href: '/admin/agent-performance', icon: 'PresentationChartLineIcon', permission: 'view_analytics' as Permission },
 ];
 
 const allCmsLinks = [
