@@ -490,14 +490,6 @@ function ProjectsPageInner() {
         )}
       </div>
 
-      {/* Agent scope notice */}
-      {isAgentScoped && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 text-xs text-primary">
-          <Icon name="InformationCircleIcon" size={14} />
-          <span>All projects are visible. Unit pricing and inventory details are restricted to the assigned agent only.</span>
-        </div>
-      )}
-
       {/* Approval workflow notice for non-CEO — hidden for agents */}
       {requiresApproval && !isAgentScoped && (
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">

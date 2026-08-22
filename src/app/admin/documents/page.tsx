@@ -759,6 +759,7 @@ export default function DocumentsPage() {
   const supabase = createClient();
   const { isRole } = useRole();
   const isCEO = isRole('super_admin');
+  const isAgent = isRole('agent');
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('templates');
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
@@ -939,12 +940,14 @@ export default function DocumentsPage() {
             <h1 className="text-xl font-bold text-white">Document Center</h1>
             <p className="text-sm text-white/40 mt-0.5">Manage document templates and filled documents</p>
           </div>
+          {!isAgent && (
           <button
             onClick={() => setTemplateModal({ mode: 'create' })}
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-black text-sm font-semibold px-4 py-2 transition-colors"
           >
             <Icon.Plus /> New Template
           </button>
+          )}
         </div>
 
         {/* CEO Pending Approval Banner */}
@@ -974,6 +977,7 @@ export default function DocumentsPage() {
         <div className="flex items-center gap-1 mb-5 border-b border-white/10">
           {(['templates', 'documents', 'pending'] as ActiveTab[]).map(tab => {
             if (tab === 'pending' && !isCEO) return null;
+            if (tab === 'pending' && isAgent) return null;
             return (
               <button
                 key={tab}
@@ -1040,6 +1044,7 @@ export default function DocumentsPage() {
                     <div className="w-9 h-9 bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                       <Icon.File />
                     </div>
+                    {!isAgent && (
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setTemplateModal({ mode: 'edit', template })}
@@ -1056,6 +1061,7 @@ export default function DocumentsPage() {
                         <Icon.Trash />
                       </button>
                     </div>
+                    )}
                   </div>
                   <h3 className="text-sm font-semibold text-white leading-snug mb-1">{template.name}</h3>
                   <p className="text-xs text-white/40 mb-3 flex-1 line-clamp-2">{template.description || 'No description'}</p>
@@ -1185,6 +1191,7 @@ export default function DocumentsPage() {
                         <Icon.Refresh />
                       </button>
                     )}
+                    {!isAgent && (
                     <button
                       onClick={() => deleteDocument(doc.id)}
                       className="p-2 text-white/30 hover:text-red-400 transition-colors"
@@ -1192,6 +1199,7 @@ export default function DocumentsPage() {
                     >
                       <Icon.Trash />
                     </button>
+                    )}
                   </div>
                 </div>
               ))}
