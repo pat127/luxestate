@@ -498,8 +498,8 @@ function ProjectsPageInner() {
         </div>
       )}
 
-      {/* Approval workflow notice for non-CEO */}
-      {requiresApproval && (
+      {/* Approval workflow notice for non-CEO — hidden for agents */}
+      {requiresApproval && !isAgentScoped && (
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
           <Icon name="ShieldCheckIcon" size={14} />
           <span>Projects require CEO approval before publishing. Use <strong>"Send for Approval"</strong> after saving.</span>
@@ -512,7 +512,7 @@ function ProjectsPageInner() {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && !isAgentScoped && (
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
@@ -547,7 +547,9 @@ function ProjectsPageInner() {
       ) : (
         <>
           <div className="flex items-center gap-2 mb-3 px-1">
-            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
+            {!isAgentScoped && (
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" />
+            )}
             <span className="text-xs text-muted-foreground">Select all {filtered.length} projects</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -567,7 +569,9 @@ function ProjectsPageInner() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                     <div className="absolute top-3 left-3 flex gap-2 items-center flex-wrap">
-                      <input type="checkbox" checked={selectedIds.has(project.id)} onChange={() => toggleSelect(project.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" onClick={(e) => e.stopPropagation()} />
+                      {!isAgentScoped && (
+                        <input type="checkbox" checked={selectedIds.has(project.id)} onChange={() => toggleSelect(project.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer rounded" onClick={(e) => e.stopPropagation()} />
+                      )}
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-primary text-primary-foreground">{project.projectType}</span>
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[project.status] || ''}`}>{project.status}</span>
                       {project.featured && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-yellow-500/20 text-yellow-400">Featured</span>}
@@ -613,7 +617,9 @@ function ProjectsPageInner() {
                           <Icon name={project.published ? 'EyeIcon' : 'EyeSlashIcon'} size={13} />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(project.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                      {!isAgentScoped && (
+                        <button onClick={() => handleDelete(project.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -111,6 +111,7 @@ function checkCalendarReminders(events: CalEvent[], currentMonth: number, curren
 export default function CalendarPage() {
   const { isRole, currentUser, isAgentScoped } = useRole();
   const canViewMarketing = isRole('super_admin', 'marketing');
+  const canViewTeamAndCeo = isRole('super_admin', 'admin');
   const supabase = useMemo(() => createClient(), []);
 
   const [events, setEvents] = useState<CalEvent[]>([]);
@@ -368,18 +369,29 @@ export default function CalendarPage() {
             </span>
           )}
           <div className="flex items-center border border-border">
-            <button
-              onClick={() => setActiveTab('team')}
-              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'team' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Team View
-            </button>
-            <button
-              onClick={() => setActiveTab('ceo')}
-              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'ceo' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              CEO View
-            </button>
+            {canViewTeamAndCeo && (
+              <>
+                <button
+                  onClick={() => setActiveTab('team')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'team' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Team View
+                </button>
+                <button
+                  onClick={() => setActiveTab('ceo')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'ceo' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  CEO View
+                </button>
+              </>
+            )}
+            {isAgentScoped && (
+              <button
+                className="px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground cursor-default"
+              >
+                My Calendar
+              </button>
+            )}
             {canViewMarketing && (
               <button
                 onClick={() => setActiveTab('marketing')}

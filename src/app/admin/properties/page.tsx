@@ -726,8 +726,8 @@ export default function PropertiesPage() {
         </div>
       )}
 
-      {/* Approval workflow notice for non-CEO */}
-      {requiresApproval && (
+      {/* Approval workflow notice for non-CEO — hidden for agents */}
+      {requiresApproval && !isAgentScoped && (
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
           <Icon name="ShieldCheckIcon" size={14} />
           <span>Properties require CEO approval before publishing. Use <strong>"Send for Approval"</strong> after saving.</span>
@@ -766,7 +766,7 @@ export default function PropertiesPage() {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && !isAgentScoped && (
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap ml-2">
@@ -813,7 +813,9 @@ export default function PropertiesPage() {
         <>
           {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3 px-1">
-              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+              {!isAgentScoped && (
+                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+              )}
               <span className="text-xs text-muted-foreground">Select all {filtered.length} properties</span>
             </div>
           )}
@@ -836,7 +838,9 @@ export default function PropertiesPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                     <div className="absolute top-3 left-3 flex gap-2 items-center flex-wrap">
-                      <input type="checkbox" checked={selectedIds.has(property.id)} onChange={() => toggleSelect(property.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" onClick={(e) => e.stopPropagation()} />
+                      {!isAgentScoped && (
+                        <input type="checkbox" checked={selectedIds.has(property.id)} onChange={() => toggleSelect(property.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" onClick={(e) => e.stopPropagation()} />
+                      )}
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusColors[property.availability] || 'text-gray-400 bg-gray-400/10'}`}>{property.availability}</span>
                       {property.featured && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-yellow-500/20 text-yellow-400">Featured</span>}
                       {!property.published && !approvalBadge && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gray-500/20 text-gray-400">Draft</span>}
@@ -895,12 +899,14 @@ export default function PropertiesPage() {
                         <button onClick={() => openEdit(property.id)} className="flex-1 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">Edit</button>
                       )}
                       <button onClick={() => router.push(`/admin/properties/${property.id}`)} className="flex-1 py-2 bg-primary/10 border border-primary/30 text-xs text-primary hover:bg-primary/20 transition-colors">View</button>
-                      <button
-                        onClick={() => handleToggleFeatured(property.id, property.featured)}
-                        title={property.featured ? 'Remove from featured' : 'Mark as featured'}
-                        className={`px-3 py-2 border text-xs transition-colors ${property.featured ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20' : 'border-border text-muted-foreground hover:text-yellow-400 hover:border-yellow-400/30'}`}>
-                        <Icon name="StarIcon" size={13} />
-                      </button>
+                      {!isAgentScoped && (
+                        <button
+                          onClick={() => handleToggleFeatured(property.id, property.featured)}
+                          title={property.featured ? 'Remove from featured' : 'Mark as featured'}
+                          className={`px-3 py-2 border text-xs transition-colors ${property.featured ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20' : 'border-border text-muted-foreground hover:text-yellow-400 hover:border-yellow-400/30'}`}>
+                          <Icon name="StarIcon" size={13} />
+                        </button>
+                      )}
                       {/* Publish button: CEO always, others only if approved */}
                       {canPublishNow && (
                         <button
@@ -910,9 +916,11 @@ export default function PropertiesPage() {
                           <Icon name={property.published ? 'EyeIcon' : 'EyeSlashIcon'} size={13} />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(property.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors">
-                        <Icon name="TrashIcon" size={13} />
-                      </button>
+                      {!isAgentScoped && (
+                        <button onClick={() => handleDelete(property.id)} className="px-3 py-2 border border-red-400/20 text-xs text-red-400 hover:bg-red-400/5 transition-colors">
+                          <Icon name="TrashIcon" size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
