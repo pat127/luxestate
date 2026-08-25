@@ -132,7 +132,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, setCurrentUser, can, isRole } = useRole();
+  const { currentUser, setCurrentUser, can, isRole, hasContactsAccess } = useRole();
   const supabase = useMemo(() => createClient(), []);
 
   // Close mobile drawer on route change
@@ -153,7 +153,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('id, email, full_name, role')
+        .select('id, email, full_name, role, permissions')
         .eq('id', user.id)
         .single();
 
@@ -167,6 +167,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           email: profile.email || user.email || '',
           role,
           avatar: initials,
+          dbPermissions: (profile.permissions as Record<string, boolean>) || {},
         });
       }
       setAuthChecked(true);
@@ -262,7 +263,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     setFollowUpNotifications([]);
   };
 
-  const crmLinks = allCrmLinks.filter((l) => can(l.permission));
+  const crmLinks = allCrmLinks.filter((l) => {
+    // Contacts link: show if user has contacts access via role or DB toggle
+    if (l.href === '/admin/contacts') {
+      return hasContactsAccess;
+    }
+    return can(l.permission);
+  });
   const cmsLinks = allCmsLinks.filter((l) => {
     if (!isRole('super_admin', 'admin', 'marketing')) return false;
     return can(l.permission);

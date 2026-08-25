@@ -453,9 +453,11 @@ export default function ContactsPage() {
                 <button onClick={() => setConvertConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 text-xs text-blue-400 hover:bg-blue-500/20 transition-colors">
                   <Icon name="ArrowRightCircleIcon" size={13} />Convert to Lead
                 </button>
-                <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
-                  <Icon name="TrashIcon" size={13} />Delete
-                </button>
+                {isSuperAdmin && (
+                  <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors">
+                    <Icon name="TrashIcon" size={13} />Delete
+                  </button>
+                )}
               </div>
               <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">
                 <Icon name="XMarkIcon" size={14} />
@@ -515,7 +517,9 @@ export default function ContactsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEdit(contact)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Icon name="PencilIcon" size={13} /></button>
-                        <button onClick={() => handleDelete(contact.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                        {isSuperAdmin && (
+                          <button onClick={() => handleDelete(contact.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Icon name="TrashIcon" size={13} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>

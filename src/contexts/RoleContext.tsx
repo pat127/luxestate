@@ -10,6 +10,8 @@ interface RoleUser {
   email: string;
   role: UserRole;
   avatar: string;
+  /** Custom per-user permissions loaded from user_profiles.permissions in DB */
+  dbPermissions?: Record<string, boolean>;
 }
 
 interface RoleContextType {
@@ -27,6 +29,8 @@ interface RoleContextType {
   canEditProperty: (recordAgentName: string | undefined | null) => boolean;
   /** Returns true if the current user can edit a project (agents cannot edit any project) */
   canEditProject: boolean;
+  /** Returns true if the current user has the contacts module enabled (via role or DB toggle) */
+  hasContactsAccess: boolean;
 }
 
 export type Permission =
@@ -104,8 +108,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const canEditProject = currentUser.role !== 'agent'; // agents cannot edit any project
 
+  // Contacts access: superadmin/admin always have it; others need DB toggle enabled
+  const hasContactsAccess =
+    currentUser.role === 'super_admin' ||
+    currentUser.role === 'admin' ||
+    !!(currentUser.dbPermissions?.contacts_all || currentUser.dbPermissions?.contacts_own);
+
   return (
-    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent, canEditProperty, canEditProject }}>
+    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent, canEditProperty, canEditProject, hasContactsAccess }}>
       {children}
     </RoleContext.Provider>
   );
