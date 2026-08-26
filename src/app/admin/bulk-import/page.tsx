@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
-type ImportType = 'leads' | 'contacts' | 'properties' | 'projects' | 'blogs';
+type ImportType = 'leads' | 'contacts' | 'properties' | 'projects' | 'blogs' | 'institutional_clients';
 type ImportStep = 'upload' | 'mapping' | 'validation' | 'confirm' | 'done';
 
 interface ImportConfig {
@@ -57,6 +58,7 @@ const IMPORT_TABLE_MAP: Record<ImportType, string> = {
   properties: 'properties',
   projects: 'projects',
   blogs: 'blog_posts',
+  institutional_clients: 'institutional_clients',
 };
 
 const importConfigs: Record<ImportType, ImportConfig> = {
@@ -152,6 +154,24 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'views', label: 'Views', required: false, type: 'number' },
       { key: 'meta_title', label: 'Meta Title', required: false, type: 'text' },
       { key: 'meta_desc', label: 'Meta Description', required: false, type: 'text' },
+    ],
+  },
+  institutional_clients: {
+    label: 'Institutional Clients',
+    icon: 'BuildingOffice2Icon',
+    description: 'Import institutional clients from CSV. Required fields: Company Name.',
+    fields: [
+      { key: 'company_name', label: 'Company Name', required: true, type: 'text' },
+      { key: 'category', label: 'Category', required: false, type: 'select' },
+      { key: 'contact_person', label: 'Contact Person', required: false, type: 'text' },
+      { key: 'email', label: 'Email Address', required: false, type: 'email' },
+      { key: 'phone', label: 'Phone Number', required: false, type: 'text' },
+      { key: 'whatsapp', label: 'WhatsApp', required: false, type: 'text' },
+      { key: 'website', label: 'Website', required: false, type: 'text' },
+      { key: 'country', label: 'Country', required: false, type: 'text' },
+      { key: 'city', label: 'City', required: false, type: 'text' },
+      { key: 'status', label: 'Status', required: false, type: 'select' },
+      { key: 'notes', label: 'Notes', required: false, type: 'text' },
     ],
   },
 };
@@ -285,6 +305,21 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
       featured: false,
     };
   }
+  if (type === 'institutional_clients') {
+    return {
+      company_name: fieldMap['company_name'] || 'Unknown Company',
+      category: fieldMap['category'] || 'Other',
+      contact_person: fieldMap['contact_person'] || '',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      whatsapp: fieldMap['whatsapp'] || '',
+      website: fieldMap['website'] || '',
+      country: fieldMap['country'] || '',
+      city: fieldMap['city'] || '',
+      status: fieldMap['status'] || 'Active',
+      notes: fieldMap['notes'] || '',
+    };
+  }
   if (type === 'blogs') {
     const slug = fieldMap['slug'] || (fieldMap['title'] || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const tagsRaw = fieldMap['tags'] || '';
@@ -309,7 +344,11 @@ function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record
 }
 
 export default function BulkImportPage() {
-  const [activeType, setActiveType] = useState<ImportType>('leads');
+  const searchParams = useSearchParams();
+  const [activeType, setActiveType] = useState<ImportType>(() => {
+    const typeParam = searchParams?.get('type') as ImportType | null;
+    return typeParam && typeParam in importConfigs ? typeParam : 'leads';
+  });
   const [step, setStep] = useState<ImportStep>('upload');
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);

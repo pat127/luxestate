@@ -372,9 +372,17 @@ export default function ContactsPage() {
               </button>
             </>
           ) : (
-            <button onClick={openNewInst} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
-              <Icon name="PlusIcon" size={14} />Add Client
-            </button>
+            <>
+              <a
+                href="/admin/bulk-import?type=institutional_clients"
+                className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+              >
+                <Icon name="ArrowUpTrayIcon" size={14} />Bulk Import
+              </a>
+              <button onClick={openNewInst} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors">
+                <Icon name="PlusIcon" size={14} />Add Client
+              </button>
+            </>
           )}
         </div>
       </div>
