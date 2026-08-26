@@ -124,6 +124,10 @@ export default function PropertyOwnersPage() {
   const [assignTargetId, setAssignTargetId] = useState('');
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
   // CSV upload
   const [showCSVModal, setShowCSVModal] = useState(false);
   const [csvRows, setCSVRows] = useState<OwnerForm[]>([]);
@@ -293,6 +297,31 @@ export default function PropertyOwnersPage() {
     loadOwners();
   };
 
+  const handleBulkDelete = async () => {
+    await supabase.from('property_owners').delete().in('id', Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkDeleteConfirm(false);
+    loadOwners();
+  };
+
+  const allSelected = filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id));
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      const s = new Set(selectedIds);
+      filtered.forEach((o) => s.delete(o.id));
+      setSelectedIds(s);
+    } else {
+      const s = new Set(selectedIds);
+      filtered.forEach((o) => s.add(o.id));
+      setSelectedIds(s);
+    }
+  };
+  const toggleSelect = (id: string) => {
+    const s = new Set(selectedIds);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setSelectedIds(s);
+  };
+
   // ── Assignment ───────────────────────────────────────────────────────────────
   const handleAssign = async () => {
     if (!assignModal) return;
@@ -420,6 +449,28 @@ export default function PropertyOwnersPage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 bg-primary/5 border-b border-primary/20 px-6 py-2.5 flex-shrink-0">
+          <span className="text-sm font-semibold text-primary mr-1">{selectedIds.size} selected</span>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors"
+            >
+              <Icon name="TrashIcon" size={11} />
+              Delete Selected
+            </button>
+          )}
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Icon name="XMarkIcon" size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {loading ? (
@@ -438,6 +489,14 @@ export default function PropertyOwnersPage() {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card border-b border-border z-10">
               <tr>
+                <th className="px-4 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 accent-[#C5A47E] cursor-pointer"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Owner</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Mobile</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Project</th>
@@ -452,7 +511,15 @@ export default function PropertyOwnersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((o) => (
-                <tr key={o.id} className="hover:bg-white/3 transition-colors group">
+                <tr key={o.id} className={`transition-colors group ${selectedIds.has(o.id) ? 'bg-primary/5' : 'hover:bg-white/3'}`}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(o.id)}
+                      onChange={() => toggleSelect(o.id)}
+                      className="w-4 h-4 accent-[#C5A47E] cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
@@ -646,6 +713,27 @@ export default function PropertyOwnersPage() {
             <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border">
               <button onClick={() => setAssignModal(null)} className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground border border-border transition-colors">Cancel</button>
               <button onClick={handleAssign} className="px-4 py-2 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">Assign</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk Delete Confirm ────────────────────────────────────────────────── */}
+      {bulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                <Icon name="TrashIcon" size={18} className="text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Delete {selectedIds.size} Owner Record{selectedIds.size !== 1 ? 's' : ''}?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setBulkDeleteConfirm(false)} className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground border border-border transition-colors">Cancel</button>
+              <button onClick={handleBulkDelete} className="px-4 py-2 text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors">Delete All</button>
             </div>
           </div>
         </div>

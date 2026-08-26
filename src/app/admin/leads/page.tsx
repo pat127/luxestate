@@ -88,6 +88,9 @@ export default function LeadsPage() {
   const [bulkSourceOpen, setBulkSourceOpen] = useState(false);
   const [reminderRunning, setReminderRunning] = useState(false);
   const [reminderResult, setReminderResult] = useState<string | null>(null);
+  const [filterDateRange, setFilterDateRange] = useState('All');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   const loadAgentNames = useCallback(async () => {
     const { data } = await supabase
@@ -153,7 +156,38 @@ export default function LeadsPage() {
     const matchSource = filterSource === 'All' || l.source === filterSource;
     const matchProject = filterProject === 'All' || l.project === filterProject;
     const matchCampaign = filterCampaign === 'All' || l.campaign === filterCampaign;
-    return matchSearch && matchStatus && matchSource && matchProject && matchCampaign;
+
+    let matchDate = true;
+    if (filterDateRange !== 'All' && l.created_at) {
+      const created = new Date(l.created_at);
+      created.setHours(0, 0, 0, 0);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (filterDateRange === 'Today') {
+        matchDate = created.getTime() === now.getTime();
+      } else if (filterDateRange === 'This Week') {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        matchDate = created >= weekStart;
+      } else if (filterDateRange === 'This Month') {
+        matchDate = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+      } else if (filterDateRange === 'This Year') {
+        matchDate = created.getFullYear() === now.getFullYear();
+      } else if (filterDateRange === 'Custom') {
+        if (filterDateFrom) {
+          const from = new Date(filterDateFrom);
+          from.setHours(0, 0, 0, 0);
+          if (created < from) matchDate = false;
+        }
+        if (filterDateTo) {
+          const to = new Date(filterDateTo);
+          to.setHours(23, 59, 59, 999);
+          if (new Date(l.created_at) > to) matchDate = false;
+        }
+      }
+    }
+
+    return matchSearch && matchStatus && matchSource && matchProject && matchCampaign && matchDate;
   });
 
   const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id));
@@ -481,6 +515,7 @@ export default function LeadsPage() {
     filterSource !== 'All',
     filterProject !== 'All',
     filterCampaign !== 'All',
+    filterDateRange !== 'All',
   ].filter(Boolean).length;
 
   return (
@@ -598,10 +633,47 @@ export default function LeadsPage() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Date Added</label>
+                <select
+                  value={filterDateRange}
+                  onChange={(e) => { setFilterDateRange(e.target.value); setFilterDateFrom(''); setFilterDateTo(''); }}
+                  className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                >
+                  <option value="All">All Time</option>
+                  <option value="Today">Today</option>
+                  <option value="This Week">This Week</option>
+                  <option value="This Month">This Month</option>
+                  <option value="This Year">This Year</option>
+                  <option value="Custom">Custom Range</option>
+                </select>
+              </div>
+              {filterDateRange === 'Custom' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">From</label>
+                    <input
+                      type="date"
+                      value={filterDateFrom}
+                      onChange={(e) => setFilterDateFrom(e.target.value)}
+                      className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">To</label>
+                    <input
+                      type="date"
+                      value={filterDateTo}
+                      onChange={(e) => setFilterDateTo(e.target.value)}
+                      className="w-full px-2.5 py-2 bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex items-end">
                 {activeFilterCount > 0 && (
                   <button
-                    onClick={() => { setFilterSource('All'); setFilterProject('All'); setFilterCampaign('All'); setFilterStatus('All'); }}
+                    onClick={() => { setFilterSource('All'); setFilterProject('All'); setFilterCampaign('All'); setFilterStatus('All'); setFilterDateRange('All'); setFilterDateFrom(''); setFilterDateTo(''); }}
                     className="w-full px-2.5 py-2 border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Clear All
