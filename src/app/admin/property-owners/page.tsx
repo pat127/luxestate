@@ -105,6 +105,7 @@ export default function PropertyOwnersPage() {
   const supabase = useMemo(() => createClient(), []);
   const canAccess = isRole('super_admin', 'marketing');
   const isSuperAdmin = isRole('super_admin');
+  const canDelete = isRole('super_admin', 'admin', 'marketing');
 
   const [owners, setOwners] = useState<PropertyOwner[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -551,7 +552,7 @@ export default function PropertyOwnersPage() {
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 bg-primary/5 border-b border-primary/20 px-6 py-2.5 flex-shrink-0">
           <span className="text-sm font-semibold text-primary mr-1">{selectedIds.size} selected</span>
-          {isSuperAdmin && (
+          {canDelete && (
             <button
               onClick={() => setBulkDeleteConfirm(true)}
               className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-500/30 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors"
