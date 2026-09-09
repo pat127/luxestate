@@ -48,6 +48,7 @@ interface DuplicateResult {
   matchType: 'mobile' | 'unit';
 }
 
+const PAGE_SIZE = 50;
 const UNIT_TYPES = ['Apartment', 'Villa', 'Office', 'Townhouse', 'Penthouse', 'Studio', 'Retail', 'Warehouse', 'Land', 'Other'];
 
 const emptyForm: OwnerForm = {
@@ -106,11 +107,20 @@ export default function PropertyOwnersPage() {
   const isSuperAdmin = isRole('super_admin');
 
   const [owners, setOwners] = useState<PropertyOwner[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  // Filters — debounced search
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterProject, setFilterProject] = useState('All');
   const [filterCommunity, setFilterCommunity] = useState('All');
   const [filterUnitType, setFilterUnitType] = useState('All');
+
+  // Filter option lists (loaded once)
+  const [projectOptions, setProjectOptions] = useState<string[]>(['All']);
+  const [communityOptions, setCommunityOptions] = useState<string[]>(['All']);
 
   const [showModal, setShowModal] = useState(false);
   const [editOwner, setEditOwner] = useState<PropertyOwner | null>(null);
@@ -139,50 +149,78 @@ export default function PropertyOwnersPage() {
   // Duplicate check for manual entry
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateResult | null>(null);
 
-  // ── Load owners ─────────────────────────────────────────────────────────────
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [filterProject, filterCommunity, filterUnitType]);
+
+  // ── Load filter option lists (once) ─────────────────────────────────────────
+  const loadFilterOptions = useCallback(async () => {
+    const { data } = await supabase
+      .from('property_owners')
+      .select('project, community')
+      .order('project');
+    if (data) {
+      const projects = Array.from(new Set(data.map((r: any) => r.project).filter(Boolean))).sort() as string[];
+      const communities = Array.from(new Set(data.map((r: any) => r.community).filter(Boolean))).sort() as string[];
+      setProjectOptions(['All', ...projects]);
+      setCommunityOptions(['All', ...communities]);
+    }
+  }, [supabase]);
+
+  // ── Load paginated owners ────────────────────────────────────────────────────
   const loadOwners = useCallback(async () => {
     setLoading(true);
-    const PAGE_SIZE = 1000;
-    let allData: any[] = [];
-    let from = 0;
-    let hasMore = true;
+    const from = (currentPage - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
-    while (hasMore) {
-      let query = supabase
-        .from('property_owners')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (!canAccess) {
-        query = query.eq('assigned_to_id', currentUser.id);
-      }
-      const { data } = await query;
-      if (data && data.length > 0) {
-        allData = allData.concat(data);
-        from += PAGE_SIZE;
-        hasMore = data.length === PAGE_SIZE;
-      } else {
-        hasMore = false;
-      }
+    let query = supabase
+      .from('property_owners')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (!canAccess) {
+      query = query.eq('assigned_to_id', currentUser.id);
     }
+    if (debouncedSearch) {
+      query = query.or(
+        `name.ilike.%${debouncedSearch}%,mobile.ilike.%${debouncedSearch}%,unit_number.ilike.%${debouncedSearch}%,project.ilike.%${debouncedSearch}%`
+      );
+    }
+    if (filterProject !== 'All') query = query.eq('project', filterProject);
+    if (filterCommunity !== 'All') query = query.eq('community', filterCommunity);
+    if (filterUnitType !== 'All') query = query.eq('unit_type', filterUnitType);
 
-    setOwners(allData.map((o: any) => ({
-      id: o.id,
-      name: o.name || '',
-      mobile: o.mobile || '',
-      project: o.project || '',
-      community: o.community || '',
-      buildingCluster: o.building_cluster || '',
-      unitNumber: o.unit_number || '',
-      unitType: o.unit_type || 'Apartment',
-      nationality: o.nationality || '',
-      notes: o.notes || '',
-      assignedTo: o.assigned_to || '',
-      assignedToId: o.assigned_to_id || '',
-      createdAt: o.created_at || '',
-    })));
+    const { data, count } = await query;
+
+    setOwners(
+      (data || []).map((o: any) => ({
+        id: o.id,
+        name: o.name || '',
+        mobile: o.mobile || '',
+        project: o.project || '',
+        community: o.community || '',
+        buildingCluster: o.building_cluster || '',
+        unitNumber: o.unit_number || '',
+        unitType: o.unit_type || 'Apartment',
+        nationality: o.nationality || '',
+        notes: o.notes || '',
+        assignedTo: o.assigned_to || '',
+        assignedToId: o.assigned_to_id || '',
+        createdAt: o.created_at || '',
+      }))
+    );
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, [supabase, canAccess, currentUser.id]);
+  }, [supabase, canAccess, currentUser.id, currentPage, debouncedSearch, filterProject, filterCommunity, filterUnitType]);
 
   // ── Load users for assignment ────────────────────────────────────────────────
   const loadUsers = useCallback(async () => {
@@ -196,30 +234,74 @@ export default function PropertyOwnersPage() {
     }
   }, [supabase]);
 
-  useEffect(() => { loadOwners(); loadUsers(); }, [loadOwners, loadUsers]);
+  useEffect(() => { loadOwners(); }, [loadOwners]);
+  useEffect(() => { loadUsers(); loadFilterOptions(); }, [loadUsers, loadFilterOptions]);
 
-  // ── Derived filter options ───────────────────────────────────────────────────
-  const projects = useMemo(() => ['All', ...Array.from(new Set(owners.map((o) => o.project).filter(Boolean)))], [owners]);
-  const communities = useMemo(() => ['All', ...Array.from(new Set(owners.map((o) => o.community).filter(Boolean)))], [owners]);
+  // ── Duplicate check via DB ───────────────────────────────────────────────────
+  const checkDuplicateDB = useCallback(async (mobile: string, unitNumber: string, project: string, excludeId?: string): Promise<DuplicateResult | null> => {
+    if (!mobile && !unitNumber) return null;
+    const checks: Promise<DuplicateResult | null>[] = [];
 
-  const filtered = owners.filter((o) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || o.name.toLowerCase().includes(q) || o.mobile.includes(q) || o.unitNumber.toLowerCase().includes(q) || o.project.toLowerCase().includes(q);
-    const matchProject = filterProject === 'All' || o.project === filterProject;
-    const matchCommunity = filterCommunity === 'All' || o.community === filterCommunity;
-    const matchType = filterUnitType === 'All' || o.unitType === filterUnitType;
-    return matchSearch && matchProject && matchCommunity && matchType;
-  });
-
-  // ── Duplicate check ──────────────────────────────────────────────────────────
-  const checkDuplicate = useCallback((mobile: string, unitNumber: string, project: string, excludeId?: string): DuplicateResult | null => {
-    for (const o of owners) {
-      if (excludeId && o.id === excludeId) continue;
-      if (mobile && o.mobile === mobile) return { existing: o, matchType: 'mobile' };
-      if (unitNumber && project && o.unitNumber === unitNumber && o.project === project) return { existing: o, matchType: 'unit' };
+    if (mobile) {
+      checks.push(
+        supabase
+          .from('property_owners')
+          .select('id, name, mobile, unit_number, project, community, building_cluster, unit_type, nationality, notes, assigned_to, assigned_to_id, created_at')
+          .eq('mobile', mobile)
+          .neq('id', excludeId || '00000000-0000-0000-0000-000000000000')
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              const o = data[0];
+              return {
+                existing: {
+                  id: o.id, name: o.name || '', mobile: o.mobile || '', project: o.project || '',
+                  community: o.community || '', buildingCluster: o.building_cluster || '',
+                  unitNumber: o.unit_number || '', unitType: o.unit_type || 'Apartment',
+                  nationality: o.nationality || '', notes: o.notes || '',
+                  assignedTo: o.assigned_to || '', assignedToId: o.assigned_to_id || '',
+                  createdAt: o.created_at || '',
+                },
+                matchType: 'mobile' as const,
+              };
+            }
+            return null;
+          })
+      );
     }
-    return null;
-  }, [owners]);
+
+    if (unitNumber && project) {
+      checks.push(
+        supabase
+          .from('property_owners')
+          .select('id, name, mobile, unit_number, project, community, building_cluster, unit_type, nationality, notes, assigned_to, assigned_to_id, created_at')
+          .eq('unit_number', unitNumber)
+          .eq('project', project)
+          .neq('id', excludeId || '00000000-0000-0000-0000-000000000000')
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              const o = data[0];
+              return {
+                existing: {
+                  id: o.id, name: o.name || '', mobile: o.mobile || '', project: o.project || '',
+                  community: o.community || '', buildingCluster: o.building_cluster || '',
+                  unitNumber: o.unit_number || '', unitType: o.unit_type || 'Apartment',
+                  nationality: o.nationality || '', notes: o.notes || '',
+                  assignedTo: o.assigned_to || '', assignedToId: o.assigned_to_id || '',
+                  createdAt: o.created_at || '',
+                },
+                matchType: 'unit' as const,
+              };
+            }
+            return null;
+          })
+      );
+    }
+
+    const results = await Promise.all(checks);
+    return results.find((r) => r !== null) ?? null;
+  }, [supabase]);
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
   const openAdd = () => {
@@ -242,17 +324,22 @@ export default function PropertyOwnersPage() {
     setShowModal(true);
   };
 
+  // Debounced duplicate warning in form
+  const dupCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleFormChange = (field: keyof OwnerForm, value: string) => {
     const updated = { ...form, [field]: value };
     setForm(updated);
     if (field === 'mobile' || field === 'unitNumber' || field === 'project') {
-      const dup = checkDuplicate(
-        field === 'mobile' ? value : updated.mobile,
-        field === 'unitNumber' ? value : updated.unitNumber,
-        field === 'project' ? value : updated.project,
-        editOwner?.id,
-      );
-      setDuplicateWarning(dup);
+      if (dupCheckTimer.current) clearTimeout(dupCheckTimer.current);
+      dupCheckTimer.current = setTimeout(async () => {
+        const dup = await checkDuplicateDB(
+          field === 'mobile' ? value : updated.mobile,
+          field === 'unitNumber' ? value : updated.unitNumber,
+          field === 'project' ? value : updated.project,
+          editOwner?.id,
+        );
+        setDuplicateWarning(dup);
+      }, 500);
     }
   };
 
@@ -261,7 +348,7 @@ export default function PropertyOwnersPage() {
       setFormError('Name and mobile are required.');
       return;
     }
-    const dup = checkDuplicate(form.mobile, form.unitNumber, form.project, editOwner?.id);
+    const dup = await checkDuplicateDB(form.mobile, form.unitNumber, form.project, editOwner?.id);
     if (dup) {
       setFormError(`Duplicate detected: ${dup.matchType === 'mobile' ? 'Mobile number' : 'Unit in this project'} already exists (${dup.existing.name}).`);
       return;
@@ -289,6 +376,7 @@ export default function PropertyOwnersPage() {
     setSaving(false);
     setShowModal(false);
     loadOwners();
+    loadFilterOptions();
   };
 
   const handleDelete = async (id: string) => {
@@ -304,15 +392,15 @@ export default function PropertyOwnersPage() {
     loadOwners();
   };
 
-  const allSelected = filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id));
+  const allSelected = owners.length > 0 && owners.every((o) => selectedIds.has(o.id));
   const toggleSelectAll = () => {
     if (allSelected) {
       const s = new Set(selectedIds);
-      filtered.forEach((o) => s.delete(o.id));
+      owners.forEach((o) => s.delete(o.id));
       setSelectedIds(s);
     } else {
       const s = new Set(selectedIds);
-      filtered.forEach((o) => s.add(o.id));
+      owners.forEach((o) => s.add(o.id));
       setSelectedIds(s);
     }
   };
@@ -331,24 +419,28 @@ export default function PropertyOwnersPage() {
   };
 
   // ── CSV Upload ───────────────────────────────────────────────────────────────
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       const rows = parseCSV(text).map(mapCSVRow).filter((r) => r.name || r.mobile);
-      // Check duplicates against existing owners
+
       const dups: { row: OwnerForm; match: string }[] = [];
       const seen = new Set<string>();
       const clean: OwnerForm[] = [];
+
+      // Check duplicates in batches against DB
       for (const row of rows) {
-        const dup = checkDuplicate(row.mobile, row.unitNumber, row.project);
         const key = `${row.mobile}|${row.unitNumber}|${row.project}`;
+        if (seen.has(key)) {
+          dups.push({ row, match: `Duplicate within CSV: ${row.name}` });
+          continue;
+        }
+        const dup = await checkDuplicateDB(row.mobile, row.unitNumber, row.project);
         if (dup) {
           dups.push({ row, match: dup.matchType === 'mobile' ? `Mobile ${row.mobile} exists (${dup.existing.name})` : `Unit ${row.unitNumber} in ${row.project} exists` });
-        } else if (seen.has(key)) {
-          dups.push({ row, match: `Duplicate within CSV: ${row.name}` });
         } else {
           seen.add(key);
           clean.push(row);
@@ -383,8 +475,12 @@ export default function PropertyOwnersPage() {
       setCSVResult({ inserted: csvRows.length, skipped: csvDuplicates.length });
       setCSVRows([]);
       loadOwners();
+      loadFilterOptions();
     }
   };
+
+  // ── Pagination ───────────────────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // ── Access guard ─────────────────────────────────────────────────────────────
   if (!canAccess && !isRole('admin', 'agent')) {
@@ -402,7 +498,7 @@ export default function PropertyOwnersPage() {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-lg font-bold text-foreground">Property Owners</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{filtered.length} record{filtered.length !== 1 ? 's' : ''} · Superadmin &amp; Marketing access</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalCount} record{totalCount !== 1 ? 's' : ''} · Superadmin &amp; Marketing access</p>
           </div>
           {canAccess && (
             <div className="flex items-center gap-2">
@@ -437,10 +533,10 @@ export default function PropertyOwnersPage() {
             />
           </div>
           <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
-            {projects.map((p) => <option key={p}>{p}</option>)}
+            {projectOptions.map((p) => <option key={p}>{p}</option>)}
           </select>
           <select value={filterCommunity} onChange={(e) => setFilterCommunity(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
-            {communities.map((c) => <option key={c}>{c}</option>)}
+            {communityOptions.map((c) => <option key={c}>{c}</option>)}
           </select>
           <select value={filterUnitType} onChange={(e) => setFilterUnitType(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
             <option value="All">All Types</option>
@@ -477,7 +573,7 @@ export default function PropertyOwnersPage() {
           <div className="flex items-center justify-center h-40">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : owners.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3">
             <Icon name="UserGroupIcon" size={32} className="text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No property owners found</p>
@@ -510,7 +606,7 @@ export default function PropertyOwnersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((o) => (
+              {owners.map((o) => (
                 <tr key={o.id} className={`transition-colors group ${selectedIds.has(o.id) ? 'bg-primary/5' : 'hover:bg-white/3'}`}>
                   <td className="px-4 py-3">
                     <input
@@ -576,6 +672,58 @@ export default function PropertyOwnersPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-card/50 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages} · {totalCount} total records
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              «
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ‹
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+              const page = start + i;
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-2.5 py-1 text-xs transition-colors ${page === currentPage ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ›
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Add/Edit Modal ─────────────────────────────────────────────────────── */}
       {showModal && (

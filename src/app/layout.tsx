@@ -241,7 +241,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         />
 
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.20" />
-        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></head>
+        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.3" /></head>
       <body className={plusJakartaSans.className}>
         <CMSProvider initialCmsData={cms.data} initialUpdatedAt={cms.updatedAt}>
           <Suspense fallback={null}>
