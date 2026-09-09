@@ -533,10 +533,12 @@ export default function PropertyOwnersPage() {
             />
           </div>
           <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
-            {projectOptions.map((p) => <option key={p}>{p}</option>)}
+            <option value="All">All Projects</option>
+            {projectOptions.filter((p) => p !== 'All').map((p) => <option key={p}>{p}</option>)}
           </select>
           <select value={filterCommunity} onChange={(e) => setFilterCommunity(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
-            {communityOptions.map((c) => <option key={c}>{c}</option>)}
+            <option value="All">All Communities</option>
+            {communityOptions.filter((c) => c !== 'All').map((c) => <option key={c}>{c}</option>)}
           </select>
           <select value={filterUnitType} onChange={(e) => setFilterUnitType(e.target.value)} className="px-3 py-2 text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary/50">
             <option value="All">All Types</option>
