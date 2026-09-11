@@ -10,6 +10,8 @@ interface RoleUser {
   email: string;
   role: UserRole;
   avatar: string;
+  /** Custom per-user permissions loaded from user_profiles.permissions in DB */
+  dbPermissions?: Record<string, boolean>;
 }
 
 interface RoleContextType {
@@ -17,10 +19,22 @@ interface RoleContextType {
   setCurrentUser: (user: RoleUser) => void;
   can: (permission: Permission) => boolean;
   isRole: (...roles: UserRole[]) => boolean;
+  /** Returns true if the current user is an agent (own-records-only scope) */
+  isAgentScoped: boolean;
+  /** Returns true if the current user can see all records (not agent-scoped) */
+  canViewAll: boolean;
+  /** Returns true if the current user is the listing/assigned agent for a record */
+  isAssignedAgent: (recordAgentName: string | undefined | null) => boolean;
+  /** Returns true if the current user can edit a property (non-agents always can; agents only if assigned) */
+  canEditProperty: (recordAgentName: string | undefined | null) => boolean;
+  /** Returns true if the current user can edit a project (agents cannot edit any project) */
+  canEditProject: boolean;
+  /** Returns true if the current user has the contacts module enabled (via role or DB toggle) */
+  hasContactsAccess: boolean;
 }
 
 export type Permission =
-  | 'view_dashboard' |'view_contacts' |'view_all_contacts' |'view_leads' |'view_all_leads' |'view_properties' |'view_projects' |'view_agents' |'view_deals' |'view_all_deals' |'view_calendar' |'view_all_calendars' |'view_tasks' |'view_all_tasks' |'view_marketing' |'view_documents' |'view_syndication' |'view_bulk_import' |'view_analytics' |'view_settings' |'view_users' |'view_blog' |'manage_users' |'view_property_owners';
+  | 'view_dashboard' |'view_contacts' |'view_all_contacts' |'view_leads' |'view_all_leads' |'view_properties' |'view_projects' |'view_agents' |'view_deals' |'view_all_deals' |'view_calendar' |'view_all_calendars' |'view_tasks' |'view_all_tasks' |'view_marketing' |'view_documents' |'view_syndication' |'view_bulk_import' |'view_analytics' |'view_settings' |'view_users' |'view_blog' |'manage_users' |'view_property_owners' |'view_whatsapp';
 
 const rolePermissions: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -28,22 +42,30 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_properties', 'view_projects', 'view_agents', 'view_deals', 'view_all_deals',
     'view_calendar', 'view_all_calendars', 'view_tasks', 'view_all_tasks',
     'view_marketing', 'view_documents', 'view_syndication', 'view_bulk_import',
-    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'manage_users', 'view_property_owners',
+    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'manage_users',
+    'view_property_owners', 'view_whatsapp',
   ],
   admin: [
     'view_dashboard', 'view_contacts', 'view_all_contacts', 'view_leads', 'view_all_leads',
     'view_properties', 'view_projects', 'view_agents', 'view_deals', 'view_all_deals',
     'view_calendar', 'view_all_calendars', 'view_tasks', 'view_all_tasks',
     'view_marketing', 'view_documents', 'view_syndication', 'view_bulk_import',
-    'view_analytics', 'view_settings', 'view_users', 'view_blog', 'view_property_owners',
+    'view_analytics', 'view_settings', 'view_users', 'view_blog',
+    'view_property_owners', 'view_whatsapp',
   ],
   marketing: [
     'view_dashboard', 'view_leads', 'view_all_leads',
-    'view_marketing', 'view_analytics',
+    'view_properties', 'view_projects',
+    'view_marketing', 'view_analytics', 'view_calendar',
+    'view_blog', 'view_settings', 'view_property_owners', 'view_whatsapp',
   ],
   agent: [
+    // Agents see only their own records for: dashboard, contacts, leads, deals, calendar, tasks
+    // Properties and projects are visible to all agents (but owner/unit info restricted)
     'view_dashboard', 'view_contacts', 'view_leads',
-    'view_deals', 'view_calendar', 'view_tasks', 'view_property_owners',
+    'view_properties', 'view_projects',
+    'view_deals', 'view_calendar', 'view_tasks',
+    // NOTE: No view_all_* permissions — agents are scoped to their own records
   ],
 };
 
@@ -69,8 +91,31 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return roles.includes(currentUser.role);
   };
 
+  const isAgentScoped = currentUser.role === 'agent';
+
+  const canViewAll = currentUser.role !== 'agent';
+
+  const isAssignedAgent = (recordAgentName: string | undefined | null): boolean => {
+    if (!isAgentScoped) return true; // non-agents always have access
+    if (!recordAgentName) return false;
+    return recordAgentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim();
+  };
+
+  const canEditProperty = (recordAgentName: string | undefined | null): boolean => {
+    if (!isAgentScoped) return true; // marketing, admin, super_admin can always edit
+    return isAssignedAgent(recordAgentName); // agents only if assigned
+  };
+
+  const canEditProject = currentUser.role !== 'agent'; // agents cannot edit any project
+
+  // Contacts access: superadmin/admin always have it; others need DB toggle enabled
+  const hasContactsAccess =
+    currentUser.role === 'super_admin' ||
+    currentUser.role === 'admin' ||
+    !!(currentUser.dbPermissions?.contacts_all || currentUser.dbPermissions?.contacts_own);
+
   return (
-    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole }}>
+    <RoleContext.Provider value={{ currentUser, setCurrentUser, can, isRole, isAgentScoped, canViewAll, isAssignedAgent, canEditProperty, canEditProject, hasContactsAccess }}>
       {children}
     </RoleContext.Provider>
   );

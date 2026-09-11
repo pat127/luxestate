@@ -1,167 +1,112 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { FeaturedPropertiesContent, DEFAULT_FEATURED_PROPERTIES } from '@/contexts/CMSContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { createClient } from '@/lib/supabase/client';
 
-const properties = [
-{
-  id: 1,
-  name: 'Obsidian Penthouse',
-  location: 'Manhattan, New York',
-  price: '$28,500,000',
-  beds: 5,
-  baths: 6,
-  sqft: '8,200',
-  tag: 'Penthouse',
-  href: '/residential',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_120819c8f-1772202612793.png",
-  alt: 'Ultra-modern penthouse living room, floor-to-ceiling windows, Manhattan skyline at night, dark steel and marble interior, deep shadows, dramatic architectural lighting',
-  featured: true,
-  colSpan: 'md:col-span-2',
-  rowSpan: ''
-},
-{
-  id: 2,
-  name: 'Meridian Villa',
-  location: 'Beverly Hills, CA',
-  price: '$42,000,000',
-  beds: 7,
-  baths: 9,
-  sqft: '14,500',
-  tag: 'Villa',
-  href: '/residential',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1478fdae6-1767987066394.png",
-  alt: 'Contemporary Beverly Hills villa exterior at dusk, dramatic cantilever architecture, infinity pool, dark sky, warm interior glow from floor-to-ceiling glass walls',
-  featured: false,
-  colSpan: 'md:col-span-1',
-  rowSpan: 'md:row-span-2'
-},
-{
-  id: 3,
-  name: 'The Whitmore',
-  location: 'Tribeca, New York',
-  price: '$9,800,000',
-  beds: 3,
-  baths: 3,
-  sqft: '3,600',
-  tag: 'Townhouse',
-  href: '/residential',
-  image: "https://images.unsplash.com/photo-1674898298525-21e371887c3b",
-  alt: 'Luxury Tribeca townhouse facade, dark brick and steel, moody overcast sky, refined architectural detail, dim street lighting',
-  featured: false,
-  colSpan: 'md:col-span-1',
-  rowSpan: ''
-},
-{
-  id: 4,
-  name: 'Atlas Loft',
-  location: 'Chicago, IL',
-  price: '$6,200,000',
-  beds: 2,
-  baths: 2,
-  sqft: '2,800',
-  tag: 'Loft',
-  href: '/residential',
-  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1e0e19bc4-1772132427610.png",
-  alt: 'Industrial luxury loft interior, exposed concrete ceiling, dark wood floors, floor-to-ceiling windows with Chicago skyline, low-key dramatic lighting',
-  featured: false,
-  colSpan: 'md:col-span-1',
-  rowSpan: ''
-},
-{
-  id: 5,
-  name: 'Vantage Estate',
-  location: 'Malibu, CA',
-  price: '$65,000,000',
-  beds: 9,
-  baths: 11,
-  sqft: '22,000',
-  tag: 'Estate',
-  href: '/residential',
-  image: "https://images.unsplash.com/photo-1690136543646-c8b654bcb512",
-  alt: 'Sprawling Malibu oceanfront estate, dramatic cliffside setting, dark sky at sunset, geometric modernist architecture, deep shadows and golden light',
-  featured: false,
-  colSpan: 'md:col-span-2',
-  rowSpan: ''
-},
-{
-  id: 6,
-  name: 'The Crescent',
-  location: 'Miami Beach, FL',
-  price: '$18,500,000',
-  beds: 4,
-  baths: 5,
-  sqft: '6,400',
-  tag: 'Residence',
-  href: '/residential',
-  image: "https://images.unsplash.com/photo-1706854188920-fff3284ded9c",
-  alt: 'Miami Beach luxury residence, white geometric facade, palm silhouettes at dusk, dark moody sky, warm interior light from large windows',
-  featured: false,
-  colSpan: 'md:col-span-1',
-  rowSpan: ''
-}];
+interface Props {
+  content?: FeaturedPropertiesContent;
+}
 
+interface PropertyItem {
+  id: string;
+  name: string;
+  location: string;
+  price: string;
+  beds: number;
+  baths: number;
+  sqft: string;
+  tag: string;
+  category: string;
+  href: string;
+  image: string;
+  alt: string;
+}
 
-function PropertyCard({ property, priority = false }: {property: typeof properties[0];priority?: boolean;}) {
+function PropertyCard({ property, priority = false, rowSpan = '' }: {
+  property: PropertyItem;
+  priority?: boolean;
+  rowSpan?: string;
+}) {
+  const { convertPrice } = useCurrency();
+  const isTall = rowSpan === 'md:row-span-2';
   return (
-    <Link href={property.href} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer ${property.rowSpan}`}>
-      <div className={`relative overflow-hidden ${property.rowSpan === 'md:row-span-2' ? 'h-full min-h-[500px]' : 'h-64 md:h-72'}`}>
-        <AppImage
-          src={property.image}
-          alt={property.alt}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority={priority} />
-
+    <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer h-full ${isTall ? 'flex flex-col' : ''}`}>
+      <div className={`relative overflow-hidden ${isTall ? 'flex-1 min-h-[300px]' : 'h-64 md:h-72'}`}>
+        <AppImage src={property.image} alt={property.alt} fill className="object-cover" quality={60} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" priority={priority} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-        {/* Tag */}
-        <div className="absolute top-4 left-4">
-          <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
-            {property.tag}
-          </span>
+        <div className="absolute top-4 left-4 flex gap-2">
+          <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{property.category || property.tag}</span>
+          {property.tag && <span className="bg-white/10 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 border border-white/20">{property.tag}</span>}
         </div>
-
-        {/* Hover overlay */}
         <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-
-      {/* Info */}
       <div className="p-5 border-t border-border">
         <div className="flex justify-between items-start mb-3">
           <div>
             <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
             <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-              <Icon name="MapPinIcon" size={11} className="text-primary" />
-              {property.location}
+              <Icon name="MapPinIcon" size={11} className="text-primary" />{property.location}
             </p>
           </div>
-          <span className="text-primary font-bold text-sm md:text-base text-right">{property.price}</span>
+          <span className="text-primary font-bold text-sm md:text-base text-right">{convertPrice(property.price)}</span>
         </div>
         <div className="flex items-center gap-5 text-xs text-muted-foreground border-t border-border pt-3">
-          <span className="flex items-center gap-1.5">
-            <Icon name="HomeIcon" size={12} className="text-primary" />
-            {property.beds} Beds
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Icon name="SparklesIcon" size={12} className="text-primary" />
-            {property.baths} Baths
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />
-            {property.sqft} sqft
-          </span>
+          {property.beds > 0 && <span className="flex items-center gap-1.5"><Icon name="HomeIcon" size={12} className="text-primary" />{property.beds} Beds</span>}
+          {property.baths > 0 && <span className="flex items-center gap-1.5"><Icon name="SparklesIcon" size={12} className="text-primary" />{property.baths} Baths</span>}
+          {property.sqft && <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>}
         </div>
       </div>
-    </Link>);
-
+    </Link>
+  );
 }
 
-export default function FeaturedProperties() {
+export default function FeaturedProperties({ content }: Props) {
+  const supabase = createClient();
   const sectionRef = useRef<HTMLElement>(null);
+  const c = content ?? DEFAULT_FEATURED_PROPERTIES;
+
+  const [allProperties, setAllProperties] = useState<PropertyItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from('properties')
+      .select('id, title, location_area, price_aed, bedrooms, bathrooms, area_sqft, image_urls, availability, prop_category, featured, published')
+      .eq('published', true)
+      .eq('featured', true)
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => {
+        if (data) {
+          setAllProperties(data.map((p: any) => {
+            const imgs = Array.isArray(p.image_urls)
+              ? p.image_urls
+              : typeof p.image_urls === 'string' ? p.image_urls.split(',').map((u: string) => u.trim()).filter(Boolean)
+                : [];
+            return {
+              id: p.id,
+              name: p.title,
+              location: p.location_area || '',
+              price: p.price_aed ? `AED ${Number(p.price_aed).toLocaleString()}` : 'Price on Request',
+              beds: parseInt(p.bedrooms) || 0,
+              baths: parseInt(p.bathrooms) || 0,
+              sqft: p.area_sqft || '',
+              tag: p.availability || 'For Sale',
+              category: p.prop_category || 'Residential',
+              href: `/properties/${p.id}`,
+              image: imgs[0] || '',
+              alt: p.title,
+            };
+          }));
+        }
+        setLoaded(true);
+      });
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -180,66 +125,45 @@ export default function FeaturedProperties() {
     return () => observer.disconnect();
   }, []);
 
+  const props = allProperties;
+
   return (
-    <section ref={sectionRef} className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+    <section ref={sectionRef} className="py-16 md:py-24 px-4 md:px-10 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between md:items-end mb-10 md:mb-16 gap-6 md:gap-8">
         <div className="animate-on-scroll stagger-children">
-          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">
-            Curated Selection
-          </span>
-          <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tighter leading-none">
-            Featured<br />Properties
+          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-4 block">{c.eyebrow}</span>
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tighter leading-none">
+            {c.headline}<br /><span key={c.headline_shimmer} className="text-gold-shimmer">{c.headline_shimmer}</span>
           </h2>
         </div>
-        <div className="animate-on-scroll flex flex-col items-end gap-4">
-          <p className="text-muted-foreground text-sm max-w-xs text-right leading-relaxed">
-            Each property is personally vetted by our principals for architectural distinction and investment merit.
-          </p>
-          <Link
-            href="/residential"
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300">
-
-            View All Properties
-            <Icon name="ArrowRightIcon" size={14} />
+        <div className="animate-on-scroll flex flex-col items-start md:items-end gap-4">
+          <p className="text-muted-foreground text-sm max-w-xs text-left md:text-right leading-relaxed">{c.description}</p>
+          <Link href={c.cta_link} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary border-b border-primary pb-1 hover:gap-4 transition-all duration-300 py-1">
+            {c.cta_text}<Icon name="ArrowRightIcon" size={14} />
           </Link>
         </div>
       </div>
 
-      {/* Bento Grid */}
-      {/* 
-         BENTO GRID MAP (3 cols):
-         Row 1: [col-1+2: Obsidian Penthouse cs-2] [col-3: Meridian Villa cs-1 rs-2]
-         Row 2: [col-1: The Whitmore cs-1]         [col-2: Atlas Loft cs-1]          [col-3: FILLED by Villa rs-2]
-         Row 3: [col-1+2: Vantage Estate cs-2]     [col-3: The Crescent cs-1]
-         Placed 6/6 ✓
-        */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-on-scroll">
-        {/* Row 1 col 1+2 */}
-        <div className="md:col-span-2">
-          <PropertyCard property={properties[0]} priority />
+      {loaded && props.length === 0 ? (
+        <div className="text-center py-20 border border-border">
+          <Icon name="HomeIcon" size={40} className="text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">No featured properties available yet.</p>
+          <p className="text-muted-foreground text-xs mt-1">Add properties in the admin panel to display them here.</p>
         </div>
-        {/* Row 1 col 3 / Row 2 col 3 — row-span-2 */}
-        <div className="md:row-span-2 flex flex-col">
-          <PropertyCard property={properties[1]} />
+      ) : !loaded ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-        {/* Row 2 col 1 */}
-        <div className="md:col-span-1">
-          <PropertyCard property={properties[2]} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto animate-on-scroll">
+          {props[0] && <div className="md:col-span-2 md:row-span-1"><PropertyCard property={props[0]} priority /></div>}
+          {props[1] && <div className="md:col-span-1 md:row-span-2" style={{ minHeight: 0 }}><PropertyCard property={props[1]} rowSpan="md:row-span-2" /></div>}
+          {props[2] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[2]} /></div>}
+          {props[3] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[3]} /></div>}
+          {props[4] && <div className="md:col-span-2 md:row-span-1"><PropertyCard property={props[4]} /></div>}
+          {props[5] && <div className="md:col-span-1 md:row-span-1"><PropertyCard property={props[5]} /></div>}
         </div>
-        {/* Row 2 col 2 */}
-        <div className="md:col-span-1">
-          <PropertyCard property={properties[3]} />
-        </div>
-        {/* Row 3 col 1+2 */}
-        <div className="md:col-span-2">
-          <PropertyCard property={properties[4]} />
-        </div>
-        {/* Row 3 col 3 */}
-        <div className="md:col-span-1">
-          <PropertyCard property={properties[5]} />
-        </div>
-      </div>
-    </section>);
-
+      )}
+    </section>
+  );
 }

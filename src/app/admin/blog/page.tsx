@@ -1,32 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
 
 interface BlogPost {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   category: string;
   author: string;
   status: string;
   views: number;
-  date: string;
+  created_at: string;
   excerpt: string;
-  featuredImage?: string;
+  content?: string;
+  featured_image?: string;
   tags?: string[];
-  metaTitle?: string;
-  metaDesc?: string;
-  publishDate?: string;
+  meta_title?: string;
+  meta_desc?: string;
+  publish_date?: string;
 }
-
-const initialPosts: BlogPost[] = [
-  { id: 1, title: 'Dubai Real Estate Market Outlook 2026', slug: 'dubai-real-estate-market-outlook-2026', category: 'Market Insights', author: 'Admin', status: 'Published', views: 1240, date: 'May 1, 2026', excerpt: 'An in-depth analysis of Dubai\'s luxury property market trends and investment opportunities for 2026.', tags: ['Dubai', 'Market', 'Investment'], metaTitle: 'Dubai Real Estate Market Outlook 2026', metaDesc: 'Comprehensive analysis of Dubai luxury property market trends for 2026.' },
-  { id: 2, title: 'Top 5 Off-Plan Projects in Dubai Marina', slug: 'top-5-off-plan-projects-dubai-marina', category: 'Off-Plan', author: 'Sarah M.', status: 'Published', views: 890, date: 'Apr 22, 2026', excerpt: 'Discover the most sought-after off-plan developments in Dubai Marina with exceptional ROI potential.', tags: ['Off-Plan', 'Dubai Marina', 'ROI'] },
-  { id: 3, title: 'How to Invest in Dubai Commercial Real Estate', slug: 'invest-dubai-commercial-real-estate', category: 'Investment', author: 'Omar H.', status: 'Published', views: 650, date: 'Apr 15, 2026', excerpt: 'A comprehensive guide to commercial property investment in Dubai\'s thriving business districts.', tags: ['Commercial', 'Investment', 'DIFC'] },
-  { id: 4, title: 'Palm Jumeirah Villa Guide 2026', slug: 'palm-jumeirah-villa-guide-2026', category: 'Residential', author: 'James C.', status: 'Draft', views: 0, date: 'May 5, 2026', excerpt: 'Everything you need to know about buying a villa on Palm Jumeirah.' },
-  { id: 5, title: 'Understanding Dubai Property Laws for Expats', slug: 'dubai-property-laws-expats', category: 'Legal', author: 'Admin', status: 'Draft', views: 0, date: 'May 8, 2026', excerpt: 'A clear guide to property ownership laws and regulations for foreign investors in Dubai.' },
-];
 
 const statusColors: Record<string, string> = {
   Published: 'text-emerald-400 bg-emerald-400/10',
@@ -74,7 +68,9 @@ const emptyForm: PostForm = {
 };
 
 export default function BlogPostsPage() {
-  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
+  const supabase = useMemo(() => createClient(), []);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editPost, setEditPost] = useState<BlogPost | null>(null);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -82,6 +78,19 @@ export default function BlogPostsPage() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<PostForm>(emptyForm);
   const [activeTab, setActiveTab] = useState<'content' | 'seo'>('content');
+  const [importMsg, setImportMsg] = useState('');
+  const csvInputRef = React.useRef<HTMLInputElement>(null);
+
+  const loadPosts = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('blog_posts').select('*').order('created_at', { ascending: false });
+    if (data) setPosts(data);
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
   const categories = ['All', 'Market Insights', 'Off-Plan', 'Investment', 'Residential', 'Legal', 'Lifestyle'];
 
@@ -105,34 +114,132 @@ export default function BlogPostsPage() {
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
-      content: '',
+      content: post.content || '',
       category: post.category,
       status: post.status,
       author: post.author,
-      featuredImage: post.featuredImage || '',
+      featuredImage: post.featured_image || '',
       tags: (post.tags || []).join(', '),
-      metaTitle: post.metaTitle || '',
-      metaDesc: post.metaDesc || '',
-      publishDate: post.publishDate || '',
+      metaTitle: post.meta_title || '',
+      metaDesc: post.meta_desc || '',
+      publishDate: post.publish_date || '',
     });
     setActiveTab('content');
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title) return;
     const slug = form.slug || form.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const tagList = form.tags.split(',').map(t => t.trim()).filter(Boolean);
     if (editPost) {
-      setPosts(posts.map(p => p.id === editPost.id ? { ...p, title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc } : p));
+      await supabase.from('blog_posts').update({
+        title: form.title,
+        slug,
+        excerpt: form.excerpt,
+        content: form.content,
+        category: form.category,
+        status: form.status,
+        author: form.author,
+        featured_image: form.featuredImage,
+        tags: tagList,
+        meta_title: form.metaTitle,
+        meta_desc: form.metaDesc,
+        publish_date: form.publishDate || null,
+      }).eq('id', editPost.id);
     } else {
-      setPosts([...posts, { id: Date.now(), title: form.title, slug, excerpt: form.excerpt, category: form.category, status: form.status, author: form.author, views: 0, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), featuredImage: form.featuredImage, tags: tagList, metaTitle: form.metaTitle, metaDesc: form.metaDesc }]);
+      await supabase.from('blog_posts').insert({
+        title: form.title,
+        slug,
+        excerpt: form.excerpt,
+        content: form.content,
+        category: form.category,
+        status: form.status,
+        author: form.author,
+        featured_image: form.featuredImage,
+        tags: tagList,
+        meta_title: form.metaTitle,
+        meta_desc: form.metaDesc,
+        publish_date: form.publishDate || null,
+      });
     }
     setShowModal(false);
+    loadPosts();
   };
 
-  const handleDelete = (id: number) => {
-    setPosts(posts.filter(p => p.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('blog_posts').delete().eq('id', id);
+    loadPosts();
+  };
+
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) { setImportMsg('CSV must have a header row and at least one data row.'); return; }
+
+        const parseRow = (row: string): string[] => {
+          const result: string[] = [];
+          let cur = '';
+          let inQuote = false;
+          for (let i = 0; i < row.length; i++) {
+            const ch = row[i];
+            if (ch === '"') { inQuote = !inQuote; }
+            else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
+            else { cur += ch; }
+          }
+          result.push(cur.trim());
+          return result;
+        };
+
+        const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''));
+
+        const imported: Omit<BlogPost, 'id' | 'created_at'>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseRow(lines[i]);
+          if (values.every(v => !v)) continue;
+          const row: Record<string, string> = {};
+          headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+
+          const title = row['title'] || '';
+          if (!title) continue;
+
+          const slug = row['slug'] || title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const tagsRaw = row['tags'] || '';
+          const tags = tagsRaw ? tagsRaw.split(/[;|]/).map(t => t.trim()).filter(Boolean) : [];
+
+          imported.push({
+            title,
+            slug,
+            excerpt: row['excerpt'] || '',
+            category: row['category'] || 'Market Insights',
+            author: row['author'] || 'Admin',
+            status: row['status'] || 'Draft',
+            views: parseInt(row['views'] || '0', 10) || 0,
+            featured_image: row['featured_image'] || row['featured_image_url'] || row['image'] || row['image_url'] || '',
+            tags,
+            meta_title: row['meta_title'] || row['seo_title'] || '',
+            meta_desc: row['meta_description'] || row['meta_desc'] || row['seo_description'] || '',
+            publish_date: row['publish_date'] || row['date'] || '',
+          });
+        }
+
+        if (imported.length === 0) { setImportMsg('No valid rows found. Ensure CSV has a "title" column.'); return; }
+        await supabase.from('blog_posts').insert(imported);
+        loadPosts();
+        setImportMsg(`✓ Imported ${imported.length} post${imported.length > 1 ? 's' : ''}`);
+        setTimeout(() => setImportMsg(''), 4000);
+      } catch {
+        setImportMsg('Failed to parse CSV. Please check the file format.');
+        setTimeout(() => setImportMsg(''), 4000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   return (
@@ -143,9 +250,14 @@ export default function BlogPostsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">{posts.length} total posts</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
+          {importMsg && <span className={`text-xs font-semibold ${importMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{importMsg}</span>}
+          <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVImport} />
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+          >
             <Icon name="ArrowUpTrayIcon" size={14} />
-            Import
+            Import CSV
           </button>
           <button
             onClick={openNew}
@@ -205,7 +317,9 @@ export default function BlogPostsPage() {
 
       {/* Posts list */}
       <div className="space-y-3">
-        {filtered.map((post) => (
+        {loading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">Loading posts...</div>
+        ) : filtered.map((post) => (
           <div key={post.id} className="bg-card border border-border p-4 hover:border-primary/20 transition-colors">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -217,7 +331,7 @@ export default function BlogPostsPage() {
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{post.excerpt}</p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Icon name="UserIcon" size={11} />{post.author}</span>
-                  <span className="flex items-center gap-1"><Icon name="CalendarIcon" size={11} />{post.date}</span>
+                  <span className="flex items-center gap-1"><Icon name="CalendarIcon" size={11} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   {post.views > 0 && <span className="flex items-center gap-1"><Icon name="EyeIcon" size={11} />{post.views.toLocaleString()} views</span>}
                   <span className="flex items-center gap-1 text-primary/60"><Icon name="LinkIcon" size={11} />/{post.slug}</span>
                   {post.tags && post.tags.length > 0 && (
@@ -236,7 +350,7 @@ export default function BlogPostsPage() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-8 text-sm text-muted-foreground">No posts found</div>
         )}
       </div>
@@ -344,7 +458,7 @@ export default function BlogPostsPage() {
                   <div className="bg-input border border-border p-4">
                     <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Search Preview</p>
                     <p className="text-sm text-blue-400 font-medium">{form.metaTitle || form.title || 'Post Title'}</p>
-                    <p className="text-xs text-emerald-400 mt-0.5">luxestate.com/blog/{form.slug || 'post-slug'}</p>
+                    <p className="text-xs text-emerald-400 mt-0.5">coveestate.com/blog/{form.slug || 'post-slug'}</p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{form.metaDesc || form.excerpt || 'Meta description will appear here...'}</p>
                   </div>
                 </>

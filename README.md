@@ -10,6 +10,7 @@ A modern Next.js 15 application built with TypeScript and Tailwind CSS.
 
 ## 🛠️ Installation
 
+
 1. Install dependencies:
   ```bash
   npm install
