@@ -47,19 +47,18 @@ export default function DynamicSEO() {
     }
 
     // Dynamic favicon from CMS
-    if (branding.favicon_url) {
-      const setFavicon = (rel: string, href: string) => {
-        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = rel;
-          document.head.appendChild(link);
-        }
-        link.href = href;
-      };
-      setFavicon('icon', branding.favicon_url);
-      setFavicon('shortcut icon', branding.favicon_url);
-    }
+    const setFavicon = (rel: string, href: string) => {
+      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        document.head.appendChild(link);
+      }
+      link.href = href;
+    };
+    const faviconHref = branding.favicon_url || '/favicon.ico';
+    setFavicon('icon', faviconHref);
+    setFavicon('shortcut icon', faviconHref);
   }, [branding]);
 
   return null;
