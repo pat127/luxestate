@@ -432,21 +432,54 @@ export default function PropertyOwnersPage() {
       const seen = new Set<string>();
       const clean: OwnerForm[] = [];
 
-      // Check duplicates in batches against DB
+      // ── Bulk-fetch existing mobiles and unit+project combos in 2 queries ──
+      const incomingMobiles = [...new Set(rows.map((r) => r.mobile).filter(Boolean))];
+      const incomingUnits = rows.filter((r) => r.unitNumber && r.project);
+
+      const [mobileRes, unitRes] = await Promise.all([
+        incomingMobiles.length > 0
+          ? supabase
+              .from('property_owners')
+              .select('mobile, name')
+              .in('mobile', incomingMobiles)
+          : Promise.resolve({ data: [] }),
+        incomingUnits.length > 0
+          ? supabase
+              .from('property_owners')
+              .select('unit_number, project, name')
+              .in('unit_number', [...new Set(incomingUnits.map((r) => r.unitNumber))])
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      // Build lookup maps for O(1) checks
+      const existingMobiles = new Map<string, string>(
+        (mobileRes.data || []).map((r: any) => [r.mobile, r.name])
+      );
+      const existingUnits = new Map<string, string>(
+        (unitRes.data || []).map((r: any) => [`${r.unit_number}|${r.project}`, r.name])
+      );
+
+      // In-memory duplicate detection — no more per-row DB calls
       for (const row of rows) {
         const key = `${row.mobile}|${row.unitNumber}|${row.project}`;
         if (seen.has(key)) {
           dups.push({ row, match: `Duplicate within CSV: ${row.name}` });
           continue;
         }
-        const dup = await checkDuplicateDB(row.mobile, row.unitNumber, row.project);
-        if (dup) {
-          dups.push({ row, match: dup.matchType === 'mobile' ? `Mobile ${row.mobile} exists (${dup.existing.name})` : `Unit ${row.unitNumber} in ${row.project} exists` });
-        } else {
-          seen.add(key);
-          clean.push(row);
+        const mobileOwner = row.mobile ? existingMobiles.get(row.mobile) : undefined;
+        if (mobileOwner) {
+          dups.push({ row, match: `Mobile ${row.mobile} exists (${mobileOwner})` });
+          continue;
         }
+        const unitOwner = row.unitNumber && row.project ? existingUnits.get(`${row.unitNumber}|${row.project}`) : undefined;
+        if (unitOwner) {
+          dups.push({ row, match: `Unit ${row.unitNumber} in ${row.project} exists (${unitOwner})` });
+          continue;
+        }
+        seen.add(key);
+        clean.push(row);
       }
+
       setCSVRows(clean);
       setCSVDuplicates(dups);
       setCSVResult(null);
@@ -470,9 +503,24 @@ export default function PropertyOwnersPage() {
       created_by: currentUser.name,
       created_by_id: currentUser.id,
     }));
-    const { error } = await supabase.from('property_owners').insert(payload);
+
+    // Split into chunks of 500 and insert in parallel batches of 5
+    const CHUNK_SIZE = 500;
+    const PARALLEL = 5;
+    const chunks: typeof payload[] = [];
+    for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+      chunks.push(payload.slice(i, i + CHUNK_SIZE));
+    }
+
+    let hasError = false;
+    for (let i = 0; i < chunks.length; i += PARALLEL) {
+      const batch = chunks.slice(i, i + PARALLEL);
+      const results = await Promise.all(batch.map((chunk) => supabase.from('property_owners').insert(chunk)));
+      if (results.some((r) => r.error)) { hasError = true; break; }
+    }
+
     setCSVUploading(false);
-    if (!error) {
+    if (!hasError) {
       setCSVResult({ inserted: csvRows.length, skipped: csvDuplicates.length });
       setCSVRows([]);
       loadOwners();
