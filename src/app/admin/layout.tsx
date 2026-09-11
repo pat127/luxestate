@@ -19,6 +19,7 @@ const allCrmLinks = [
   { label: 'Projects', href: '/admin/projects', icon: 'BuildingOffice2Icon', permission: 'view_projects' as Permission },
   { label: 'Property Owners', href: '/admin/property-owners', icon: 'KeyIcon', permission: 'view_property_owners' as Permission },
   { label: 'WhatsApp', href: '/admin/whatsapp', icon: 'ChatBubbleLeftRightIcon', permission: 'view_whatsapp' as Permission },
+  { label: 'WA Marketing Hub', href: '/admin/whatsapp-hub', icon: 'MegaphoneIcon', permission: 'view_whatsapp' as Permission },
   { label: 'Approvals', href: '/admin/approvals', icon: 'CheckBadgeIcon', permission: 'view_properties' as Permission },
   { label: 'Agents', href: '/admin/agents', icon: 'IdentificationIcon', permission: 'view_agents' as Permission },
   { label: 'Deals', href: '/admin/deals', icon: 'BriefcaseIcon', permission: 'view_deals' as Permission },
