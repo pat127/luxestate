@@ -58,6 +58,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_properties', 'view_projects',
     'view_marketing', 'view_analytics', 'view_calendar',
     'view_blog', 'view_settings', 'view_property_owners', 'view_whatsapp',
+    'view_bulk_import',
   ],
   agent: [
     // Agents see only their own records for: dashboard, contacts, leads, deals, calendar, tasks
