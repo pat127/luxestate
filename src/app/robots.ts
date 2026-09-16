@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {

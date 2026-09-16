@@ -1,47 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useRole } from '@/contexts/RoleContext';
+import { createClient } from '@/lib/supabase/client';
 
 interface Deal {
-  id: number;
+  id: string;
   refNo: string;
   property: string;
   propertyRef: string;
   lead: string;
   client: string;
   agent: string;
-  value: string;
-  commission: string;
+  value: number;
+  commission: number;
   stage: string;
   type: string;
   date: string;
   notes?: string;
 }
-
-const initialDeals: Deal[] = [
-  { id: 1, refNo: 'DL-2026-001', property: 'Obsidian Penthouse', propertyRef: 'LX-RES-001', lead: 'James Harrington', client: 'James Harrington', agent: 'Sarah Mitchell', value: 'AED 28,500,000', commission: 'AED 570,000', stage: 'Negotiation', type: 'Sale', date: '2 days ago', notes: 'Client wants to close by end of month' },
-  { id: 2, refNo: 'DL-2026-002', property: 'Atlas Tower Office', propertyRef: 'LX-COM-002', lead: 'Sofia Al-Rashid', client: 'Sofia Al-Rashid', agent: 'Omar Hassan', value: 'AED 12,000,000', commission: 'AED 240,000', stage: 'Proposal', type: 'Sale', date: '5 days ago', notes: '' },
-  { id: 3, refNo: 'DL-2026-003', property: 'Marina Bay Unit 12B', propertyRef: 'LX-RES-003', lead: 'Marcus Chen', client: 'Marcus Chen', agent: 'James Carter', value: 'AED 2,400,000', commission: 'AED 48,000', stage: 'Closed Won', type: 'Sale', date: '1 week ago', notes: 'Deal closed successfully' },
-  { id: 4, refNo: 'DL-2026-004', property: 'Meridian Villa', propertyRef: 'LX-RES-004', lead: 'Priya Sharma', client: 'Priya Sharma', agent: 'Sarah Mitchell', value: 'AED 42,000,000', commission: 'AED 840,000', stage: 'Qualified', type: 'Sale', date: '2 weeks ago', notes: '' },
-  { id: 5, refNo: 'DL-2026-005', property: 'Creek Horizon Unit 5A', propertyRef: 'LX-OP-005', lead: 'David Okonkwo', client: 'David Okonkwo', agent: 'Priya Sharma', value: 'AED 1,800,000', commission: 'AED 36,000', stage: 'Closed Lost', type: 'Off-Plan', date: '3 weeks ago', notes: 'Client went with competitor' },
-];
-
-const mockProperties = [
-  { ref: 'LX-RES-001', name: 'Obsidian Penthouse' },
-  { ref: 'LX-COM-002', name: 'Atlas Tower Office' },
-  { ref: 'LX-RES-003', name: 'Marina Bay Unit 12B' },
-  { ref: 'LX-RES-004', name: 'Meridian Villa' },
-  { ref: 'LX-OP-005', name: 'Creek Horizon Unit 5A' },
-  { ref: 'LX-RES-006', name: 'Palm Grove Villa' },
-  { ref: 'LX-COM-007', name: 'DIFC Office Suite' },
-];
-
-const mockLeads = [
-  'Alexander Webb', 'Natasha Ivanova', 'Omar Al-Farsi', 'Emily Thornton',
-  'Raj Patel', 'Chloe Beaumont', 'James Harrington', 'Sofia Al-Rashid',
-  'Marcus Chen', 'Priya Sharma', 'David Okonkwo',
-];
 
 const stageColors: Record<string, string> = {
   Qualified: 'text-blue-400 bg-blue-400/10',
@@ -85,19 +63,91 @@ const emptyForm: DealForm = {
   notes: '',
 };
 
-function generateDealRef(deals: Deal[]): string {
+function generateDealRef(count: number): string {
   const year = new Date().getFullYear();
-  const next = deals.length + 1;
+  const next = count + 1;
   return `DL-${year}-${String(next).padStart(3, '0')}`;
 }
 
 export default function DealsPage() {
-  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  const { currentUser, isAgentScoped } = useRole();
+  const supabase = useMemo(() => createClient(), []);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStage, setFilterStage] = useState('All');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editDeal, setEditDeal] = useState<Deal | null>(null);
   const [form, setForm] = useState<DealForm>(emptyForm);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  const [crmLeads, setCrmLeads] = useState<string[]>([]);
+  const [crmAgents, setCrmAgents] = useState<string[]>([]);
+  const [crmProperties, setCrmProperties] = useState<{ ref: string; name: string }[]>([]);
+
+  const loadDeals = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from('deals').select('*').order('created_at', { ascending: false });
+    if (isAgentScoped) {
+      query = query.eq('agent', currentUser.name);
+    }
+    const { data } = await query;
+    if (data) {
+      setDeals(
+        data.map((d: Record<string, unknown>) => ({
+          id: d.id as string,
+          refNo: (d.ref_no as string) || '',
+          property: (d.property as string) || '',
+          propertyRef: (d.property_ref as string) || '',
+          lead: (d.lead as string) || '',
+          client: (d.client as string) || '',
+          agent: (d.agent as string) || '',
+          value: (d.value as number) || 0,
+          commission: (d.commission as number) || 0,
+          stage: (d.stage as string) || 'Qualified',
+          type: (d.type as string) || 'Sale',
+          date: d.created_at
+            ? new Date(d.created_at as string).toLocaleDateString()
+            : '',
+          notes: (d.notes as string) || '',
+        }))
+      );
+    }
+    setLoading(false);
+  }, [supabase, isAgentScoped, currentUser.name]);
+
+  useEffect(() => {
+    loadDeals();
+
+    (async () => {
+      const { data: leads } = await supabase.from('leads').select('name');
+      if (leads && leads.length > 0) {
+        setCrmLeads(leads.map((l: { name: string }) => l.name).filter(Boolean));
+      }
+
+      const { data: agents } = await supabase.from('agents').select('name');
+      if (agents && agents.length > 0) {
+        setCrmAgents(agents.map((a: { name: string }) => a.name).filter(Boolean));
+      }
+
+      const { data: props } = await supabase.from('properties').select('id, title, reference_number');
+      if (props && props.length > 0) {
+        setCrmProperties(
+          props.map((p: { id: string; title: string; reference_number: string }) => ({
+            ref: p.reference_number || p.id,
+            name: p.title || 'Unnamed Property',
+          }))
+        );
+      }
+    })();
+  }, [loadDeals, supabase]);
+
+  const showSaved = () => {
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
+  };
 
   const filtered = deals.filter((d) => {
     const matchStage = filterStage === 'All' || d.stage === filterStage;
@@ -109,6 +159,37 @@ export default function DealsPage() {
       d.lead.toLowerCase().includes(search.toLowerCase());
     return matchStage && matchSearch;
   });
+
+  const allSelected = filtered.length > 0 && filtered.every(d => selectedIds.has(d.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      const newSet = new Set(selectedIds);
+      filtered.forEach(d => newSet.delete(d.id));
+      setSelectedIds(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      filtered.forEach(d => newSet.add(d.id));
+      setSelectedIds(newSet);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    await supabase.from('deals').delete().in('id', Array.from(selectedIds));
+    clearSelection();
+    setDeleteConfirm(false);
+    await loadDeals();
+    showSaved();
+  };
 
   const openNew = () => {
     setEditDeal(null);
@@ -126,8 +207,8 @@ export default function DealsPage() {
       clientEmail: '',
       clientPhone: '',
       agent: deal.agent,
-      value: deal.value.replace('AED ', '').replace(/,/g, ''),
-      commission: deal.commission.replace('AED ', '').replace(/,/g, ''),
+      value: String(deal.value),
+      commission: String(deal.commission),
       stage: deal.stage,
       type: deal.type,
       closingDate: '',
@@ -137,7 +218,7 @@ export default function DealsPage() {
   };
 
   const handlePropertyRefChange = (ref: string) => {
-    const prop = mockProperties.find((p) => p.ref === ref);
+    const prop = crmProperties.find((p) => p.ref === ref);
     setForm((f) => ({ ...f, propertyRef: ref, property: prop?.name || '' }));
   };
 
@@ -145,51 +226,69 @@ export default function DealsPage() {
     setForm((f) => ({ ...f, lead, client: lead }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.propertyRef || !form.lead) return;
-    const fmtVal = form.value ? `AED ${parseInt(form.value).toLocaleString()}` : 'AED 0';
-    const fmtComm = form.commission ? `AED ${parseInt(form.commission).toLocaleString()}` : 'AED 0';
+    const valueNum = parseInt(form.value) || 0;
+    const commissionNum = parseInt(form.commission) || 0;
+
     if (editDeal) {
-      setDeals(deals.map((d) =>
-        d.id === editDeal.id
-          ? { ...d, propertyRef: form.propertyRef, property: form.property, lead: form.lead, client: form.client, agent: form.agent, value: fmtVal, commission: fmtComm, stage: form.stage, type: form.type, notes: form.notes }
-          : d
-      ));
+      await supabase
+        .from('deals')
+        .update({
+          property: form.property,
+          property_ref: form.propertyRef,
+          lead: form.lead,
+          client: form.client,
+          client_email: form.clientEmail || null,
+          client_phone: form.clientPhone || null,
+          agent: form.agent,
+          value: valueNum,
+          commission: commissionNum,
+          stage: form.stage,
+          type: form.type,
+          closing_date: form.closingDate || null,
+          notes: form.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editDeal.id);
     } else {
-      const newDeal: Deal = {
-        id: Date.now(),
-        refNo: generateDealRef(deals),
-        propertyRef: form.propertyRef,
+      const refNo = generateDealRef(deals.length);
+      await supabase.from('deals').insert({
+        ref_no: refNo,
         property: form.property,
+        property_ref: form.propertyRef,
         lead: form.lead,
         client: form.client,
+        client_email: form.clientEmail || null,
+        client_phone: form.clientPhone || null,
         agent: form.agent,
-        value: fmtVal,
-        commission: fmtComm,
+        value: valueNum,
+        commission: commissionNum,
         stage: form.stage,
         type: form.type,
-        date: 'Just now',
+        closing_date: form.closingDate || null,
         notes: form.notes,
-      };
-      setDeals([newDeal, ...deals]);
+      });
     }
+    await loadDeals();
     setShowModal(false);
     setForm(emptyForm);
+    showSaved();
   };
 
-  const handleDelete = (id: number) => {
-    setDeals(deals.filter((d) => d.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('deals').delete().eq('id', id);
+    await loadDeals();
+    showSaved();
   };
 
-  const totalValue = deals.filter((d) => d.stage === 'Closed Won').reduce((s, d) => {
-    const n = parseInt(d.value.replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const totalValue = deals
+    .filter((d) => d.stage === 'Closed Won')
+    .reduce((s, d) => s + d.value, 0);
 
-  const pipelineValue = deals.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage)).reduce((s, d) => {
-    const n = parseInt(d.value.replace(/[^0-9]/g, ''));
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
+  const pipelineValue = deals
+    .filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage))
+    .reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="p-6">
@@ -198,13 +297,16 @@ export default function DealsPage() {
           <h1 className="text-2xl font-bold text-foreground">Deals</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{deals.length} deals in pipeline</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
-        >
-          <Icon name="PlusIcon" size={14} />
-          New Deal
-        </button>
+        <div className="flex items-center gap-3">
+          {savedMsg && <span className="text-xs text-emerald-400 font-semibold">✓ Saved</span>}
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+          >
+            <Icon name="PlusIcon" size={14} />
+            New Deal
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -252,11 +354,30 @@ export default function DealsPage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 bg-primary/5 border border-primary/20 px-4 py-3">
+          <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+          >
+            <Icon name="TrashIcon" size={13} />Delete Selected
+          </button>
+          <button onClick={clearSelection} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="XMarkIcon" size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-card border border-border overflow-x-auto">
         <table className="w-full min-w-[900px]">
           <thead>
             <tr className="border-b border-border">
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+              </th>
               {['Deal Ref', 'Property Ref', 'Property', 'Lead / Client', 'Agent', 'Value', 'Stage', 'Type', 'Date', ''].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{h}</th>
               ))}
@@ -264,12 +385,15 @@ export default function DealsPage() {
           </thead>
           <tbody>
             {filtered.map((deal, i) => (
-              <tr key={deal.id} className={`border-b border-border hover:bg-white/2 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+              <tr key={deal.id} className={`border-b border-border hover:bg-white/2 transition-colors ${selectedIds.has(deal.id) ? 'bg-primary/5' : i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+                <td className="px-4 py-3">
+                  <input type="checkbox" checked={selectedIds.has(deal.id)} onChange={() => toggleSelect(deal.id)} className="w-4 h-4 accent-[#C5A47E] cursor-pointer" />
+                </td>
                 <td className="px-4 py-3">
                   <span className="text-xs font-mono font-bold text-primary">{deal.refNo}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-mono text-muted-foreground">{deal.propertyRef}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{deal.property}</span>
                 </td>
                 <td className="px-4 py-3 text-sm font-medium text-foreground">{deal.property}</td>
                 <td className="px-4 py-3">
@@ -278,8 +402,8 @@ export default function DealsPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{deal.agent}</td>
                 <td className="px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">{deal.value}</p>
-                  <p className="text-xs text-muted-foreground">{deal.commission}</p>
+                  <p className="text-sm font-semibold text-foreground">AED {deal.value.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">AED {deal.commission.toLocaleString()}</p>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${stageColors[deal.stage] || ''}`}>{deal.stage}</span>
@@ -297,9 +421,33 @@ export default function DealsPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-sm">No deals found</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {loading ? 'Loading deals...' : 'No deals found'}
+          </div>
         )}
       </div>
+
+      {/* Bulk Delete Confirm */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+                <Icon name="TrashIcon" size={20} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Delete Deals</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{selectedIds.size} deal(s) will be deleted</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-2 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button onClick={handleBulkDelete} className="flex-1 py-2 bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -309,7 +457,7 @@ export default function DealsPage() {
               <div>
                 <h2 className="text-base font-bold text-foreground">{editDeal ? 'Edit Deal' : 'New Deal'}</h2>
                 {!editDeal && (
-                  <p className="text-xs text-muted-foreground mt-0.5">Ref will be auto-generated: <span className="text-primary font-mono">{generateDealRef(deals)}</span></p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Ref will be auto-generated: <span className="text-primary font-mono">{generateDealRef(deals.length)}</span></p>
                 )}
                 {editDeal && (
                   <p className="text-xs text-muted-foreground mt-0.5">Ref: <span className="text-primary font-mono">{editDeal.refNo}</span></p>
@@ -332,8 +480,8 @@ export default function DealsPage() {
                   className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="">Select Property...</option>
-                  {mockProperties.map((p) => (
-                    <option key={p.ref} value={p.ref}>{p.ref} — {p.name}</option>
+                  {crmProperties.map((p) => (
+                    <option key={p.ref} value={p.ref}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -342,7 +490,6 @@ export default function DealsPage() {
                 <div className="bg-primary/5 border border-primary/20 px-3 py-2 flex items-center gap-2">
                   <Icon name="HomeIcon" size={14} className="text-primary" />
                   <span className="text-xs text-foreground">{form.property}</span>
-                  <span className="text-xs font-mono text-primary ml-auto">{form.propertyRef}</span>
                 </div>
               )}
 
@@ -357,7 +504,7 @@ export default function DealsPage() {
                   className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="">Select Lead...</option>
-                  {mockLeads.map((l) => (
+                  {crmLeads.map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
                 </select>
@@ -378,7 +525,7 @@ export default function DealsPage() {
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Assigned Agent</label>
                 <select value={form.agent} onChange={(e) => setForm({ ...form, agent: e.target.value })} className="w-full bg-secondary border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary">
                   <option value="">Select Agent...</option>
-                  {['Sarah Mitchell', 'Omar Hassan', 'James Carter', 'Priya Sharma'].map((a) => (
+                  {crmAgents.map((a) => (
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>

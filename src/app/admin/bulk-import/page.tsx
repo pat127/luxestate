@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
 
-type ImportType = 'leads' | 'contacts' | 'properties' | 'projects' | 'blogs';
+type ImportType = 'leads' | 'contacts' | 'properties' | 'projects' | 'blogs' | 'institutional_clients';
 type ImportStep = 'upload' | 'mapping' | 'validation' | 'confirm' | 'done';
 
 interface ImportConfig {
@@ -29,6 +31,35 @@ interface ValidationError {
   column: string;
   message: string;
 }
+
+function normalizeHeader(value: string): string {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+const BLOG_FIELD_ALIASES: Record<string, string[]> = {
+  title: ['title', 'post_title', 'blog_title', 'headline'],
+  content: ['content', 'body', 'post_content', 'description', 'article'],
+  slug: ['slug', 'url_slug', 'permalink'],
+  category: ['category', 'post_category', 'blog_category'],
+  author: ['author', 'author_name', 'writer'],
+  status: ['status', 'post_status'],
+  publish_date: ['publish_date', 'published_date', 'date', 'published_at'],
+  tags: ['tags', 'tag_list', 'keywords'],
+  excerpt: ['excerpt', 'summary', 'short_description'],
+  featured_image: ['featured_image', 'featured_image_url', 'image', 'image_url', 'thumbnail'],
+  views: ['views', 'view_count'],
+  meta_title: ['meta_title', 'seo_title'],
+  meta_desc: ['meta_desc', 'meta_description', 'seo_description'],
+};
+
+const IMPORT_TABLE_MAP: Record<ImportType, string> = {
+  leads: 'leads',
+  contacts: 'contacts',
+  properties: 'properties',
+  projects: 'projects',
+  blogs: 'blog_posts',
+  institutional_clients: 'institutional_clients',
+};
 
 const importConfigs: Record<ImportType, ImportConfig> = {
   leads: {
@@ -65,7 +96,7 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   properties: {
     label: 'Properties',
     icon: 'HomeIcon',
-    description: 'Import property listings from CSV. Required fields: Name, Price, Type.',
+    description: 'Import property listings from CSV. Required fields: Name, Price, Type, Image URLs.',
     fields: [
       { key: 'title', label: 'Property Title', required: true, type: 'text' },
       { key: 'price', label: 'Price (AED)', required: true, type: 'number' },
@@ -79,12 +110,16 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'status', label: 'Status', required: false, type: 'select' },
       { key: 'reference_number', label: 'Reference Number', required: false, type: 'text' },
       { key: 'agent', label: 'Agent Name', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: true, type: 'text' },
+      { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
+      { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
+      { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },
     ],
   },
   projects: {
     label: 'Projects',
     icon: 'BuildingOffice2Icon',
-    description: 'Import off-plan projects from CSV. Required fields: Name, Developer.',
+    description: 'Import off-plan projects from CSV. Required fields: Name, Developer, Image URLs.',
     fields: [
       { key: 'name', label: 'Project Name', required: true, type: 'text' },
       { key: 'developer', label: 'Developer', required: true, type: 'text' },
@@ -95,64 +130,78 @@ const importConfigs: Record<ImportType, ImportConfig> = {
       { key: 'starting_price', label: 'Starting Price (AED)', required: false, type: 'number' },
       { key: 'completion', label: 'Completion Date', required: false, type: 'text' },
       { key: 'description', label: 'Description', required: false, type: 'text' },
+      { key: 'image_urls', label: 'Image URLs (comma-separated)', required: true, type: 'text' },
+      { key: 'video_url', label: 'Video URL', required: false, type: 'text' },
+      { key: 'virtual_tour_url', label: 'Virtual Tour URL', required: false, type: 'text' },
+      { key: 'floor_plan_url', label: 'Floor Plan URL', required: false, type: 'text' },
     ],
   },
   blogs: {
     label: 'Blog Posts',
     icon: 'DocumentDuplicateIcon',
-    description: 'Import blog posts from CSV. Required fields: Title, Content.',
+    description: 'Import blog posts from CSV. Required fields: Title.',
     fields: [
       { key: 'title', label: 'Post Title', required: true, type: 'text' },
-      { key: 'content', label: 'Content', required: true, type: 'text' },
+      { key: 'content', label: 'Content', required: false, type: 'text' },
       { key: 'slug', label: 'URL Slug', required: false, type: 'text' },
       { key: 'category', label: 'Category', required: false, type: 'select' },
       { key: 'author', label: 'Author', required: false, type: 'text' },
       { key: 'status', label: 'Status', required: false, type: 'select' },
       { key: 'publish_date', label: 'Publish Date', required: false, type: 'text' },
       { key: 'tags', label: 'Tags', required: false, type: 'text' },
+      { key: 'excerpt', label: 'Excerpt', required: false, type: 'text' },
+      { key: 'featured_image', label: 'Featured Image URL', required: false, type: 'text' },
+      { key: 'views', label: 'Views', required: false, type: 'number' },
+      { key: 'meta_title', label: 'Meta Title', required: false, type: 'text' },
+      { key: 'meta_desc', label: 'Meta Description', required: false, type: 'text' },
+    ],
+  },
+  institutional_clients: {
+    label: 'Institutional Clients',
+    icon: 'BuildingOffice2Icon',
+    description: 'Import institutional clients from CSV. Required fields: Company Name.',
+    fields: [
+      { key: 'company_name', label: 'Company Name', required: true, type: 'text' },
+      { key: 'category', label: 'Category', required: false, type: 'select' },
+      { key: 'contact_person', label: 'Contact Person', required: false, type: 'text' },
+      { key: 'email', label: 'Email Address', required: false, type: 'email' },
+      { key: 'phone', label: 'Phone Number', required: false, type: 'text' },
+      { key: 'whatsapp', label: 'WhatsApp', required: false, type: 'text' },
+      { key: 'website', label: 'Website', required: false, type: 'text' },
+      { key: 'country', label: 'Country', required: false, type: 'text' },
+      { key: 'city', label: 'City', required: false, type: 'text' },
+      { key: 'status', label: 'Status', required: false, type: 'select' },
+      { key: 'notes', label: 'Notes', required: false, type: 'text' },
     ],
   },
 };
 
-// Sample CSV data for preview
-const sampleParsedData: Record<ImportType, { headers: string[]; rows: string[][] }> = {
-  leads: {
-    headers: ['Full Name', 'Email', 'Phone', 'Source', 'Budget'],
-    rows: [
-      ['Ahmed Al Mansouri', 'ahmed@example.com', '+971501234567', 'Website', '2500000'],
-      ['Sarah Johnson', 'sarah@example.com', '+971502345678', 'Referral', '5000000'],
-      ['Mohammed Al Rashid', 'mohammed@example.com', '+971503456789', 'Social Media', '1200000'],
-    ],
-  },
-  contacts: {
-    headers: ['Full Name', 'Email', 'Phone', 'Type', 'Status'],
-    rows: [
-      ['James Carter', 'james@example.com', '+971504567890', 'Buyer', 'Active'],
-      ['Priya Sharma', 'priya@example.com', '+971505678901', 'Investor', 'Active'],
-    ],
-  },
-  properties: {
-    headers: ['Property Title', 'Price (AED)', 'Property Type', 'Location', 'Bedrooms', 'Area (sq ft)'],
-    rows: [
-      ['Luxury Apartment Downtown', '2500000', 'Apartment', 'Downtown Dubai', '2', '1200'],
-      ['Palm Villa', '15000000', 'Villa', 'Palm Jumeirah', '5', '8000'],
-    ],
-  },
-  projects: {
-    headers: ['Project Name', 'Developer', 'Location', 'Type', 'Total Units', 'Starting Price'],
-    rows: [
-      ['Horizon Tower', 'Emaar', 'Downtown Dubai', 'Off-Plan', '200', '1500000'],
-      ['Marina Heights', 'DAMAC', 'Dubai Marina', 'Off-Plan', '150', '900000'],
-    ],
-  },
-  blogs: {
-    headers: ['Post Title', 'Category', 'Author', 'Status', 'Publish Date'],
-    rows: [
-      ['Dubai Real Estate Market 2025', 'Market Insights', 'Sarah Mitchell', 'Published', '2025-01-15'],
-      ['Top 10 Areas to Invest in Dubai', 'Investment', 'James Carter', 'Draft', '2025-02-01'],
-    ],
-  },
-};
+function parseCSV(text: string): { headers: string[]; rows: string[][] } {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const parseRow = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+  const headers = parseRow(lines[0]);
+  const rows = lines.slice(1).filter(l => l.trim()).map(parseRow);
+  return { headers, rows };
+}
 
 function generateCSVTemplate(type: ImportType): string {
   const config = importConfigs[type];
@@ -177,8 +226,129 @@ function downloadCSV(content: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// Convert a parsed row (mapped fields) into a typed record for storage
+function buildRecord(type: ImportType, fieldMap: Record<string, string>): Record<string, unknown> {
+  if (type === 'leads') {
+    return {
+      name: fieldMap['name'] || 'Unknown',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      source: fieldMap['source'] || 'Import',
+      status: fieldMap['status'] || 'New',
+      budget: fieldMap['budget'] ? `AED ${fieldMap['budget']}` : '',
+      interest: fieldMap['interest'] || '',
+      nationality: fieldMap['nationality'] || '',
+      notes: fieldMap['notes'] || '',
+      assigned_agent: '',
+    };
+  }
+  if (type === 'contacts') {
+    return {
+      name: fieldMap['name'] || 'Unknown',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      type: fieldMap['type'] || 'Buyer',
+      status: fieldMap['status'] || 'Active',
+      nationality: fieldMap['nationality'] || '',
+      assigned_agent: fieldMap['assigned_agent'] || '',
+      source: 'Import',
+    };
+  }
+  if (type === 'properties') {
+    const imageUrlsRaw = fieldMap['image_urls'] || '';
+    return {
+      title: fieldMap['title'] || 'Imported Property',
+      location_area: fieldMap['location'] || '',
+      price_aed: fieldMap['price'] || '',
+      prop_category:
+        fieldMap['property_type'] === 'Office' ||
+        fieldMap['property_type'] === 'Retail' ||
+        fieldMap['property_type'] === 'Warehouse'
+          ? 'Commercial' :'Residential',
+      property_type: fieldMap['property_type'] || 'Apartment',
+      listing_type: fieldMap['listing_type'] || 'For Sale',
+      availability: fieldMap['status'] || 'Available',
+      bedrooms: fieldMap['bedrooms'] || '',
+      bathrooms: fieldMap['bathrooms'] || '',
+      area_sqft: fieldMap['area_sqft'] || '',
+      reference_number: fieldMap['reference_number'] || '',
+      agent_name: fieldMap['agent'] || '',
+      image_urls: imageUrlsRaw,
+      video_url: fieldMap['video_url'] || '',
+      virtual_tour_url: fieldMap['virtual_tour_url'] || '',
+      community: fieldMap['community'] || '',
+      published: true,
+      featured: false,
+    };
+  }
+  if (type === 'projects') {
+    const imageUrlsRaw = fieldMap['image_urls'] || '';
+    const imageArray = imageUrlsRaw
+      .split(',')
+      .map((u: string) => u.trim())
+      .filter(Boolean)
+      .map((url: string) => ({ url, alt: fieldMap['name'] || 'Project image' }));
+    return {
+      name: fieldMap['name'] || 'Imported Project',
+      developer: fieldMap['developer'] || '',
+      location_area: fieldMap['location'] || '',
+      project_type: fieldMap['type'] || 'Off-Plan',
+      status: fieldMap['status'] || 'Active',
+      starting_price: fieldMap['starting_price'] || '',
+      total_units: fieldMap['total_units'] ? parseInt(fieldMap['total_units']) : 0,
+      handover_date: fieldMap['completion'] || '',
+      description: fieldMap['description'] || '',
+      images: imageArray,
+      video_url: fieldMap['video_url'] || '',
+      virtual_tour_url: fieldMap['virtual_tour_url'] || '',
+      published: true,
+      featured: false,
+    };
+  }
+  if (type === 'institutional_clients') {
+    return {
+      company_name: fieldMap['company_name'] || 'Unknown Company',
+      category: fieldMap['category'] || 'Other',
+      contact_person: fieldMap['contact_person'] || '',
+      email: fieldMap['email'] || '',
+      phone: fieldMap['phone'] || '',
+      whatsapp: fieldMap['whatsapp'] || '',
+      website: fieldMap['website'] || '',
+      country: fieldMap['country'] || '',
+      city: fieldMap['city'] || '',
+      status: fieldMap['status'] || 'Active',
+      notes: fieldMap['notes'] || '',
+    };
+  }
+  if (type === 'blogs') {
+    const slug = fieldMap['slug'] || (fieldMap['title'] || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const tagsRaw = fieldMap['tags'] || '';
+    const tags = tagsRaw ? tagsRaw.split(/[;,|]/).map((t: string) => t.trim()).filter(Boolean) : [];
+    return {
+      title: fieldMap['title'] || 'Imported Post',
+      slug,
+      content: fieldMap['content'] || '',
+      excerpt: fieldMap['excerpt'] || '',
+      category: fieldMap['category'] || 'Market Insights',
+      author: fieldMap['author'] || 'Admin',
+      status: fieldMap['status'] || 'Draft',
+      views: fieldMap['views'] ? parseInt(fieldMap['views'], 10) || 0 : 0,
+      featured_image: fieldMap['featured_image'] || '',
+      publish_date: fieldMap['publish_date'] || null,
+      tags,
+      meta_title: fieldMap['meta_title'] || '',
+      meta_desc: fieldMap['meta_desc'] || '',
+    };
+  }
+  return { ...fieldMap };
+}
+
 export default function BulkImportPage() {
-  const [activeType, setActiveType] = useState<ImportType>('leads');
+  const searchParams = useSearchParams();
+  const [activeType, setActiveType] = useState<ImportType>(() => {
+    const typeParam = searchParams?.get('type') as ImportType | null;
+    return typeParam && typeParam in importConfigs ? typeParam : 'leads';
+  });
   const [step, setStep] = useState<ImportStep>('upload');
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -186,10 +356,12 @@ export default function BulkImportPage() {
   const [importProgress, setImportProgress] = useState(0);
   const [mapping, setMapping] = useState<MappingState>({});
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [parsedData, setParsedData] = useState<{ headers: string[]; rows: string[][] }>({ headers: [], rows: [] });
+  const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = useMemo(() => createClient(), []);
 
   const config = importConfigs[activeType];
-  const parsedData = sampleParsedData[activeType];
 
   const handleTypeChange = (type: ImportType) => {
     setActiveType(type);
@@ -198,21 +370,41 @@ export default function BulkImportPage() {
     setMapping({});
     setValidationErrors([]);
     setImportProgress(0);
+    setParsedData({ headers: [], rows: [] });
   };
 
-  const handleFileSelect = (name: string) => {
-    setFileName(name);
-    // Auto-map columns by matching names
-    const autoMap: MappingState = {};
-    parsedData.headers.forEach((header) => {
-      const match = config.fields.find((f) =>
-        f.label.toLowerCase() === header.toLowerCase() ||
-        f.key.toLowerCase() === header.toLowerCase().replace(/\s+/g, '_')
-      );
-      if (match) autoMap[header] = match.key;
-    });
-    setMapping(autoMap);
-  };
+  const handleFileSelect = useCallback((file: File) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const data = parseCSV(text);
+      setParsedData(data);
+      // Auto-map columns
+      const autoMap: MappingState = {};
+      data.headers.forEach((header) => {
+        const normalizedHeader = normalizeHeader(header);
+        let match = config.fields.find((f) =>
+          normalizeHeader(f.label) === normalizedHeader || normalizeHeader(f.key) === normalizedHeader
+        );
+
+        // Blog imports accept common alternate header names (post_title, body, date, etc.)
+        if (!match && activeType === 'blogs') {
+          const aliasMatch = Object.entries(BLOG_FIELD_ALIASES).find(([, aliases]) =>
+            aliases.some((alias) => normalizeHeader(alias) === normalizedHeader)
+          );
+          if (aliasMatch) {
+            const matchedKey = aliasMatch[0];
+            match = config.fields.find((f) => f.key === matchedKey);
+          }
+        }
+
+        if (match) autoMap[header] = match.key;
+      });
+      setMapping(autoMap);
+    };
+    reader.readAsText(file);
+  }, [activeType, config.fields]);
 
   const handleDownloadTemplate = () => {
     const csv = generateCSVTemplate(activeType);
@@ -220,7 +412,6 @@ export default function BulkImportPage() {
   };
 
   const handleValidate = () => {
-    // Simulate validation
     const errors: ValidationError[] = [];
     parsedData.rows.forEach((row, rowIdx) => {
       config.fields.filter((f) => f.required).forEach((field) => {
@@ -237,20 +428,51 @@ export default function BulkImportPage() {
     setStep('validation');
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     setImporting(true);
     setImportProgress(0);
-    const interval = setInterval(() => {
-      setImportProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setImporting(false);
-          setStep('done');
-          return 100;
+    setImportError(null);
+
+    // Build records from parsed CSV rows using the mapping
+    const records = parsedData.rows.map((row) => {
+      const fieldMap: Record<string, string> = {};
+      Object.entries(mapping).forEach(([csvCol, fieldKey]) => {
+        if (fieldKey) {
+          const colIdx = parsedData.headers.indexOf(csvCol);
+          if (colIdx >= 0) fieldMap[fieldKey] = row[colIdx] || '';
         }
-        return prev + 10;
       });
-    }, 200);
+      return buildRecord(activeType, fieldMap);
+    });
+
+    // Simulate progress while inserting
+    const progressInterval = setInterval(() => {
+      setImportProgress((prev) => (prev < 80 ? prev + 10 : prev));
+    }, 150);
+
+    try {
+      const tableName = IMPORT_TABLE_MAP[activeType];
+      const { error } = await supabase.from(tableName).insert(records as any[]);
+
+      clearInterval(progressInterval);
+
+      if (error) {
+        setImportError(`Import failed: ${error.message}`);
+        setImporting(false);
+        setImportProgress(0);
+        return;
+      }
+
+      setImportProgress(100);
+      setImporting(false);
+      setStep('done');
+    } catch (err: unknown) {
+      clearInterval(progressInterval);
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setImportError(`Import failed: ${message}`);
+      setImporting(false);
+      setImportProgress(0);
+    }
   };
 
   const handleReset = () => {
@@ -259,6 +481,7 @@ export default function BulkImportPage() {
     setMapping({});
     setValidationErrors([]);
     setImportProgress(0);
+    setParsedData({ headers: [], rows: [] });
   };
 
   const stepLabels: { id: ImportStep; label: string; num: number }[] = [
@@ -271,6 +494,9 @@ export default function BulkImportPage() {
 
   const stepOrder: ImportStep[] = ['upload', 'mapping', 'validation', 'confirm', 'done'];
   const currentStepIdx = stepOrder.indexOf(step);
+
+  // Preview: show up to 3 rows
+  const previewRows = parsedData.rows.slice(0, 3);
 
   return (
     <div className="p-6">
@@ -322,7 +548,7 @@ export default function BulkImportPage() {
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f.name); }}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed p-12 text-center transition-colors cursor-pointer ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-primary/2'}`}
               >
@@ -333,7 +559,7 @@ export default function BulkImportPage() {
                     </div>
                     <p className="text-base font-semibold text-foreground">{fileName}</p>
                     <p className="text-sm text-muted-foreground mt-1">{parsedData.rows.length} rows detected · Ready to map columns</p>
-                    <button onClick={(e) => { e.stopPropagation(); setFileName(null); setMapping({}); }} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); setFileName(null); setMapping({}); setParsedData({ headers: [], rows: [] }); }} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">
                       Remove file
                     </button>
                   </div>
@@ -349,10 +575,10 @@ export default function BulkImportPage() {
                     </span>
                   </div>
                 )}
-                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f.name); }} />
+                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
               </div>
 
-              {fileName && (
+              {fileName && parsedData.headers.length > 0 && (
                 <div className="bg-card border border-border p-4">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Preview (first 3 rows)</p>
                   <div className="overflow-x-auto">
@@ -365,7 +591,7 @@ export default function BulkImportPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {parsedData.rows.map((row, i) => (
+                        {previewRows.map((row, i) => (
                           <tr key={i} className="border-b border-border last:border-0">
                             {row.map((cell, j) => (
                               <td key={j} className="px-3 py-2 text-foreground whitespace-nowrap">{cell}</td>
@@ -381,7 +607,7 @@ export default function BulkImportPage() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setStep('mapping')}
-                  disabled={!fileName}
+                  disabled={!fileName || parsedData.headers.length === 0}
                   className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next: Map Columns
@@ -573,6 +799,13 @@ export default function BulkImportPage() {
                   <p className="text-xs text-muted-foreground mt-1">This action will add the records to your system. Existing records will not be affected.</p>
                 </div>
 
+                {importError && (
+                  <div className="mt-4 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30">
+                    <Icon name="ExclamationCircleIcon" size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-400">{importError}</p>
+                  </div>
+                )}
+
                 {importing && (
                   <div className="mt-4">
                     <div className="flex justify-between text-xs mb-1.5">
@@ -611,7 +844,7 @@ export default function BulkImportPage() {
               <p className="text-sm text-muted-foreground mb-2">
                 Successfully imported <span className="text-foreground font-semibold">{parsedData.rows.length} {config.label}</span>
               </p>
-              <p className="text-xs text-muted-foreground mb-8">All records have been added to your system.</p>
+              <p className="text-xs text-muted-foreground mb-8">All records have been added to your system. Navigate to the {config.label} page to view them.</p>
               <div className="flex justify-center gap-3">
                 <button onClick={handleReset} className="flex items-center gap-2 px-5 py-2.5 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <Icon name="ArrowPathIcon" size={14} />Import More
