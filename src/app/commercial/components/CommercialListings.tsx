@@ -177,25 +177,23 @@ export default function CommercialListings() {
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 33vw" />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">
                     {listing.type}
                   </span>
                   {listing.featured &&
-                <span className="bg-background/80 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-primary/30">
+<span className="bg-background/80 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-primary/30">
                       Featured
                     </span>
                 }
                 </div>
                 {listing.status !== 'Available' &&
               <div className="absolute top-4 right-4">
-                    <span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
+<span className="bg-foreground/20 backdrop-blur-sm text-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-foreground/20">
                       {listing.status}
                     </span>
                   </div>
               }
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
 
               <div className="p-5">

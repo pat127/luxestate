@@ -43,7 +43,6 @@ function ProjectCard({ project, priority = false, wide = false }: {
             <Icon name="BuildingOffice2Icon" size={48} className="text-muted-foreground/40" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{project.type}</span>
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] border px-3 py-1 backdrop-blur-sm text-amber-400 border-amber-400/30 bg-amber-400/10">

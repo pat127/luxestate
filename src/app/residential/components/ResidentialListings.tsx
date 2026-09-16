@@ -219,7 +219,6 @@ export default function ResidentialListings() {
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 33vw" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">
                     {property.tag}
@@ -232,7 +231,6 @@ export default function ResidentialListings() {
                     </span>
                   </div>
             }
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
               <div className="p-5">
                 <div className="flex justify-between items-start mb-3">
@@ -263,7 +261,6 @@ export default function ResidentialListings() {
         <Link key={property.id} href={`/properties/${property.id}`} className="animate-on-scroll flex flex-col md:flex-row bg-card border border-border group hover:border-primary/30 transition-all duration-300 cursor-pointer block" style={{ transitionDelay: `${i * 40}ms` }}>
               <div className="relative w-full md:w-64 h-48 md:h-auto flex-shrink-0 overflow-hidden">
                 <AppImage src={property.image} alt={property.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="300px" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
               </div>
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div className="flex justify-between items-start">

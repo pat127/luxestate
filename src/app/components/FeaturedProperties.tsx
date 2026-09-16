@@ -38,12 +38,10 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
     <Link href={`/properties/${property.id}`} className={`property-card relative overflow-hidden block bg-card border border-border group cursor-pointer h-full ${isTall ? 'flex flex-col' : ''}`}>
       <div className={`relative overflow-hidden ${isTall ? 'flex-1 min-h-[300px]' : 'h-64 md:h-72'}`}>
         <AppImage src={property.image} alt={property.alt} fill className="object-cover" quality={60} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" priority={priority} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1">{property.category || property.tag}</span>
           {property.tag && <span className="bg-white/10 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 border border-white/20">{property.tag}</span>}
         </div>
-        <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
       <div className="p-5 border-t border-border">
         <div className="flex justify-between items-start mb-3">
