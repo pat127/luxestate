@@ -233,20 +233,20 @@ export default function ResidentialListings() {
             }
               </div>
               <div className="p-5">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
-                    <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-                      <Icon name="MapPinIcon" size={11} className="text-primary" />
-                      {property.location}
-                    </p>
-                  </div>
-                  <span className="text-primary font-bold text-sm">{property.price}</span>
+                <div className="mb-3">
+                  <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
+                  <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
+                    <Icon name="MapPinIcon" size={11} className="text-primary" />
+                    {property.location}
+                  </p>
                 </div>
-                <div className="flex items-center gap-5 text-xs text-muted-foreground border-t border-border pt-3">
+                <div className="flex items-center gap-5 text-xs font-bold text-white border-t border-border pt-3 pb-3">
                   <span className="flex items-center gap-1.5"><Icon name="HomeIcon" size={12} className="text-primary" />{property.beds} Beds</span>
                   <span className="flex items-center gap-1.5"><Icon name="SparklesIcon" size={12} className="text-primary" />{property.baths} Baths</span>
                   <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <span className="text-foreground font-bold text-base">{property.price}</span>
                 </div>
               </div>
             </Link>
@@ -263,24 +263,24 @@ export default function ResidentialListings() {
                 <AppImage src={property.image} alt={property.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="300px" />
               </div>
               <div className="flex-1 p-6 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">{property.tag}</span>
-                    </div>
-                    <h3 className="text-foreground font-bold text-xl mb-1">{property.name}</h3>
-                    <p className="text-muted-foreground text-xs tracking-widest uppercase flex items-center gap-1">
-                      <Icon name="MapPinIcon" size={11} className="text-primary" />
-                      {property.location}
-                    </p>
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">{property.tag}</span>
                   </div>
-                  <span className="text-primary font-bold text-xl">{property.price}</span>
+                  <h3 className="text-foreground font-bold text-xl mb-1">{property.name}</h3>
+                  <p className="text-muted-foreground text-xs tracking-widest uppercase flex items-center gap-1">
+                    <Icon name="MapPinIcon" size={11} className="text-primary" />
+                    {property.location}
+                  </p>
                 </div>
-                <div className="flex items-center gap-8 mt-4 pt-4 border-t border-border">
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="HomeIcon" size={14} className="text-primary" />{property.beds} Bedrooms</span>
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="SparklesIcon" size={14} className="text-primary" />{property.baths} Bathrooms</span>
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon name="ArrowsPointingOutIcon" size={14} className="text-primary" />{property.sqft} sqft</span>
-                  <div className="ml-auto">
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center gap-8 mb-3">
+                    <span className="flex items-center gap-2 text-sm font-bold text-white"><Icon name="HomeIcon" size={14} className="text-primary" />{property.beds} Bedrooms</span>
+                    <span className="flex items-center gap-2 text-sm font-bold text-white"><Icon name="SparklesIcon" size={14} className="text-primary" />{property.baths} Bathrooms</span>
+                    <span className="flex items-center gap-2 text-sm font-bold text-white"><Icon name="ArrowsPointingOutIcon" size={14} className="text-primary" />{property.sqft} sqft</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border pt-3">
+                    <span className="text-foreground font-bold text-xl">{property.price}</span>
                     <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-0.5">
                       View Details <Icon name="ArrowRightIcon" size={12} />
                     </span>

@@ -197,27 +197,28 @@ export default function CommercialListings() {
               </div>
 
               <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-foreground font-bold text-lg leading-tight">{listing.name}</h3>
-                    <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-                      <Icon name="MapPinIcon" size={11} className="text-primary" />
-                      {listing.location}
-                    </p>
-                  </div>
-                  <span className="text-primary font-bold text-sm text-right">{listing.price}</span>
+                <div className="mb-4">
+                  <h3 className="text-foreground font-bold text-lg leading-tight">{listing.name}</h3>
+                  <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
+                    <Icon name="MapPinIcon" size={11} className="text-primary" />
+                    {listing.location}
+                  </p>
                 </div>
 
                 {/* Investment Metrics */}
-                <div className="grid grid-cols-2 gap-3 border border-border p-3 mb-4 bg-background">
+                <div className="grid grid-cols-2 gap-3 border border-border p-3 mb-3 bg-background">
                   <div className="text-center">
-                    <p className="text-primary font-bold text-sm">{listing.sqft}</p>
+                    <p className="text-white font-bold text-sm">{listing.sqft}</p>
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Sq Ft</p>
                   </div>
                   <div className="text-center border-l border-border">
-                    <p className="text-primary font-bold text-sm">{listing.pricePerSqft}</p>
+                    <p className="text-white font-bold text-sm">{listing.pricePerSqft}</p>
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Price / Sq Ft</p>
                   </div>
+                </div>
+
+                <div className="border-t border-border pt-3 mb-3">
+                  <span className="text-foreground font-bold text-base">{listing.price}</span>
                 </div>
 
                 <div className="flex items-center justify-between w-full border-t border-border pt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">

@@ -44,19 +44,19 @@ function PropertyCard({ property, priority = false, rowSpan = '' }: {
         </div>
       </div>
       <div className="p-5 border-t border-border">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
-            <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
-              <Icon name="MapPinIcon" size={11} className="text-primary" />{property.location}
-            </p>
-          </div>
-          <span className="text-primary font-bold text-sm md:text-base text-right">{convertPrice(property.price)}</span>
+        <div className="mb-3">
+          <h3 className="text-foreground font-bold text-lg leading-tight">{property.name}</h3>
+          <p className="text-muted-foreground text-xs tracking-widest uppercase mt-1 flex items-center gap-1">
+            <Icon name="MapPinIcon" size={11} className="text-primary" />{property.location}
+          </p>
         </div>
-        <div className="flex items-center gap-5 text-xs text-muted-foreground border-t border-border pt-3">
+        <div className="flex items-center gap-5 text-xs font-bold text-white border-t border-border pt-3 pb-3">
           {property.beds > 0 && <span className="flex items-center gap-1.5"><Icon name="HomeIcon" size={12} className="text-primary" />{property.beds} Beds</span>}
           {property.baths > 0 && <span className="flex items-center gap-1.5"><Icon name="SparklesIcon" size={12} className="text-primary" />{property.baths} Baths</span>}
           {property.sqft && <span className="flex items-center gap-1.5"><Icon name="ArrowsPointingOutIcon" size={12} className="text-primary" />{property.sqft} sqft</span>}
+        </div>
+        <div className="border-t border-border pt-3">
+          <span className="text-foreground font-bold text-base">{convertPrice(property.price)}</span>
         </div>
       </div>
     </Link>
