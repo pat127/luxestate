@@ -228,7 +228,7 @@ export default function ProjectsGallery() {
                 )}
 
                 {/* Row 2: Project name — large, bold headline */}
-                <h3 className="text-foreground font-bold text-xl md:text-2xl leading-tight tracking-tight mb-2 group-hover:text-primary transition-colors duration-200">
+                <h3 className="text-primary font-bold text-xl md:text-2xl leading-tight tracking-tight mb-2 transition-colors duration-200">
                   {project.name}
                 </h3>
 
@@ -284,7 +284,7 @@ export default function ProjectsGallery() {
                   </div>
 
                   {/* Explore CTA — Sotheby's style */}
-                  <span className="inline-flex items-center gap-2 px-5 py-2.5 border border-foreground/40 text-foreground text-[11px] font-bold uppercase tracking-[0.2em] group-hover:bg-foreground group-hover:text-background transition-all duration-300">
+                  <span className="inline-flex items-center gap-2 px-5 py-2.5 border border-primary text-primary text-[11px] font-bold uppercase tracking-[0.2em] group-hover:bg-primary group-hover:text-background transition-all duration-300">
                     Explore
                     <Icon name="ArrowRightIcon" size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
                   </span>
