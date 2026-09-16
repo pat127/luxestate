@@ -23,6 +23,9 @@ interface DisplayProject {
   description: string;
   featured: boolean;
   colSpan: string;
+  minBedrooms: number | null;
+  maxBedrooms: number | null;
+  sizeRange: string;
 }
 
 function getStatusColor(status: string): string {
@@ -55,7 +58,7 @@ export default function ProjectsGallery() {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, name, developer, location_area, handover_date, total_units, starting_price, status, sold_units, project_type, images, description, featured, published, international')
+          .select('id, name, developer, location_area, handover_date, total_units, starting_price, status, sold_units, project_type, images, description, featured, published, international, min_bedrooms, max_bedrooms, size_range')
           .eq('published', true)
           .eq('international', false)
           .order('created_at', { ascending: false });
@@ -90,6 +93,9 @@ export default function ProjectsGallery() {
             description: p.description || '',
             featured: p.featured === true,
             colSpan: p.featured === true ? 'md:col-span-2' : 'md:col-span-1',
+            minBedrooms: p.min_bedrooms ?? null,
+            maxBedrooms: p.max_bedrooms ?? null,
+            sizeRange: p.size_range || '',
           };
         });
         setDisplayProjects(mapped);
@@ -236,16 +242,20 @@ export default function ProjectsGallery() {
 
                 {/* Row 4: Beds / Size / Handover info row */}
                 <div className="flex items-center gap-4 mb-4">
-                  {project.units > 0 && (
+                  {(project.minBedrooms !== null || project.maxBedrooms !== null) && (
                     <div className="flex items-center gap-1.5">
-                      <Icon name="BuildingOffice2Icon" size={12} className="text-muted-foreground" />
-                      <span className="text-white text-xs font-semibold">{project.units} Units</span>
+                      <Icon name="HomeIcon" size={12} className="text-muted-foreground" />
+                      <span className="text-white text-xs font-semibold">
+                        {project.minBedrooms === project.maxBedrooms
+                          ? `${project.minBedrooms} Bed`
+                          : `${project.minBedrooms}–${project.maxBedrooms} Bed`}
+                      </span>
                     </div>
                   )}
-                  {project.type && (
+                  {project.sizeRange && (
                     <div className="flex items-center gap-1.5">
-                      <Icon name="TagIcon" size={12} className="text-muted-foreground" />
-                      <span className="text-white text-xs font-semibold">{project.type}</span>
+                      <Icon name="Squares2X2Icon" size={12} className="text-muted-foreground" />
+                      <span className="text-white text-xs font-semibold">{project.sizeRange}</span>
                     </div>
                   )}
                   {project.completion && (
