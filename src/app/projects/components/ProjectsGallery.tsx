@@ -186,11 +186,11 @@ export default function ProjectsGallery() {
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              className={`animate-on-scroll group cursor-pointer block ${project.colSpan}`}
+              className="animate-on-scroll group cursor-pointer block"
               style={{ transitionDelay: `${i * 70}ms` }}
             >
               {/* Image */}
-              <div className={`relative overflow-hidden ${project.featured ? 'h-[420px]' : 'h-[300px]'}`}>
+              <div className="relative overflow-hidden h-[320px]">
                 {project.image ? (
                   <AppImage
                     src={project.image}
@@ -226,13 +226,38 @@ export default function ProjectsGallery() {
                   {project.name}
                 </h3>
 
-                {/* Row 3: Location */}
+                {/* Row 3: Location — white */}
                 {project.location && (
-                  <p className="text-muted-foreground text-xs tracking-wide flex items-center gap-1.5 mb-4">
+                  <p className="text-white text-xs tracking-wide flex items-center gap-1.5 mb-4">
                     <Icon name="MapPinIcon" size={11} className="text-primary flex-shrink-0" />
                     {project.location}
                   </p>
                 )}
+
+                {/* Row 4: Beds / Size / Handover info row */}
+                <div className="flex items-center gap-4 mb-4">
+                  {project.units > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="BuildingOffice2Icon" size={12} className="text-muted-foreground" />
+                      <span className="text-white text-xs font-semibold">{project.units} Units</span>
+                    </div>
+                  )}
+                  {project.type && (
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="TagIcon" size={12} className="text-muted-foreground" />
+                      <span className="text-white text-xs font-semibold">{project.type}</span>
+                    </div>
+                  )}
+                  {project.completion && (
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="CalendarIcon" size={12} className="text-muted-foreground" />
+                      <div>
+                        <span className="text-white text-[10px] uppercase tracking-[0.15em] font-bold">Handover </span>
+                        <span className="text-white text-xs font-semibold">{project.completion}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Divider */}
                 <div className="border-t border-border pt-4 flex items-end justify-between gap-4">
@@ -240,26 +265,19 @@ export default function ProjectsGallery() {
                   <div>
                     {project.priceFrom ? (
                       <>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Starting From</p>
-                        <p className="text-foreground font-bold text-lg leading-none">{project.priceFrom}</p>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-white font-bold mb-0.5">Starting From</p>
+                        <p className="text-foreground font-bold text-xl leading-none">{project.priceFrom}</p>
                       </>
                     ) : (
                       <p className="text-muted-foreground text-xs uppercase tracking-widest">Price on Request</p>
                     )}
                   </div>
 
-                  {/* Completion + CTA */}
-                  <div className="flex items-center gap-4 text-right">
-                    {project.completion && (
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Handover</p>
-                        <p className="text-foreground text-sm font-semibold">{project.completion}</p>
-                      </div>
-                    )}
-                    <span className="text-primary text-xs font-bold uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all duration-200">
-                      View <Icon name="ArrowRightIcon" size={11} />
-                    </span>
-                  </div>
+                  {/* Explore CTA — Sotheby's style */}
+                  <span className="inline-flex items-center gap-2 px-5 py-2.5 border border-foreground/40 text-foreground text-[11px] font-bold uppercase tracking-[0.2em] group-hover:bg-foreground group-hover:text-background transition-all duration-300">
+                    Explore
+                    <Icon name="ArrowRightIcon" size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </span>
                 </div>
               </div>
             </Link>
