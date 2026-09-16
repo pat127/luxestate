@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import AppIcon from './AppIcon';
-import AppImage from './AppImage';
+import Image from 'next/image';
 
 interface AppLogoProps {
   src?: string; // Image source (optional)
@@ -19,7 +19,6 @@ const AppLogo = memo(function AppLogo({
   className = '',
   onClick,
 }: AppLogoProps) {
-  // Memoize className calculation
   const containerClassName = useMemo(() => {
     const classes = ['flex items-center'];
     if (onClick) classes.push('cursor-pointer hover:opacity-80 transition-opacity');
@@ -29,16 +28,18 @@ const AppLogo = memo(function AppLogo({
 
   return (
     <div className={containerClassName} onClick={onClick}>
-      {/* Show image if src provided, otherwise show icon */}
       {src ? (
-        <AppImage
+        <Image
           src={src}
           alt="Logo"
           width={size}
           height={size}
-          className="flex-shrink-0"
           priority={true}
+          fetchPriority="high"
+          placeholder="empty"
           unoptimized={src.endsWith('.svg')}
+          className="flex-shrink-0 object-contain"
+          style={{ width: size, height: 'auto', maxHeight: size }}
         />
       ) : (
         <AppIcon name={iconName} size={size} className="flex-shrink-0" />
