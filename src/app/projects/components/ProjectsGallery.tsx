@@ -49,7 +49,7 @@ export default function ProjectsGallery() {
   const [displayProjects, setDisplayProjects] = useState<DisplayProject[]>([]);
   const [loaded, setLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
-  const types = ['All', 'Residential', 'Commercial', 'Mixed-Use'];
+  const types = ['All', 'Residential', 'Commercial', 'Mixed Use', 'Hospitality'];
 
   useEffect(() => {
     let cancelled = false;
@@ -74,9 +74,7 @@ export default function ProjectsGallery() {
           const imgs = Array.isArray(p.images) ? p.images : [];
           const coverImage = imgs[0]?.url || imgs[0]?.src || '';
           const coverAlt = imgs[0]?.caption || imgs[0]?.alt || p.name || '';
-          let displayType = p.project_type || 'Residential';
-          // Only remap Off-Plan / Under Construction to Residential; preserve Commercial and Mixed-Use
-          if (displayType === 'Off-Plan' || displayType === 'Under Construction' || displayType === 'Completed') displayType = 'Residential';
+          const displayType = p.project_type || 'Residential';
           return {
             id: p.id,
             name: p.name || '',

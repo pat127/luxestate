@@ -118,7 +118,7 @@ function ProjectsPageInner() {
   const [name, setName] = useState('');
   const [developer, setDeveloper] = useState('');
   const [description, setDescription] = useState('');
-  const [projectType, setProjectType] = useState('Off-Plan');
+  const [projectType, setProjectType] = useState('Residential');
   const [status, setStatus] = useState('Active');
   const [startingPrice, setStartingPrice] = useState('');
   const [handoverDate, setHandoverDate] = useState('');
@@ -259,7 +259,7 @@ function ProjectsPageInner() {
   };
 
   const resetModal = () => {
-    setName(''); setDeveloper(''); setDescription(''); setProjectType('Off-Plan'); setStatus('Active');
+    setName(''); setDeveloper(''); setDescription(''); setProjectType('Residential'); setStatus('Active');
     setStartingPrice(''); setHandoverDate(''); setFeatured(false); setPublished(false);
     setInternational(false); setCountry(''); setCountrySearch('');
     setTotalUnits(''); setAvailableUnits(''); setMinBedrooms('0'); setMaxBedrooms('6');
@@ -279,7 +279,7 @@ function ProjectsPageInner() {
     const { data } = await supabase.from('projects').select('*').eq('id', id).single();
     if (!data) return;
     setName(data.name || ''); setDeveloper(data.developer || ''); setDescription(data.description || '');
-    setProjectType(data.project_type || 'Off-Plan'); setStatus(data.status || 'Active');
+    setProjectType(data.project_type || 'Residential'); setStatus(data.status || 'Active');
     setStartingPrice(data.starting_price || ''); setHandoverDate(data.handover_date || '');
     setFeatured(data.featured ?? false); setPublished(data.published ?? false);
     setInternational(data.international ?? false); setCountry(data.country || ''); setCountrySearch(data.country || '');
@@ -642,12 +642,12 @@ function ProjectsPageInner() {
                   <div><label className={labelCls}>Developer</label><input className={inputCls} value={developer} onChange={(e) => setDeveloper(e.target.value)} placeholder="e.g. Emaar" /></div>
                   <div><label className={labelCls}>Type</label>
                     <select className={inputCls} value={projectType} onChange={(e) => setProjectType(e.target.value)}>
-                      <option>Off-Plan</option><option>Completed</option><option>Under Construction</option><option>Residential</option><option>Commercial</option><option>Mixed-Use</option>
+                      <option>Residential</option><option>Commercial</option><option>Mixed Use</option><option>Hospitality</option>
                     </select>
                   </div>
                   <div><label className={labelCls}>Status</label>
                     <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
-                      <option>Active</option><option>Launching</option><option>Completed</option><option>On Hold</option>
+                      <option>Active</option><option>Launching</option><option>Off-Plan</option><option>Under Construction</option><option>Completed</option><option>On Hold</option>
                     </select>
                   </div>
                   <div><label className={labelCls}>Starting Price (AED)</label><input className={inputCls} value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)} placeholder="e.g. 1,200,000" /></div>
