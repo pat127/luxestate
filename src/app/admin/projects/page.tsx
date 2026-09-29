@@ -642,7 +642,7 @@ function ProjectsPageInner() {
                   <div><label className={labelCls}>Developer</label><input className={inputCls} value={developer} onChange={(e) => setDeveloper(e.target.value)} placeholder="e.g. Emaar" /></div>
                   <div><label className={labelCls}>Type</label>
                     <select className={inputCls} value={projectType} onChange={(e) => setProjectType(e.target.value)}>
-                      <option>Off-Plan</option><option>Completed</option><option>Under Construction</option>
+                      <option>Off-Plan</option><option>Completed</option><option>Under Construction</option><option>Residential</option><option>Commercial</option><option>Mixed-Use</option>
                     </select>
                   </div>
                   <div><label className={labelCls}>Status</label>

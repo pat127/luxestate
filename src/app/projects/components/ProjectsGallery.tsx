@@ -75,7 +75,8 @@ export default function ProjectsGallery() {
           const coverImage = imgs[0]?.url || imgs[0]?.src || '';
           const coverAlt = imgs[0]?.caption || imgs[0]?.alt || p.name || '';
           let displayType = p.project_type || 'Residential';
-          if (displayType === 'Off-Plan' || displayType === 'Under Construction') displayType = 'Residential';
+          // Only remap Off-Plan / Under Construction to Residential; preserve Commercial and Mixed-Use
+          if (displayType === 'Off-Plan' || displayType === 'Under Construction' || displayType === 'Completed') displayType = 'Residential';
           return {
             id: p.id,
             name: p.name || '',
