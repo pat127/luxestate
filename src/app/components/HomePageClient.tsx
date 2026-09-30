@@ -2,10 +2,13 @@
 
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import HeroSection from '@/app/components/HeroSection';
 import { useCMSPage, DEFAULT_HOMEPAGE_BLOCKS } from '@/contexts/CMSContext';
+
+// Header is above-fold but non-LCP — lazy with no SSR fallback keeps it out of the critical JS bundle
+const Header = dynamic(() => import('@/components/Header'), { ssr: true });
+// Footer is fully below-fold — defer entirely to keep it out of the LCP critical path
+const Footer = dynamic(() => import('@/components/Footer'), { ssr: false });
 
 // Dynamically import below-fold components to avoid blocking LCP
 const FeaturedProperties = dynamic(() => import('@/app/components/FeaturedProperties'), { ssr: false });

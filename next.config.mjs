@@ -10,6 +10,12 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '20mb',
     },
+    // Tree-shake large packages so only used exports are bundled — reduces unused JS chunks
+    optimizePackageImports: [
+      'recharts',
+      '@heroicons/react',
+      'lucide-react',
+    ],
   },
 
   typescript: {
