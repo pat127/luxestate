@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
@@ -45,7 +45,7 @@ const AMENITY_ICON_MAP: Record<string, string> = {
 export default function MarketingLandingPage() {
   const params = useParams();
   const projectId = params?.projectId as string;
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { branding } = useCMS();
 
   const [project, setProject] = useState<ProjectData | null>(null);
@@ -67,12 +67,15 @@ export default function MarketingLandingPage() {
       .from('projects')
       .select('id, name, developer, location_area, full_address, starting_price, handover_date, status, project_type, description, images, amenities, highlights, unit_types, milestones, total_units')
       .eq('id', projectId)
-      .single()
-      .then(({ data }) => {
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Marketing page project fetch error:', error);
+        }
         if (data) setProject(data as ProjectData);
         setLoaded(true);
       });
-  }, [projectId]);
+  }, [projectId, supabase]);
 
   const images = project
     ? (Array.isArray(project.images) ? project.images : [])
@@ -549,7 +552,7 @@ export default function MarketingLandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <AppLogo src={logoSrc} size={100} className="w-auto opacity-70" />
           <p className="text-muted-foreground text-xs text-center">
-            © {new Date().getFullYear()} {companyName}. All rights reserved. RERA Registered.
+            © 2026 {companyName}. All rights reserved. RERA Registered.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
