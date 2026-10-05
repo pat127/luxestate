@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from 'recharts';
+import LandingPageBuilder from './LandingPageBuilder';
 
 interface Campaign {
   id: string;
@@ -99,7 +100,7 @@ export default function MarketingPage() {
   const supabase = useMemo(() => createClient(), []);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [scheduled, setScheduled] = useState<ScheduledCampaign[]>([]);
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'budget' | 'scheduler' | 'analytics'>('campaigns');
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'budget' | 'scheduler' | 'analytics' | 'landing-pages'>('campaigns');
   const [showModal, setShowModal] = useState(false);
   const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
@@ -266,6 +267,7 @@ export default function MarketingPage() {
           { id: 'budget', label: 'Budget Management' },
           { id: 'scheduler', label: 'Campaign Scheduler' },
           { id: 'analytics', label: 'Analytics' },
+          { id: 'landing-pages', label: 'Landing Pages' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -542,6 +544,11 @@ export default function MarketingPage() {
             </div>
           </div>
         </div>
+      )}
+
+            {/* Landing Pages Tab */}
+      {activeTab === 'landing-pages' && (
+        <LandingPageBuilder />
       )}
 
       {/* Campaign Modal */}
