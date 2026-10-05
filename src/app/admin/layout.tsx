@@ -27,7 +27,6 @@ const allCrmLinks = [
   { label: 'Tasks', href: '/admin/tasks', icon: 'ClipboardDocumentListIcon', permission: 'view_tasks' as Permission },
   { label: 'Marketing', href: '/admin/marketing', icon: 'MegaphoneIcon', permission: 'view_marketing' as Permission },
   { label: 'Campaigns', href: '/admin/campaigns', icon: 'RectangleGroupIcon', permission: 'view_marketing' as Permission },
-  { label: 'Landing Pages', href: '/admin/marketing-pages', icon: 'GlobeAltIcon', permission: 'view_marketing' as Permission },
   { label: 'Documents', href: '/admin/documents', icon: 'DocumentTextIcon', permission: 'view_documents' as Permission },
   { label: 'Syndication', href: '/admin/syndication', icon: 'RssIcon', permission: 'view_syndication' as Permission },
   { label: 'Bulk Import', href: '/admin/bulk-import', icon: 'ArrowUpTrayIcon', permission: 'view_bulk_import' as Permission },
