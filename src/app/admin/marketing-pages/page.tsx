@@ -179,7 +179,7 @@ export default function MarketingPagesAdmin() {
                       {isCopied ? 'Copied!' : 'Copy Link'}
                     </button>
                     <a
-                      href={`/marketing/${project.id}`}
+                      href={url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center w-10 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors"
