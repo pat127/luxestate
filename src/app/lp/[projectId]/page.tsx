@@ -56,6 +56,8 @@ interface Project {
 
 interface SiteConfig {
   siteName?: string;
+  site_name?: string;
+  logo_url?: string;
   logoUrl?: string;
   primaryColor?: string;
   phone?: string;
@@ -129,7 +131,7 @@ export default function ProjectLandingPage() {
   };
 
   const heroImage = project?.images?.[0]?.url || '';
-  const siteName = siteConfig.siteName || 'Cove Estate';
+  const siteName = siteConfig.siteName || siteConfig.site_name || 'Cove Estate';
   const galleryImages = project?.images?.slice(1) || [];
   const unitTypes: UnitType[] = Array.isArray(project?.unit_types) ? project.unit_types : [];
   const milestones: Milestone[] = Array.isArray(project?.milestones) ? project.milestones : [];
@@ -158,8 +160,8 @@ export default function ProjectLandingPage() {
       {/* Minimal Header */}
       <header className="absolute top-0 left-0 right-0 z-20 px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {siteConfig.logoUrl ? (
-            <AppImage src={siteConfig.logoUrl} alt={siteName} width={120} height={36} className="h-8 w-auto object-contain" />
+          {(siteConfig.logo_url || siteConfig.logoUrl) ? (
+            <AppImage src={(siteConfig.logo_url || siteConfig.logoUrl)!} alt={siteName} width={120} height={36} className="h-8 w-auto object-contain" />
           ) : (
             <span className="text-lg font-bold tracking-widest text-[#C9A84C] uppercase">{siteName}</span>
           )}
@@ -683,8 +685,8 @@ export default function ProjectLandingPage() {
       <footer className="bg-[#080808] border-t border-white/5 py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            {siteConfig.logoUrl ? (
-              <AppImage src={siteConfig.logoUrl} alt={siteName} width={100} height={30} className="h-7 w-auto object-contain opacity-60" />
+            {(siteConfig.logo_url || siteConfig.logoUrl) ? (
+              <AppImage src={(siteConfig.logo_url || siteConfig.logoUrl)!} alt={siteName} width={100} height={30} className="h-7 w-auto object-contain opacity-60" />
             ) : (
               <span className="text-sm font-bold tracking-widest text-white/30 uppercase">{siteName}</span>
             )}
