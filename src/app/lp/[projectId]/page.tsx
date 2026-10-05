@@ -78,6 +78,14 @@ export default function ProjectLandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Format price with commas (e.g. 1500000 -> 1,500,000 or "AED 1500000" -> "AED 1,500,000")
+  const formatPrice = (value: string | number | undefined): string => {
+    if (!value) return '';
+    const str = String(value);
+    // Replace any sequence of digits with comma-formatted version
+    return str.replace(/\d+/g, (num) => Number(num).toLocaleString('en-US'));
+  };
+
   useEffect(() => {
     const load = async () => {
       const [projResult, settingsResult] = await Promise.all([
@@ -199,7 +207,7 @@ export default function ProjectLandingPage() {
               {project.starting_price && (
                 <div className="border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3">
                   <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Starting From</p>
-                  <p className="text-sm font-bold text-[#C9A84C]">{project.starting_price}</p>
+                  <p className="text-sm font-bold text-[#C9A84C]">{formatPrice(project.starting_price)}</p>
                 </div>
               )}
               {project.handover_date && (
@@ -429,19 +437,19 @@ export default function ProjectLandingPage() {
               <p className="text-[10px] text-[#C9A84C] uppercase tracking-[0.25em] font-bold mb-3">Residences</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white">Unit Types &amp; Pricing</h2>
               {project.starting_price && (
-                <p className="text-white/40 mt-3 text-sm">Starting from <span className="text-[#C9A84C] font-semibold">{project.starting_price}</span></p>
+                <p className="text-white/40 mt-3 text-sm">Starting from <span className="text-[#C9A84C] font-semibold">{formatPrice(project.starting_price)}</span></p>
               )}
             </div>
 
             {unitTypes.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 justify-items-center">
                 {unitTypes.map((unit, i) => {
                   const unitName = unit.type || unit.name || `Unit Type ${i + 1}`;
                   const unitPrice = unit.price || unit.starting_price || '';
                   const unitSize = unit.size || unit.area || '';
                   const unitBeds = unit.bedrooms;
                   return (
-                    <div key={i} className="border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all group">
+                    <div key={i} className="w-full border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all group">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <p className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold mb-1">
@@ -466,7 +474,7 @@ export default function ProjectLandingPage() {
                       {unitPrice && (
                         <div className="pt-4 border-t border-white/5">
                           <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">Starting Price</p>
-                          <p className="text-xl font-bold text-[#C9A84C]">{unitPrice}</p>
+                          <p className="text-xl font-bold text-[#C9A84C]">{formatPrice(unitPrice)}</p>
                         </div>
                       )}
                     </div>
@@ -475,14 +483,14 @@ export default function ProjectLandingPage() {
               </div>
             ) : (
               /* Fallback: property_types list */
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 justify-items-center">
                 {project.property_types.map((pt, i) => (
-                  <div key={i} className="border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all">
+                  <div key={i} className="w-full border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all">
                     <h3 className="text-lg font-bold text-white mb-2">{pt}</h3>
                     {project.starting_price && (
                       <div className="pt-4 border-t border-white/5 mt-4">
                         <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">Starting Price</p>
-                        <p className="text-xl font-bold text-[#C9A84C]">{project.starting_price}</p>
+                        <p className="text-xl font-bold text-[#C9A84C]">{formatPrice(project.starting_price)}</p>
                       </div>
                     )}
                   </div>
@@ -494,7 +502,7 @@ export default function ProjectLandingPage() {
       )}
 
       {/* ─── SECTION 5: PAYMENT PLAN ─────────────────────────────────── */}
-      {(project.payment_plan_summary || milestones.length > 0 || project.post_handover_plan) && (
+      {(project.payment_plan_summary || milestones.length > 0) && (
         <section className="bg-[#0A0A0A] py-24 px-6 relative overflow-hidden">
           {/* Decorative background accent */}
           <div className="absolute inset-0 pointer-events-none">
@@ -515,14 +523,16 @@ export default function ProjectLandingPage() {
                 <div className="relative">
                   {/* Progress line */}
                   <div className="hidden lg:block absolute top-8 left-0 right-0 h-px bg-white/10 z-0" />
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 justify-items-center">
                     {milestones.map((m, i) => {
-                      const pct = m.percentage ?? m.percent;
+                      const rawPct = m.percentage ?? m.percent;
+                      // Strip any existing % sign to avoid duplication
+                      const pctStr = rawPct !== undefined ? String(rawPct).replace('%', '').trim() : undefined;
                       const label = m.label || m.name || m.description || `Milestone ${i + 1}`;
                       return (
                         <div key={i} className="flex flex-col items-center text-center">
                           <div className="w-16 h-16 rounded-full border-2 border-[#C9A84C] bg-[#0A0A0A] flex items-center justify-center mb-4 shadow-lg shadow-[#C9A84C]/10">
-                            <span className="text-lg font-bold text-[#C9A84C]">{pct !== undefined ? `${pct}%` : `${i + 1}`}</span>
+                            <span className="text-lg font-bold text-[#C9A84C]">{pctStr !== undefined ? `${pctStr}%` : `${i + 1}`}</span>
                           </div>
                           <p className="text-sm font-semibold text-white mb-1">{label}</p>
                           {m.date && <p className="text-xs text-white/40">{m.date}</p>}
@@ -530,16 +540,6 @@ export default function ProjectLandingPage() {
                       );
                     })}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Post-handover plan */}
-            {project.post_handover_plan && (
-              <div className="max-w-3xl mx-auto">
-                <div className="border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-8 text-center">
-                  <p className="text-[10px] text-[#C9A84C] uppercase tracking-[0.2em] font-bold mb-3">Post-Handover</p>
-                  <p className="text-white/70 text-base leading-relaxed">{project.post_handover_plan}</p>
                 </div>
               </div>
             )}
@@ -574,100 +574,110 @@ export default function ProjectLandingPage() {
       )}
 
       {/* ─── SECTION 6: DOWNLOADS ────────────────────────────────────── */}
-      {(project.factsheet_url || project.brochure_url || project.price_list_url || (project.floor_plans && project.floor_plans.length > 0)) && (
-        <section className="bg-[#0D0D0D] py-24 px-6 border-t border-white/5">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-14">
-              <p className="text-[10px] text-[#C9A84C] uppercase tracking-[0.25em] font-bold mb-3">Resources</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Download Project Documents</h2>
-              <p className="text-white/40 text-sm">Access detailed information about {project.name}</p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
-              {project.factsheet_url && (
-                <a
-                  href={project.factsheet_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
-                >
-                  <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
-                    <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Factsheet</p>
-                  <p className="text-xs text-white/30 mb-5">Project overview &amp; key details</p>
-                  <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
-                    Download PDF
-                  </span>
-                </a>
-              )}
-
-              {(project.floor_plans && project.floor_plans.length > 0) && (
-                <a
-                  href={project.floor_plans[0]?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
-                >
-                  <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
-                    <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Floor Plans</p>
-                  <p className="text-xs text-white/30 mb-5">Detailed unit layouts &amp; dimensions</p>
-                  <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
-                    Download PDF
-                  </span>
-                </a>
-              )}
-
-              {project.price_list_url && (
-                <a
-                  href={project.price_list_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
-                >
-                  <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
-                    <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Investment Analysis</p>
-                  <p className="text-xs text-white/30 mb-5">Pricing, ROI &amp; investment details</p>
-                  <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
-                    Download PDF
-                  </span>
-                </a>
-              )}
-
-              {/* Brochure as fallback if no price_list but brochure exists */}
-              {project.brochure_url && !project.price_list_url && (
-                <a
-                  href={project.brochure_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
-                >
-                  <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
-                    <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Brochure</p>
-                  <p className="text-xs text-white/30 mb-5">Full project brochure</p>
-                  <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
-                    Download PDF
-                  </span>
-                </a>
-              )}
-            </div>
+      <section className="bg-[#0D0D0D] py-24 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-[10px] text-[#C9A84C] uppercase tracking-[0.25em] font-bold mb-3">Resources</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Download Project Documents</h2>
+            <p className="text-white/40 text-sm">Access detailed information about {project.name}</p>
           </div>
-        </section>
-      )}
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            {project.factsheet_url ? (
+              <a
+                href={project.factsheet_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
+              >
+                <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
+                  <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Factsheet</p>
+                <p className="text-xs text-white/30 mb-5">Project overview &amp; key details</p>
+                <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
+                  Download PDF
+                </span>
+              </a>
+            ) : (
+              <div className="flex flex-col items-center text-center border border-white/5 bg-white/[0.01] p-8 opacity-40">
+                <div className="w-14 h-14 border border-white/10 flex items-center justify-center mb-5">
+                  <svg className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1">Factsheet</p>
+                <p className="text-xs text-white/30 mb-5">Project overview &amp; key details</p>
+                <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold border border-white/10 px-4 py-1.5">Coming Soon</span>
+              </div>
+            )}
+
+            {(project.floor_plans && project.floor_plans.length > 0) ? (
+              <a
+                href={project.floor_plans[0]?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
+              >
+                <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
+                  <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Floor Plans</p>
+                <p className="text-xs text-white/30 mb-5">Detailed unit layouts &amp; dimensions</p>
+                <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
+                  Download PDF
+                </span>
+              </a>
+            ) : (
+              <div className="flex flex-col items-center text-center border border-white/5 bg-white/[0.01] p-8 opacity-40">
+                <div className="w-14 h-14 border border-white/10 flex items-center justify-center mb-5">
+                  <svg className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1">Floor Plans</p>
+                <p className="text-xs text-white/30 mb-5">Detailed unit layouts &amp; dimensions</p>
+                <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold border border-white/10 px-4 py-1.5">Coming Soon</span>
+              </div>
+            )}
+
+            {(project.price_list_url || project.brochure_url) ? (
+              <a
+                href={project.price_list_url || project.brochure_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
+              >
+                <div className="w-14 h-14 border border-white/10 group-hover:border-[#C9A84C]/40 flex items-center justify-center mb-5 transition-all">
+                  <svg className="w-7 h-7 text-white/30 group-hover:text-[#C9A84C] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1 group-hover:text-[#C9A84C] transition-colors">Investment Analysis</p>
+                <p className="text-xs text-white/30 mb-5">Pricing, ROI &amp; investment details</p>
+                <span className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold border border-[#C9A84C]/30 px-4 py-1.5 group-hover:bg-[#C9A84C] group-hover:text-black transition-all">
+                  Download PDF
+                </span>
+              </a>
+            ) : (
+              <div className="flex flex-col items-center text-center border border-white/5 bg-white/[0.01] p-8 opacity-40">
+                <div className="w-14 h-14 border border-white/10 flex items-center justify-center mb-5">
+                  <svg className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-white mb-1">Investment Analysis</p>
+                <p className="text-xs text-white/30 mb-5">Pricing, ROI &amp; investment details</p>
+                <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold border border-white/10 px-4 py-1.5">Coming Soon</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="bg-[#080808] border-t border-white/5 py-10 px-6">
