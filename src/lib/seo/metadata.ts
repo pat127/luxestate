@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
 export interface ListingPageMetadataParams {
   category: 'residential' | 'commercial' | 'projects';

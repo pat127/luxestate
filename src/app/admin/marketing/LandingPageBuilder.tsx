@@ -16,7 +16,7 @@ interface Project {
   published: boolean;
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
 export default function LandingPageBuilder() {
   const supabase = createClient();
