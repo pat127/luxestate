@@ -442,14 +442,14 @@ export default function ProjectLandingPage() {
             </div>
 
             {unitTypes.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 justify-items-center">
+              <div className="flex flex-wrap justify-center gap-5">
                 {unitTypes.map((unit, i) => {
                   const unitName = unit.type || unit.name || `Unit Type ${i + 1}`;
                   const unitPrice = unit.price || unit.starting_price || '';
                   const unitSize = unit.size || unit.area || '';
                   const unitBeds = unit.bedrooms;
                   return (
-                    <div key={i} className="w-full border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all group">
+                    <div key={i} className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all group">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <p className="text-[10px] text-[#C9A84C] uppercase tracking-wider font-bold mb-1">
@@ -483,9 +483,9 @@ export default function ProjectLandingPage() {
               </div>
             ) : (
               /* Fallback: property_types list */
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 justify-items-center">
+              <div className="flex flex-wrap justify-center gap-5">
                 {project.property_types.map((pt, i) => (
-                  <div key={i} className="w-full border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all">
+                  <div key={i} className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] border border-white/10 bg-white/[0.02] p-6 hover:border-[#C9A84C]/30 transition-all">
                     <h3 className="text-lg font-bold text-white mb-2">{pt}</h3>
                     {project.starting_price && (
                       <div className="pt-4 border-t border-white/5 mt-4">
@@ -523,7 +523,7 @@ export default function ProjectLandingPage() {
                 <div className="relative">
                   {/* Progress line */}
                   <div className="hidden lg:block absolute top-8 left-0 right-0 h-px bg-white/10 z-0" />
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 justify-items-center">
+                  <div className="flex flex-wrap justify-center gap-6 relative z-10">
                     {milestones.map((m, i) => {
                       const rawPct = m.percentage ?? m.percent;
                       // Strip any existing % sign to avoid duplication
