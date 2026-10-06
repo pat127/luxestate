@@ -96,7 +96,18 @@ export default function ProjectLandingPage() {
       const settings = settingsResult.data;
       if (!proj) { setNotFound(true); setLoading(false); return; }
       setProject(proj as Project);
-      if (settings?.data) setSiteConfig(settings.data as SiteConfig);
+      if (settings?.data) {
+        const d = settings.data as { branding?: { logo_url?: string; company_name?: string; primary_color?: string; phone?: string; email?: string }; siteName?: string; logoUrl?: string; primaryColor?: string; phone?: string; email?: string };
+        // Support both nested branding structure (CMS) and flat structure
+        const branding = d.branding;
+        setSiteConfig({
+          siteName: branding?.company_name || (d as SiteConfig).siteName || 'Cove Estates',
+          logoUrl: branding?.logo_url || (d as SiteConfig).logoUrl || '/assets/images/app_logo.png',
+          primaryColor: branding?.primary_color || (d as SiteConfig).primaryColor,
+          phone: branding?.phone || (d as SiteConfig).phone,
+          email: branding?.email || (d as SiteConfig).email,
+        });
+      }
       setLoading(false);
     };
     if (projectId) load();
