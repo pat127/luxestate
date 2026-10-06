@@ -170,6 +170,8 @@ function ProjectsPageInner() {
   const [brochureUrl, setBrochureUrl] = useState('');
   const [factsheetUrl, setFactsheetUrl] = useState('');
   const [priceListUrl, setPriceListUrl] = useState('');
+  const [investmentAnalysisUrl, setInvestmentAnalysisUrl] = useState('');
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -271,6 +273,7 @@ function ProjectsPageInner() {
     setImageUrlsText(''); setFloorPlans([]); setMasterPlanUrl(''); setVideoUrl(''); setVirtualTourUrl('');
     setUploadProgress({ done: 0, total: 0, errors: [] });
     setBrochureUrl(''); setFactsheetUrl(''); setPriceListUrl('');
+    setInvestmentAnalysisUrl('');
   };
 
   const openNew = () => { setEditId(null); resetModal(); setActiveTab('basic'); setEditingApprovalStatus({ status: 'none' }); setShowModal(true); };
@@ -302,6 +305,7 @@ function ProjectsPageInner() {
     setFloorPlans((Array.isArray(data.floor_plans) ? data.floor_plans : []).map((fp: any, i: number) => ({ id: Date.now() + i, url: fp.url || '', label: fp.label || '' })));
     setMasterPlanUrl(data.master_plan_url || ''); setVideoUrl(data.video_url || ''); setVirtualTourUrl(data.virtual_tour_url || '');
     setBrochureUrl(data.brochure_url || ''); setFactsheetUrl(data.factsheet_url || ''); setPriceListUrl(data.price_list_url || '');
+    setInvestmentAnalysisUrl(data.investment_analysis_url || '');
     // Load approval status for this project
     const approvalStatus = approvalStatuses[id] || { status: 'none' };
     setEditingApprovalStatus(approvalStatus);
@@ -343,6 +347,7 @@ function ProjectsPageInner() {
       floor_plans: floorPlans.map(fp => ({ url: fp.url, label: fp.label })),
       master_plan_url: masterPlanUrl, video_url: videoUrl, virtual_tour_url: virtualTourUrl,
       brochure_url: brochureUrl, factsheet_url: factsheetUrl, price_list_url: priceListUrl,
+      investment_analysis_url: investmentAnalysisUrl,
     };
 
     let error: any = null;
@@ -885,6 +890,67 @@ function ProjectsPageInner() {
                   <div><label className={labelCls}>Brochure URL</label><input className={inputCls} value={brochureUrl} onChange={(e) => setBrochureUrl(e.target.value)} /></div>
                   <div><label className={labelCls}>Factsheet URL</label><input className={inputCls} value={factsheetUrl} onChange={(e) => setFactsheetUrl(e.target.value)} /></div>
                   <div><label className={labelCls}>Price List URL</label><input className={inputCls} value={priceListUrl} onChange={(e) => setPriceListUrl(e.target.value)} /></div>
+                  {/* Investment Analysis Upload */}
+                  <div>
+                    <label className={labelCls}>Investment Analysis</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        className={inputCls}
+                        value={investmentAnalysisUrl}
+                        onChange={(e) => setInvestmentAnalysisUrl(e.target.value)}
+                        placeholder="Paste URL or upload PDF below"
+                      />
+                      {investmentAnalysisUrl && (
+                        <a href={investmentAnalysisUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 px-3 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white transition-colors whitespace-nowrap">
+                          View
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <label className="flex items-center gap-2 px-3 py-2 border border-[#333] text-xs text-[#aaa] hover:text-white hover:border-[#c9a84c]/40 transition-colors cursor-pointer">
+                        <Icon name="ArrowUpTrayIcon" size={13} />
+                        {uploadingDoc === 'investment_analysis' ? 'Uploading...' : 'Upload PDF'}
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          disabled={uploadingDoc === 'investment_analysis'}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingDoc('investment_analysis');
+                            try {
+                              const fd = new FormData();
+                              fd.append('file', file);
+                              fd.append('fileKey', `investment-analysis-${editId || 'new'}`);
+                              if (investmentAnalysisUrl) {
+                                const oldPath = investmentAnalysisUrl.split('/').slice(-2).join('/');
+                                if (oldPath.startsWith('cta-files/')) fd.append('oldPath', oldPath);
+                              }
+                              const res = await fetch('/api/admin/upload-cta-file', { method: 'POST', body: fd });
+                              const data = await res.json();
+                              if (data.url) setInvestmentAnalysisUrl(data.url);
+                            } catch {
+                              // silent
+                            } finally {
+                              setUploadingDoc(null);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                      {investmentAnalysisUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setInvestmentAnalysisUrl('')}
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#666] mt-1">This file will appear in the Investment Analysis download section on landing pages.</p>
+                  </div>
                 </div>
               )}
             </div>

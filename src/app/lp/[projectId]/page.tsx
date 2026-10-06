@@ -49,6 +49,7 @@ interface Project {
   brochure_url: string;
   factsheet_url: string;
   price_list_url: string;
+  investment_analysis_url: string;
   floor_plans: { url: string; caption?: string; name?: string }[];
   project_type: string;
   status: string;
@@ -672,9 +673,9 @@ export default function ProjectLandingPage() {
               </div>
             )}
 
-            {(project.price_list_url || project.brochure_url) ? (
+            {project.investment_analysis_url ? (
               <a
-                href={project.price_list_url || project.brochure_url}
+                href={project.investment_analysis_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex flex-col items-center text-center border border-white/10 bg-white/[0.02] p-8 hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition-all"
