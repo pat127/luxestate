@@ -101,9 +101,9 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
   },
   icons: {
-    icon: [{ url: '/assets/images/app_logo.png', type: 'image/png' }],
-    shortcut: '/assets/images/app_logo.png',
-    apple: '/assets/images/app_logo.png',
+    icon: [{ url: '/assets/images/app_logo.png?v=2', type: 'image/png', sizes: 'any' }],
+    shortcut: '/assets/images/app_logo.png?v=2',
+    apple: '/assets/images/app_logo.png?v=2',
   },
   category: 'real estate',
 };
@@ -203,6 +203,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)}>
       <head>
+        {/* Explicit favicon override — forces browsers past cached favicon.ico */}
+        <link rel="icon" type="image/png" href="/assets/images/app_logo.png?v=2" />
+        <link rel="shortcut icon" type="image/png" href="/assets/images/app_logo.png?v=2" />
+        <link rel="apple-touch-icon" href="/assets/images/app_logo.png?v=2" />
         {/* Critical preconnects first — reduces DNS+TLS latency for LCP resources */}
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -225,6 +229,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             fetchPriority="high"
           />
         )}
+        {/* Explicit favicon override — forces browsers past cached favicon.ico */}
+        <link rel="icon" type="image/png" href="/assets/images/app_logo.png?v=2" />
+        <link rel="shortcut icon" type="image/png" href="/assets/images/app_logo.png?v=2" />
+        <link rel="apple-touch-icon" href="/assets/images/app_logo.png?v=2" />
         <meta name="geo.region" content="AE-DU" />
         <meta name="geo.placename" content="Dubai, United Arab Emirates" />
         <meta name="geo.position" content="25.2048;55.2708" />

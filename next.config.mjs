@@ -6,6 +6,16 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   distDir: process.env.DIST_DIR || '.next',
 
+  async redirects() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/assets/images/app_logo.png',
+        permanent: false,
+      },
+    ];
+  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: '20mb',
