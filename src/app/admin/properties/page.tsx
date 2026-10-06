@@ -138,6 +138,13 @@ function generateRefNumber(listingType?: string) {
   return prefix + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+function formatPrice(value: string | number | undefined | null): string {
+  if (!value) return '';
+  const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(num)) return String(value);
+  return num.toLocaleString('en-US');
+}
+
 const FALLBACK_RESIDENTIAL_TYPES = ['Apartment', 'Villa', 'Townhouse', 'Penthouse'];
 const FALLBACK_COMMERCIAL_TYPES = ['Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
 
@@ -860,7 +867,7 @@ export default function PropertiesPage() {
                     <div className="grid grid-cols-3 gap-3 mb-3">
                       <div>
                         <p className="text-xs text-muted-foreground">Price</p>
-                        <p className="text-sm font-semibold text-primary mt-0.5 truncate">{property.priceAed ? `AED ${property.priceAed}` : '—'}</p>
+                        <p className="text-sm font-semibold text-primary mt-0.5 truncate">{property.priceAed ? `AED ${formatPrice(property.priceAed)}` : '—'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Beds</p>
