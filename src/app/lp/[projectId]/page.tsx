@@ -120,6 +120,22 @@ export default function ProjectLandingPage() {
       status: 'New',
       interest: project?.name || '',
     });
+    if (!error) {
+      // Fire-and-forget admin notification email
+      try {
+        await supabase.functions.invoke('send-inquiry-email', {
+          body: {
+            name: form.name.trim(),
+            email: form.email.trim() || 'noreply@coveestate.com',
+            phone: form.phone.trim(),
+            formType: 'landing_page',
+            projectName: project?.name || '',
+          },
+        });
+      } catch (_) {
+        // Non-blocking — lead is already saved
+      }
+    }
     setSubmitting(false);
     if (error) {
       setFormError('Something went wrong. Please try again.');
@@ -161,7 +177,7 @@ export default function ProjectLandingPage() {
           {siteConfig.logoUrl ? (
             <AppImage src={siteConfig.logoUrl} alt={siteName} width={120} height={36} className="h-8 w-auto object-contain" />
           ) : (
-            <span className="text-lg font-bold tracking-widest text-[#C9A84C] uppercase">{siteName}</span>
+            <AppImage src="/assets/images/app_logo.png" alt={siteName} width={120} height={36} className="h-8 w-auto object-contain" />
           )}
         </div>
         {siteConfig.phone && (
