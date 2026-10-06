@@ -45,6 +45,12 @@ export default function LandingPageBuilder() {
 
   const getLandingUrl = (project: Project) => `${SITE_URL}/lp/${project.id}`;
 
+  const getPreviewUrl = (project: Project) => {
+    // Use current origin for preview so it works from any domain (Rocket preview, staging, production)
+    const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
+    return `${origin}/lp/${project.id}`;
+  };
+
   const handleCopy = (project: Project) => {
     navigator.clipboard.writeText(getLandingUrl(project));
     setCopied(true);
@@ -52,7 +58,7 @@ export default function LandingPageBuilder() {
   };
 
   const handleOpen = (project: Project) => {
-    window.open(getLandingUrl(project), '_blank');
+    window.open(getPreviewUrl(project), '_blank');
   };
 
   return (
