@@ -1,2 +1,5 @@
-// This file is intentionally left as a placeholder - favicon is handled by the root favicon route
-export {};
+import { NextResponse } from 'next/server';
+
+export async function GET(request: Request) {
+  return NextResponse.redirect(new URL('/assets/images/app_logo.png', request.url));
+}
