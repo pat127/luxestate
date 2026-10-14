@@ -39,7 +39,7 @@ export default function CommercialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured, listing_type')
+          .select('id, title, reference_number, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured, listing_type')
           .eq('published', true)
           .in('prop_category', COMMERCIAL_CATEGORIES)
           .order('created_at', { ascending: false });
@@ -56,7 +56,7 @@ export default function CommercialListings() {
               : [];
           const rawCategory = p.prop_category || '';
           const displayType = p.property_type || rawCategory || 'Commercial';
-          const isRent = /rent/i.test(p.listing_type || '');
+          const isRent = /rent|lease/i.test(p.listing_type || '') || /^CR-/i.test(p.reference_number || '');
           return {
             id: p.id,
             name: p.title || '',
@@ -172,6 +172,12 @@ export default function CommercialListings() {
             className="property-card bg-card border border-border group cursor-pointer block"
             style={{ transitionDelay: `${i * 70}ms` }}>
 
+              <div
+                className={`w-full px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-center ${listing.isRent ? 'bg-emerald-600 text-white' : 'bg-primary text-primary-foreground'}`}
+                data-testid="listing-type-label">
+                {listing.isRent ? 'For Rent' : 'For Sale'}
+              </div>
+
               <div className="relative h-56 overflow-hidden">
                 <AppImage
                 src={listing.image}
@@ -181,9 +187,6 @@ export default function CommercialListings() {
                 sizes="(max-width: 768px) 100vw, 33vw" />
 
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 ${listing.isRent ? 'bg-emerald-600 text-white' : 'bg-foreground text-background'}`}>
-                    {listing.isRent ? 'For Rent' : 'For Sale'}
-                  </span>
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">
                     {listing.type}
                   </span>
@@ -230,9 +233,9 @@ export default function CommercialListings() {
 
                 <div className="border-t border-border pt-3 mb-3">
                   <span className="text-foreground font-bold text-base">{listing.price}</span>
-                  {listing.isRent && listing.price !== '—' && (
-                    <span className="text-muted-foreground text-xs font-normal ml-1">per annum</span>
-                  )}
+                  {listing.isRent && listing.price !== '—' ? (
+                    <span className="text-muted-foreground text-xs font-semibold ml-1">per annum</span>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center justify-between w-full border-t border-border pt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">

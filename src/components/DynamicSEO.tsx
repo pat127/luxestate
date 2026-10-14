@@ -46,19 +46,18 @@ export default function DynamicSEO() {
       if (branding.seo_description) setMetaProp('og:description', branding.seo_description);
     }
 
-    // Dynamic favicon from CMS
-    const setFavicon = (rel: string, href: string) => {
-      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = rel;
-        document.head.appendChild(link);
-      }
-      link.href = href;
-    };
-    const faviconHref = branding.favicon_url || '/favicon.ico';
-    setFavicon('icon', faviconHref);
-    setFavicon('shortcut icon', faviconHref);
+    // Dynamic favicon from CMS (falls back to the Cove Estates logo, never the old house icon)
+    const faviconHref = branding.favicon_url || '/assets/images/app_logo.png?v=3';
+    document
+      .querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]')
+      .forEach((el) => el.parentNode?.removeChild(el));
+    ['icon', 'shortcut icon', 'apple-touch-icon'].forEach((rel) => {
+      const link = document.createElement('link');
+      link.rel = rel;
+      if (rel !== 'apple-touch-icon') link.type = 'image/png';
+      link.href = faviconHref;
+      document.head.appendChild(link);
+    });
   }, [branding]);
 
   return null;
