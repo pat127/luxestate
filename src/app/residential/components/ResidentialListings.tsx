@@ -23,6 +23,7 @@ interface Property {
   image: string;
   alt: string;
   featured: boolean;
+  isRent: boolean;
 }
 
 const RESIDENTIAL_CATEGORIES = ['Residential', 'Apartment', 'Villa', 'Townhouse', 'Penthouse'];
@@ -33,6 +34,7 @@ export default function ResidentialListings() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortKey>('default');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [activeMode, setActiveMode] = useState<'All' | 'Rent' | 'Sale'>('All');
   const [listings, setListings] = useState<Property[]>([]);
   const [loaded, setLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -48,7 +50,7 @@ export default function ResidentialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, property_type, availability, completion, bedrooms, bathrooms, area_sqft, image_urls, featured')
+          .select('id, title, reference_number, listing_type, location_area, price_aed, prop_category, property_type, availability, completion, bedrooms, bathrooms, area_sqft, image_urls, featured')
           .eq('published', true)
           .in('prop_category', RESIDENTIAL_CATEGORIES)
           .order('created_at', { ascending: false });
@@ -67,6 +69,7 @@ export default function ResidentialListings() {
               : [];
           const rawCategory = p.prop_category || '';
           const displayTag = p.property_type || (rawCategory !== 'Residential' ? rawCategory : '') || 'Property';
+          const isRent = /rent|lease/i.test(p.listing_type || '') || /^(CR|RR|R)-/i.test(p.reference_number || '');
           return {
             id: p.id,
             name: p.title || '',
@@ -81,6 +84,7 @@ export default function ResidentialListings() {
             image: imgs.length > 0 ? imgs[0] : '',
             alt: p.title || 'Property image',
             featured: p.featured || false,
+            isRent,
           };
         }));
       } catch {
@@ -94,7 +98,10 @@ export default function ResidentialListings() {
     return () => { cancelled = true; };
   }, [supabase]);
 
-  const filtered = listings.filter((l) => activeFilter === 'All' || l.tag === activeFilter);
+  const filtered = listings.filter((l) =>
+    (activeFilter === 'All' || l.tag === activeFilter) &&
+    (activeMode === 'All' || (activeMode === 'Rent' ? l.isRent : !l.isRent))
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -146,6 +153,25 @@ export default function ResidentialListings() {
             }>
 
               {f}
+            </button>
+          )}
+          <span className="hidden md:block w-px bg-border mx-1" aria-hidden="true" />
+          {(['Rent', 'Sale'] as const).map((m) =>
+          <button
+            key={m}
+            onClick={() => {
+              const next = activeMode === m ? 'All' : m;
+              setActiveMode(next);
+              trackFilterSelection({ filterType: 'listing_mode', filterValue: next, page: 'residential' });
+            }}
+            data-testid={`mode-filter-${m.toLowerCase()}`}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
+            activeMode === m ?
+            'bg-primary text-primary-foreground border-primary' :
+            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
+            }>
+
+              {m}
             </button>
           )}
         </div>

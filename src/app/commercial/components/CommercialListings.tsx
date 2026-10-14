@@ -26,6 +26,7 @@ const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Warehouse', 'I
 
 export default function CommercialListings() {
   const [activeType, setActiveType] = useState('All');
+  const [activeMode, setActiveMode] = useState<'All' | 'Rent' | 'Sale'>('All');
   const [listings, setListings] = useState<CommercialListing[]>([]);
   const [loaded, setLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -84,7 +85,10 @@ export default function CommercialListings() {
     loadCommercial();
   }, [supabase]);
 
-  const filtered = listings.filter((l) => activeType === 'All' || l.type === activeType);
+  const filtered = listings.filter((l) =>
+    (activeType === 'All' || l.type === activeType) &&
+    (activeMode === 'All' || (activeMode === 'Rent' ? l.isRent : !l.isRent))
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -140,6 +144,21 @@ export default function CommercialListings() {
               {t}
             </button>
           )}
+          <span className="hidden md:block w-px bg-border mx-1" aria-hidden="true" />
+          {(['Rent', 'Sale'] as const).map((m) =>
+          <button
+            key={m}
+            onClick={() => setActiveMode(activeMode === m ? 'All' : m)}
+            data-testid={`mode-filter-${m.toLowerCase()}`}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
+            activeMode === m ?
+            'bg-primary text-primary-foreground border-primary' :
+            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
+            }>
+
+              {m}
+            </button>
+          )}
         </div>
       </div>
 
@@ -171,12 +190,6 @@ export default function CommercialListings() {
             href={`/properties/${listing.id}`}
             className="property-card bg-card border border-border group cursor-pointer block"
             style={{ transitionDelay: `${i * 70}ms` }}>
-
-              <div
-                className={`w-full px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-center ${listing.isRent ? 'bg-emerald-600 text-white' : 'bg-primary text-primary-foreground'}`}
-                data-testid="listing-type-label">
-                {listing.isRent ? 'For Rent' : 'For Sale'}
-              </div>
 
               <div className="relative h-56 overflow-hidden">
                 <AppImage
