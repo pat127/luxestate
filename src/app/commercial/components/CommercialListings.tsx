@@ -122,29 +122,9 @@ export default function CommercialListings() {
 
   return (
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between md:items-end items-start mb-12 gap-6 animate-on-scroll">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary mb-3 block">Investment Grade</span>
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground tracking-tighter">
-            Commercial<br />Portfolio
-          </h2>
-        </div>
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row justify-between md:items-center items-start mb-12 gap-6 animate-on-scroll">
         <div className="flex flex-wrap gap-2">
-          {types.map((t) =>
-          <button
-            key={t}
-            onClick={() => setActiveType(t)}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
-            activeType === t ?
-            'bg-primary text-primary-foreground border-primary' :
-            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
-            }>
-
-              {t}
-            </button>
-          )}
-          <span className="hidden md:block w-px bg-border mx-1" aria-hidden="true" />
           {(['Rent', 'Sale'] as const).map((m) =>
           <button
             key={m}
@@ -157,6 +137,21 @@ export default function CommercialListings() {
             }>
 
               {m}
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          {types.map((t) =>
+          <button
+            key={t}
+            onClick={() => setActiveType(t)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
+            activeType === t ?
+            'bg-primary text-primary-foreground border-primary' :
+            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
+            }>
+
+              {t}
             </button>
           )}
         </div>

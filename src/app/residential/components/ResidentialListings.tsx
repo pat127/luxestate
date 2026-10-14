@@ -137,25 +137,8 @@ export default function ResidentialListings() {
     <section ref={sectionRef} className="py-16 px-6 md:px-10 max-w-7xl mx-auto">
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 animate-on-scroll">
-        {/* Filter Tabs */}
+        {/* Rent / Sale Tabs */}
         <div className="flex flex-wrap gap-2">
-          {filters.map((f) =>
-          <button
-            key={f}
-            onClick={() => {
-              setActiveFilter(f);
-              trackFilterSelection({ filterType: 'property_type', filterValue: f, page: 'residential' });
-            }}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
-            activeFilter === f ?
-            'bg-primary text-primary-foreground border-primary' :
-            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
-            }>
-
-              {f}
-            </button>
-          )}
-          <span className="hidden md:block w-px bg-border mx-1" aria-hidden="true" />
           {(['Rent', 'Sale'] as const).map((m) =>
           <button
             key={m}
@@ -176,6 +159,29 @@ export default function ResidentialListings() {
           )}
         </div>
 
+        {/* Type Filter Tabs */}
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          {filters.map((f) =>
+          <button
+            key={f}
+            onClick={() => {
+              setActiveFilter(f);
+              trackFilterSelection({ filterType: 'property_type', filterValue: f, page: 'residential' });
+            }}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] border transition-all duration-300 ${
+            activeFilter === f ?
+            'bg-primary text-primary-foreground border-primary' :
+            'border-border text-muted-foreground hover:border-primary hover:text-foreground'}`
+            }>
+
+              {f}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sort / View */}
+      <div className="flex items-center justify-end gap-4 mb-10 animate-on-scroll">
         <div className="flex items-center gap-4">
           {/* Sort */}
           <select
