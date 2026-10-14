@@ -19,6 +19,7 @@ interface CommercialListing {
   image: string;
   alt: string;
   featured: boolean;
+  isRent: boolean;
 }
 
 const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
@@ -38,7 +39,7 @@ export default function CommercialListings() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured')
+          .select('id, title, location_area, price_aed, prop_category, property_type, availability, area_sqft, image_urls, featured, listing_type')
           .eq('published', true)
           .in('prop_category', COMMERCIAL_CATEGORIES)
           .order('created_at', { ascending: false });
@@ -55,6 +56,7 @@ export default function CommercialListings() {
               : [];
           const rawCategory = p.prop_category || '';
           const displayType = p.property_type || rawCategory || 'Commercial';
+          const isRent = /rent/i.test(p.listing_type || '');
           return {
             id: p.id,
             name: p.title || '',
@@ -69,6 +71,7 @@ export default function CommercialListings() {
             image: imgs.length > 0 ? imgs[0] : '',
             alt: p.title || 'Commercial property image',
             featured: p.featured || false,
+            isRent,
           };
         }));
       } catch {
@@ -178,6 +181,9 @@ export default function CommercialListings() {
                 sizes="(max-width: 768px) 100vw, 33vw" />
 
                 <div className="absolute top-4 left-4 flex gap-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 ${listing.isRent ? 'bg-emerald-600 text-white' : 'bg-foreground text-background'}`}>
+                    {listing.isRent ? 'For Rent' : 'For Sale'}
+                  </span>
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-1">
                     {listing.type}
                   </span>
@@ -212,13 +218,21 @@ export default function CommercialListings() {
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Sq Ft</p>
                   </div>
                   <div className="text-center border-l border-border">
-                    <p className="text-white font-bold text-sm">{listing.pricePerSqft}</p>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest">Price / Sq Ft</p>
+                    <p className="text-white font-bold text-sm">
+                      {listing.pricePerSqft}
+                      {listing.isRent && listing.pricePerSqft !== '—' && <span className="text-[10px] font-normal text-muted-foreground"> / yr</span>}
+                    </p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest">
+                      {listing.isRent ? 'Price / Sq Ft / Annum' : 'Price / Sq Ft'}
+                    </p>
                   </div>
                 </div>
 
                 <div className="border-t border-border pt-3 mb-3">
                   <span className="text-foreground font-bold text-base">{listing.price}</span>
+                  {listing.isRent && listing.price !== '—' && (
+                    <span className="text-muted-foreground text-xs font-normal ml-1">per annum</span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between w-full border-t border-border pt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">
