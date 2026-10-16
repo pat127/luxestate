@@ -138,7 +138,7 @@ export default function ProjectLandingPage() {
         await supabase.functions.invoke('send-inquiry-email', {
           body: {
             name: form.name.trim(),
-            email: form.email.trim() || 'noreply@coveestate.com',
+            email: form.email.trim(),
             phone: form.phone.trim(),
             formType: 'landing_page',
             projectName: project?.name || '',

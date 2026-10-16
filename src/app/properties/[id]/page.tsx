@@ -9,6 +9,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { trackPropertyView, trackInquirySubmission } from '@/lib/analytics';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 import { useCMS } from '@/contexts/CMSContext';
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
@@ -220,6 +221,15 @@ function EnquiryForm({ propertyName, reference, propertyId }: { propertyName: st
       propertyId,
       propertyName,
       source: 'property_detail',
+    });
+    await sendInquiryEmail({
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      message: form.message,
+      formType: 'property_inquiry',
+      projectName: propertyName,
+      reference,
     });
     setSubmitting(false);
     setSent(true);

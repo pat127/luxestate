@@ -5,6 +5,7 @@ import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { useRole } from '@/contexts/RoleContext';
 import WhatsAppConversationPanel from '@/components/WhatsAppConversationPanel';
+import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 interface Lead {
   id: string;
@@ -337,7 +338,18 @@ export default function LeadsPage() {
       await supabase.from('leads').update(payload).eq('id', editLead.id);
     } else {
       const { data: inserted } = await supabase.from('leads').insert(payload).select('id').single();
-      if (inserted) savedLeadId = inserted.id;
+      if (inserted) {
+        savedLeadId = inserted.id;
+        await sendInquiryEmail({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          budget: form.budget,
+          message: form.notes,
+          formType: 'contact',
+          projectName: form.project || form.interest || undefined,
+        });
+      }
     }
 
     // Handle follow-up reminder upsert
