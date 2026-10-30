@@ -1,110 +1,112 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/ui/AppIcon';
 
-const SITE_URL = 'https://luxestate6357.builtwithrocket.new';
+const SITE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://coveestate.com';
 
 const XML_FEED_URL = `${SITE_URL}/api/feed/properties.xml`;
 const PROJECTS_FEED_URL = `${SITE_URL}/api/feed/projects.xml`;
 
-const samplePropertyXml = `<?xml version="1.0" encoding="UTF-8"?>
-<listings>
-  <listing>
-    <id>LX-RES-001</id>
-    <title>Obsidian Penthouse</title>
-    <type>Residential</type>
-    <status>Available</status>
-    <price currency="AED">28500000</price>
-    <location>
-      <area>Downtown Dubai</area>
-      <community>Burj Khalifa District</community>
-      <address>Obsidian Tower, Downtown Dubai</address>
-      <lat>25.1972</lat>
-      <lng>55.2744</lng>
-    </location>
-    <specs>
-      <bedrooms>5</bedrooms>
-      <bathrooms>6</bathrooms>
-      <area_sqft>8200</area_sqft>
-    </specs>
-    <agent>Sarah Mitchell</agent>
-    <updated>2026-05-02</updated>
-    <url>${SITE_URL}/admin/properties/1</url>
-  </listing>
-  <listing>
-    <id>LX-RES-002</id>
-    <title>Meridian Villa</title>
-    <type>Residential</type>
-    <status>Under Offer</status>
-    <price currency="AED">42000000</price>
-    <location>
-      <area>Palm Jumeirah</area>
-      <community>Frond N</community>
-      <address>Meridian Villa, Palm Jumeirah</address>
-      <lat>25.1124</lat>
-      <lng>55.1390</lng>
-    </location>
-    <specs>
-      <bedrooms>7</bedrooms>
-      <bathrooms>9</bathrooms>
-      <area_sqft>14500</area_sqft>
-    </specs>
-    <agent>James Carter</agent>
-    <updated>2026-05-02</updated>
-    <url>${SITE_URL}/admin/properties/2</url>
-  </listing>
-</listings>`;
-
-const sampleProjectXml = `<?xml version="1.0" encoding="UTF-8"?>
-<projects>
-  <project>
-    <id>LX-PRJ-001</id>
-    <name>Skyline Residences</name>
-    <developer>Emaar</developer>
-    <type>Off-Plan</type>
-    <status>Active</status>
-    <starting_price currency="AED">1200000</starting_price>
-    <location>
-      <area>Downtown Dubai</area>
-    </location>
-    <units>
-      <total>240</total>
-      <sold>180</sold>
-      <available>60</available>
-    </units>
-    <completion>Q4 2026</completion>
-    <updated>2026-05-02</updated>
-    <url>${SITE_URL}/admin/projects/1</url>
-  </project>
-  <project>
-    <id>LX-PRJ-002</id>
-    <name>Marina Bay Towers</name>
-    <developer>DAMAC</developer>
-    <type>Off-Plan</type>
-    <status>Active</status>
-    <starting_price currency="AED">900000</starting_price>
-    <location>
-      <area>Dubai Marina</area>
-    </location>
-    <units>
-      <total>320</total>
-      <sold>210</sold>
-      <available>110</available>
-    </units>
-    <completion>Q2 2027</completion>
-    <updated>2026-05-02</updated>
-    <url>${SITE_URL}/admin/projects/2</url>
-  </project>
-</projects>`;
-
 type FeedTab = 'properties' | 'projects';
 
+function buildPropertyXml(properties: any[], siteUrl: string): string {
+  const now = new Date().toISOString().split('T')[0];
+  if (!properties.length) return `<?xml version="1.0" encoding="UTF-8"?>\n<listings count="0"/>`;
+  const items = properties.map((p) => `  <listing>
+    <id>${p.reference_number || p.id}</id>
+    <title>${p.title || ''}</title>
+    <type>${p.property_type || ''}</type>
+    <status>${p.availability || ''}</status>
+    <price currency="AED">${p.price_aed || 0}</price>
+    <location>
+      <area>${p.location_area || ''}</area>
+      <community>${p.community || ''}</community>
+      <address>${p.full_address || ''}</address>
+      <lat>${p.latitude || ''}</lat>
+      <lng>${p.longitude || ''}</lng>
+    </location>
+    <specs>
+      <bedrooms>${p.bedrooms || 0}</bedrooms>
+      <bathrooms>${p.bathrooms || 0}</bathrooms>
+      <area_sqft>${p.area_sqft || 0}</area_sqft>
+    </specs>
+    <agent>${p.agent_name || ''}</agent>
+    <updated>${now}</updated>
+    <url>${siteUrl}/properties/${p.id}</url>
+  </listing>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<listings count="${properties.length}">\n${items}\n</listings>`;
+}
+
+function buildProjectXml(projects: any[], siteUrl: string): string {
+  const now = new Date().toISOString().split('T')[0];
+  if (!projects.length) return `<?xml version="1.0" encoding="UTF-8"?>\n<projects count="0"/>`;
+  const items = projects.map((p) => `  <project>
+    <id>${p.id}</id>
+    <name>${p.name || ''}</name>
+    <developer>${p.developer || ''}</developer>
+    <type>${p.project_type || ''}</type>
+    <status>${p.status || ''}</status>
+    <starting_price currency="AED">${p.starting_price || 0}</starting_price>
+    <location>
+      <area>${p.location_area || ''}</area>
+    </location>
+    <units>
+      <total>${p.total_units || 0}</total>
+      <sold>${p.sold_units || 0}</sold>
+      <available>${(p.total_units || 0) - (p.sold_units || 0)}</available>
+    </units>
+    <completion>${p.handover_date || ''}</completion>
+    <updated>${now}</updated>
+    <url>${siteUrl}/projects/${p.id}</url>
+  </project>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<projects count="${projects.length}">\n${items}\n</projects>`;
+}
+
 export default function SyndicationPage() {
-  const [activeTab, setActiveTab] = useState<FeedTab>('properties');
+  const supabase = useMemo(() => createClient(), []);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [showXml, setShowXml] = useState(false);
   const [xmlType, setXmlType] = useState<FeedTab>('properties');
+  const [propertyCount, setPropertyCount] = useState(0);
+  const [projectCount, setProjectCount] = useState(0);
+  const [samplePropertyXml, setSamplePropertyXml] = useState('');
+  const [sampleProjectXml, setSampleProjectXml] = useState('');
+  const [lastUpdated, setLastUpdated] = useState('—');
+
+  const loadFeedData = useCallback(async () => {
+    const { data: props, count: pCount } = await supabase
+      .from('properties')
+      .select('id, reference_number, title, property_type, availability, price_aed, location_area, community, full_address, latitude, longitude, bedrooms, bathrooms, area_sqft, agent_name, updated_at', { count: 'exact' })
+      .eq('published', true)
+      .order('created_at', { ascending: false });
+
+    const { data: projs, count: prCount } = await supabase
+      .from('projects')
+      .select('id, name, developer, project_type, status, starting_price, location_area, total_units, sold_units, handover_date, updated_at', { count: 'exact' })
+      .eq('published', true)
+      .order('created_at', { ascending: false });
+
+    setPropertyCount(pCount || 0);
+    setProjectCount(prCount || 0);
+
+    const siteUrl = SITE_URL;
+    const sampleProps = (props || []).slice(0, 2);
+    const sampleProjs = (projs || []).slice(0, 2);
+    setSamplePropertyXml(buildPropertyXml(sampleProps, siteUrl));
+    setSampleProjectXml(buildProjectXml(sampleProjs, siteUrl));
+
+    const allDates = [
+      ...(props || []).map((p: any) => p.updated_at),
+      ...(projs || []).map((p: any) => p.updated_at),
+    ].filter(Boolean).sort().reverse();
+    if (allDates.length > 0) {
+      setLastUpdated(new Date(allDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+    }
+  }, [supabase]);
+
+  useEffect(() => { loadFeedData(); }, [loadFeedData]);
 
   const handleCopy = (text: string, key: string) => {
     if (typeof navigator !== 'undefined') {
@@ -135,7 +137,7 @@ export default function SyndicationPage() {
         <div>
           <p className="text-sm font-semibold text-foreground">XML Feed Syndication</p>
           <p className="text-xs text-muted-foreground mt-1">
-            LuxEstate distributes listings via live XML feeds. Share the feed URLs below with portals (Property Finder, Bayut, Dubizzle, etc.) or any aggregator that supports XML/RSS property feeds. Feeds are automatically updated whenever listings change.
+            Cove Estates distributes listings via live XML feeds. Share the feed URLs below with portals (Property Finder, Bayut, Dubizzle, etc.) or any aggregator that supports XML/RSS property feeds. Feeds are automatically updated whenever listings change.
           </p>
         </div>
       </div>
@@ -143,10 +145,10 @@ export default function SyndicationPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Properties in Feed', value: '5', icon: 'HomeIcon' },
-          { label: 'Projects in Feed', value: '4', icon: 'BuildingOffice2Icon' },
+          { label: 'Properties in Feed', value: String(propertyCount), icon: 'HomeIcon' },
+          { label: 'Projects in Feed', value: String(projectCount), icon: 'BuildingOffice2Icon' },
           { label: 'Feed Format', value: 'XML', icon: 'CodeBracketIcon' },
-          { label: 'Last Updated', value: 'Live', icon: 'ArrowPathIcon' },
+          { label: 'Last Updated', value: lastUpdated, icon: 'ArrowPathIcon' },
         ].map((s) => (
           <div key={s.label} className="bg-card border border-border p-4 flex items-center gap-3">
             <div className="w-9 h-9 bg-primary/10 flex items-center justify-center flex-shrink-0">
