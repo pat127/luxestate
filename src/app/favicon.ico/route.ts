@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
+import { readFile } from 'fs/promises';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const logoUrl = new URL('/assets/images/app_logo.png', request.url);
-    const res = await fetch(logoUrl.toString(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('logo fetch failed');
-    const buf = await res.arrayBuffer();
-    return new NextResponse(buf, {
+    const filePath = path.join(process.cwd(), 'public', 'assets', 'images', 'app_logo.png');
+    const buf = await readFile(filePath);
+    return new NextResponse(new Uint8Array(buf), {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
@@ -16,6 +17,6 @@ export async function GET(request: Request) {
       },
     });
   } catch {
-    return NextResponse.redirect(new URL('/assets/images/app_logo.png?v=3', request.url), 307);
+    return NextResponse.redirect(new URL('/assets/images/app_logo.png', process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com'), 307);
   }
 }

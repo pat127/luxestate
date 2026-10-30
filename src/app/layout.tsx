@@ -101,9 +101,9 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
   },
   icons: {
-    icon: [{ url: '/assets/images/app_logo.png?v=2', type: 'image/png', sizes: 'any' }],
-    shortcut: '/assets/images/app_logo.png?v=2',
-    apple: '/assets/images/app_logo.png?v=2',
+    icon: [{ url: '/api/favicon', type: 'image/png', sizes: 'any' }],
+    shortcut: '/api/favicon',
+    apple: '/api/favicon',
   },
   category: 'real estate',
 };

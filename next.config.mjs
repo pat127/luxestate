@@ -26,6 +26,28 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Force /favicon.ico to always resolve to the Cove Estates logo route.
+  // beforeFiles runs ahead of the static public/favicon.ico (old house icon),
+  // so browsers' automatic first-load /favicon.ico request gets the correct icon.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/favicon.ico', destination: '/api/favicon' },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/api/favicon',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }],
+      },
+    ];
+  },
+
   images: {
     remotePatterns: imageHosts,
     minimumCacheTTL: 2592000,
