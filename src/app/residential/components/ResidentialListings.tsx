@@ -30,13 +30,13 @@ const RESIDENTIAL_CATEGORIES = ['Residential', 'Apartment', 'Villa', 'Townhouse'
 
 type SortKey = 'default' | 'price-asc' | 'price-desc' | 'newest';
 
-export default function ResidentialListings() {
+export default function ResidentialListings({ initialListings }: { initialListings?: Property[] } = {}) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortKey>('default');
   const [activeFilter, setActiveFilter] = useState('All');
   const [activeMode, setActiveMode] = useState<'All' | 'Rent' | 'Sale'>('All');
-  const [listings, setListings] = useState<Property[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [listings, setListings] = useState<Property[]>(initialListings ?? []);
+  const [loaded, setLoaded] = useState(initialListings !== undefined);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
   const supabase = useMemo(() => createClient(), []);
@@ -44,6 +44,8 @@ export default function ResidentialListings() {
   const filters = ['All', ...( pf.residentialTypes.length > 0 ? pf.residentialTypes : ['Apartment', 'Villa', 'Townhouse', 'Penthouse'])];
 
   useEffect(() => {
+    // Server already rendered the listings into the HTML — skip the client refetch.
+    if (initialListings !== undefined) return;
     let cancelled = false;
 
     const loadProperties = async () => {
@@ -96,7 +98,7 @@ export default function ResidentialListings() {
 
     loadProperties();
     return () => { cancelled = true; };
-  }, [supabase]);
+  }, [supabase, initialListings]);
 
   const filtered = listings.filter((l) =>
     (activeFilter === 'All' || l.tag === activeFilter) &&

@@ -1,45 +1,37 @@
-'use client';
+import JsonLd from '@/components/JsonLd';
+import CommercialPageClient from './CommercialPageClient';
+import { fetchCommercialListings, formatNumber } from '@/lib/seo/serverData';
+import { generateBreadcrumbSchema, generateItemListSchema } from '@/lib/seo/schemas';
 
+export { metadata } from './metadata';
 
-import React from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import CommercialHero from '@/app/commercial/components/CommercialHero';
-import CommercialListings from '@/app/commercial/components/CommercialListings';
-import MarketInsights from '@/app/commercial/components/MarketInsights';
-import CommercialInquiry from '@/app/commercial/components/CommercialInquiry';
-import CommercialStats from '@/app/commercial/components/CommercialStats';
-import { useCMSPage } from '@/contexts/CMSContext';
-import { generateListingCollectionSchema } from '@/lib/seo/schemas';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
+export default async function CommercialPage() {
+  const listings = await fetchCommercialListings();
 
-export default function CommercialPage() {
-  const page = useCMSPage('commercial');
-  const sections = page?.sections ?? {};
+  // Indicative pricing: lowest published sale price, falling back to a fixed advisory fee.
+  const salePrices = listings?.filter((l) => !l?.isRent && l?.priceRaw > 0)?.map((l) => l?.priceRaw);
+  const minSale = salePrices?.length > 0 ? Math.min(...salePrices) : 0;
+  const startingPriceLabel = minSale > 0
+    ? `Commercial acquisitions starting from AED ${formatNumber(minSale)}. Advisory and leasing mandates from AED 15,000.`
+    : 'Commercial advisory and leasing mandates starting from AED 15,000. Acquisitions priced on request.';
 
-  const listingSchema = generateListingCollectionSchema({
-    category: 'commercial',
-    count: 0,
-    url: `${siteUrl}/commercial`,
-  });
+  const itemList = generateItemListSchema(
+    'Commercial Properties in Dubai',
+    `${siteUrl}/commercial`,
+    listings?.map((l) => ({ name: l?.name, url: `${siteUrl}/properties/${l?.id}` }))
+  );
+  const breadcrumb = generateBreadcrumbSchema([
+    { name: 'Home', url: siteUrl },
+    { name: 'Commercial', url: `${siteUrl}/commercial` },
+  ]);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema) }}
-        suppressHydrationWarning
-      />
-      <main className="bg-background overflow-x-hidden page-enter">
-        <Header />
-        <CommercialHero />
-        {sections?.listings_grid !== false && <CommercialListings />}
-        {sections?.commercial_stats !== false && <CommercialStats />}
-        {sections?.market_insights !== false && <MarketInsights />}
-        <CommercialInquiry />
-        <Footer />
-      </main>
+      <JsonLd data={itemList} />
+      <JsonLd data={breadcrumb} />
+      <CommercialPageClient initialListings={listings} startingPriceLabel={startingPriceLabel} />
     </>
   );
 }

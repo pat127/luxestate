@@ -24,11 +24,11 @@ interface CommercialListing {
 
 const COMMERCIAL_CATEGORIES = ['Commercial', 'Office', 'Retail', 'Warehouse', 'Investment', 'Land'];
 
-export default function CommercialListings() {
+export default function CommercialListings({ initialListings }: { initialListings?: CommercialListing[] } = {}) {
   const [activeType, setActiveType] = useState('All');
   const [activeMode, setActiveMode] = useState<'All' | 'Rent' | 'Sale'>('All');
-  const [listings, setListings] = useState<CommercialListing[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [listings, setListings] = useState<CommercialListing[]>(initialListings ?? []);
+  const [loaded, setLoaded] = useState(initialListings !== undefined);
   const sectionRef = useRef<HTMLElement>(null);
   const pf = usePropertyFields();
   const supabase = useMemo(() => createClient(), []);
@@ -36,6 +36,8 @@ export default function CommercialListings() {
   const types = ['All', ...commercialTypeList];
 
   useEffect(() => {
+    // Server already rendered the listings into the HTML — skip the client refetch.
+    if (initialListings !== undefined) return;
     const loadCommercial = async () => {
       try {
         const { data, error } = await supabase
@@ -83,7 +85,7 @@ export default function CommercialListings() {
     };
 
     loadCommercial();
-  }, [supabase]);
+  }, [supabase, initialListings]);
 
   const filtered = listings.filter((l) =>
     (activeType === 'All' || l.type === activeType) &&

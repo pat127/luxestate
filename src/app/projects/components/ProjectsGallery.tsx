@@ -43,15 +43,17 @@ function getDisplayStatus(status: string): string {
   return status;
 }
 
-export default function ProjectsGallery() {
+export default function ProjectsGallery({ initialProjects }: { initialProjects?: DisplayProject[] } = {}) {
   const supabase = useMemo(() => createClient(), []);
   const [activeType, setActiveType] = useState('All');
-  const [displayProjects, setDisplayProjects] = useState<DisplayProject[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [displayProjects, setDisplayProjects] = useState<DisplayProject[]>(initialProjects ?? []);
+  const [loaded, setLoaded] = useState(initialProjects !== undefined);
   const sectionRef = useRef<HTMLElement>(null);
   const types = ['All', 'Residential', 'Commercial', 'Mixed Use', 'Hospitality'];
 
   useEffect(() => {
+    // Server already rendered the projects into the HTML — skip the client refetch.
+    if (initialProjects !== undefined) return;
     let cancelled = false;
 
     const loadProjects = async () => {
@@ -107,7 +109,7 @@ export default function ProjectsGallery() {
 
     loadProjects();
     return () => { cancelled = true; };
-  }, [supabase]);
+  }, [supabase, initialProjects]);
 
   const filtered = displayProjects.filter((p) => activeType === 'All' || p.type === activeType);
 

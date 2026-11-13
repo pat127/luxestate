@@ -168,3 +168,107 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
     })),
   };
 }
+
+export function generateArticleSchema(params: {
+  title: string;
+  description?: string;
+  slug: string;
+  image?: string;
+  author: string;
+  authorUrl?: string;
+  datePublished: string;
+  dateModified?: string;
+  category?: string;
+}) {
+  const url = `${siteUrl}/blog/${params.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: params.title,
+    description: params.description || undefined,
+    image: params.image ? [params.image] : [`${siteUrl}/assets/images/og-image.jpg`],
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    datePublished: params.datePublished,
+    dateModified: params.dateModified || params.datePublished,
+    articleSection: params.category || undefined,
+    author: {
+      '@type': 'Person',
+      name: params.author,
+      url: params.authorUrl || undefined,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Cove Estates',
+      logo: { '@type': 'ImageObject', url: `${siteUrl}/assets/images/app_logo.png` },
+    },
+  };
+}
+
+export function generateProductOfferSchema(params: {
+  id: string;
+  name: string;
+  description?: string;
+  image?: string;
+  price: number;
+  location?: string;
+  available?: boolean;
+}) {
+  const url = `${siteUrl}/properties/${params.id}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: params.name,
+    description: params.description || `${params.name}${params.location ? ` in ${params.location}` : ''}`,
+    image: params.image ? [params.image] : [`${siteUrl}/assets/images/og-image.jpg`],
+    url,
+    brand: { '@type': 'Brand', name: 'Cove Estates' },
+    offers: {
+      '@type': 'Offer',
+      url,
+      price: params.price > 0 ? String(params.price) : undefined,
+      priceCurrency: 'AED',
+      availability: params.available === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      seller: { '@type': 'RealEstateAgent', name: 'Cove Estates' },
+    },
+  };
+}
+
+export function generateItemListSchema(
+  name: string,
+  url: string,
+  items: Array<{ name: string; url: string; image?: string; price?: number }>
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    url,
+    numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: it.url,
+      name: it.name,
+    })),
+  };
+}
+
+export function generateRealEstateAgentSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateAgent',
+    name: 'Cove Estates',
+    url: siteUrl,
+    logo: `${siteUrl}/assets/images/app_logo.png`,
+    image: `${siteUrl}/assets/images/og-image.jpg`,
+    telephone: '+971508862683',
+    email: 'admin@coveestates.com',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '8th Level, Moosa Tower 1',
+      addressLocality: 'Dubai',
+      addressCountry: 'AE',
+    },
+  };
+}
