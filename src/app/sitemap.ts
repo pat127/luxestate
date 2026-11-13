@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
+// Cache the sitemap for 1 hour instead of regenerating per request; crawlers get a stable, fast response.
+export const revalidate = 3600;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
@@ -54,6 +55,7 @@ async function fetchDynamicRoutes(): Promise<MetadataRoute.Sitemap> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
+  // Static routes are always emitted, even if the database lookup fails, so crawlers never receive an empty sitemap.
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, lastModified, changeFrequency: 'daily', priority: 1.0 },
     { url: `${siteUrl}/residential`, lastModified, changeFrequency: 'daily', priority: 0.95 },

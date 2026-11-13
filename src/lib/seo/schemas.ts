@@ -1,3 +1,5 @@
+import { BLOG_AUTHOR } from './author';
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luxestate6357.builtwithrocket.new';
 
 export interface PropertySchemaParams {
@@ -174,13 +176,14 @@ export function generateArticleSchema(params: {
   description?: string;
   slug: string;
   image?: string;
-  author: string;
+  author?: string;
   authorUrl?: string;
   datePublished: string;
   dateModified?: string;
   category?: string;
 }) {
   const url = `${siteUrl}/blog/${params.slug}`;
+  const authorName = BLOG_AUTHOR.name;
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -192,16 +195,39 @@ export function generateArticleSchema(params: {
     datePublished: params.datePublished,
     dateModified: params.dateModified || params.datePublished,
     articleSection: params.category || undefined,
+    inLanguage: 'en',
     author: {
       '@type': 'Person',
-      name: params.author,
-      url: params.authorUrl || undefined,
+      name: authorName,
+      jobTitle: BLOG_AUTHOR.title,
+      description: BLOG_AUTHOR.bio,
+      url: params.authorUrl || BLOG_AUTHOR.url,
+      sameAs: [...BLOG_AUTHOR.sameAs],
+      worksFor: { '@type': 'Organization', name: 'Cove Estates', url: siteUrl },
     },
     publisher: {
       '@type': 'Organization',
       name: 'Cove Estates',
       logo: { '@type': 'ImageObject', url: `${siteUrl}/assets/images/app_logo.png` },
     },
+  };
+}
+
+export function generateWebPageSchema(params: {
+  name: string;
+  description?: string;
+  url: string;
+  type?: 'WebPage' | 'CollectionPage' | 'FAQPage' | 'AboutPage' | 'ContactPage';
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': params.type || 'WebPage',
+    name: params.name,
+    description: params.description,
+    url: params.url,
+    inLanguage: 'en',
+    isPartOf: { '@type': 'WebSite', name: 'Cove Estates', url: siteUrl },
+    about: { '@type': 'Organization', name: 'Cove Estates', url: siteUrl },
   };
 }
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import BlogPageClient from './BlogPageClient';
 import JsonLd from '@/components/JsonLd';
 import { fetchBlogPosts } from '@/lib/seo/serverData';
-import { generateBreadcrumbSchema } from '@/lib/seo/schemas';
+import { generateBreadcrumbSchema, generateWebPageSchema } from '@/lib/seo/schemas';
 
 export const revalidate = 300;
 
@@ -17,6 +17,12 @@ export const metadata: Metadata = {
 
 export default async function BlogPage() {
   const posts = await fetchBlogPosts();
+  const webPage = generateWebPageSchema({
+    name: 'Dubai Real Estate Journal',
+    description: 'Market insights, off-plan guides and investment articles from the Cove Estates team.',
+    url: `${siteUrl}/blog`,
+    type: 'CollectionPage',
+  });
   const breadcrumb = generateBreadcrumbSchema([
     { name: 'Home', url: siteUrl },
     { name: 'Journal', url: `${siteUrl}/blog` },
@@ -24,6 +30,7 @@ export default async function BlogPage() {
 
   return (
     <>
+      <JsonLd data={webPage} />
       <JsonLd data={breadcrumb} />
       <BlogPageClient initialPosts={posts} />
     </>

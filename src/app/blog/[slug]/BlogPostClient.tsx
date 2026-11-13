@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { BLOG_AUTHOR } from '@/lib/seo/author';
 
 interface BlogPost {
   id: string;
@@ -141,13 +142,12 @@ export default function BlogPostClient({ post, related }: { post: BlogPost; rela
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground mb-1">Written by</p>
-            <p className="text-foreground font-bold text-base leading-tight">{post.author}</p>
+            <p className="text-foreground font-bold text-base leading-tight">{BLOG_AUTHOR.name}</p>
             <p className="text-primary text-xs font-semibold uppercase tracking-[0.15em] mt-1">
-              Property Advisor, Cove Estates
+              {BLOG_AUTHOR.title}
             </p>
             <p className="text-muted-foreground text-sm leading-relaxed mt-2">
-              {post.author} advises local and international investors on buying, selling and leasing residential,
-              commercial and off-plan property across Dubai with Cove Estates.
+              {BLOG_AUTHOR.bio}
             </p>
             <a
               href="https://linkedin.com/company/coveestates"

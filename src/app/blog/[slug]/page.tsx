@@ -4,6 +4,7 @@ import BlogPostClient from './BlogPostClient';
 import JsonLd from '@/components/JsonLd';
 import { fetchBlogPostBySlug } from '@/lib/seo/serverData';
 import { generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo/schemas';
+import { BLOG_AUTHOR } from '@/lib/seo/author';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: post.title,
     description,
-    authors: [{ name: post.author }],
+    authors: [{ name: BLOG_AUTHOR.name, url: BLOG_AUTHOR.url }],
     alternates: { canonical: `${siteUrl}/blog/${post.slug}` },
     openGraph: {
       type: 'article',
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       url: `${siteUrl}/blog/${post.slug}`,
       publishedTime: post.publish_date || post.created_at,
-      authors: [post.author],
+      authors: [BLOG_AUTHOR.url],
       images: post.featured_image ? [{ url: post.featured_image, alt: post.title }] : undefined,
     },
   };
@@ -39,8 +40,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     description: post.excerpt,
     slug: post.slug,
     image: post.featured_image,
-    author: post.author || 'Cove Estates',
-    authorUrl: 'https://linkedin.com/company/coveestates',
     datePublished: post.publish_date || post.created_at,
     category: post.category,
   });
@@ -55,7 +54,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     <>
       <JsonLd data={article} />
       <JsonLd data={breadcrumb} />
-      <BlogPostClient post={post} related={related} />
+      <BlogPostClient post={{ ...post, author: BLOG_AUTHOR.name }} related={related} />
     </>
   );
 }
