@@ -4,7 +4,7 @@ import JsonLd from '@/components/JsonLd';
 import { fetchBlogPosts } from '@/lib/seo/serverData';
 import { generateBreadcrumbSchema, generateWebPageSchema } from '@/lib/seo/schemas';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 

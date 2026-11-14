@@ -4,6 +4,8 @@ import FAQsPageClient from './FAQsPageClient';
 import { fetchFaqs } from '@/lib/seo/serverData';
 import { generateFAQSchema, generateBreadcrumbSchema, generateWebPageSchema } from '@/lib/seo/schemas';
 
+export const dynamic = 'force-dynamic';
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://coveestate.com';
 
 export const metadata: Metadata = {

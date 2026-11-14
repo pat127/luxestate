@@ -1,4 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * Cookie-free anon client for PUBLIC content. Does not call cookies(), so it never
+ * depends on request/session state and always returns the same published data to crawlers.
+ */
+function createPublicClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+}
 
 export interface ServerBlogPost {
   id: string;
@@ -106,14 +119,19 @@ function getStatusColor(status: string): string {
 
 export async function fetchBlogPosts(): Promise<ServerBlogPost[]> {
   try {
-    const supabase = await createClient();
-    const { data } = await supabase
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
       .from('blog_posts')
       .select('id, title, slug, category, author, status, views, created_at, excerpt, featured_image, tags, publish_date')
       .eq('status', 'Published')
       .order('created_at', { ascending: false });
+    if (error) {
+      console.error('[serverData] fetchBlogPosts failed:', error.message);
+      return [];
+    }
     return (data as ServerBlogPost[]) ?? [];
-  } catch {
+  } catch (e) {
+    console.error('[serverData] fetchBlogPosts threw:', e);
     return [];
   }
 }
@@ -143,14 +161,19 @@ export async function fetchBlogPostBySlug(slug: string): Promise<{ post: ServerB
 
 export async function fetchFaqs(): Promise<ServerFAQ[]> {
   try {
-    const supabase = await createClient();
-    const { data } = await supabase
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
       .from('faqs')
       .select('id, question, answer, category, sort_order')
       .eq('is_published', true)
       .order('sort_order', { ascending: true });
+    if (error) {
+      console.error('[serverData] fetchFaqs failed:', error.message);
+      return [];
+    }
     return (data as ServerFAQ[]) ?? [];
-  } catch {
+  } catch (e) {
+    console.error('[serverData] fetchFaqs threw:', e);
     return [];
   }
 }
