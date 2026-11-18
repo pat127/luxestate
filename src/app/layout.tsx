@@ -215,7 +215,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const heroPreload = heroPreloadHref(homeHero);
   const heroSrcSet = heroPreloadSrcSet(homeHero);
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)}>
+    <html lang="en" className={`${plusJakartaSans.variable} dark`} style={brandingCssVars(branding)} suppressHydrationWarning>
       <head>
         {/* Critical preconnects first — reduces DNS+TLS latency for LCP resources */}
         <link rel="preconnect" href="https://hkxstgyxmxiiccstmbnj.supabase.co" crossOrigin="anonymous" />
