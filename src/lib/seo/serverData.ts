@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { BLOG_AUTHOR } from '@/lib/seo/author';
 
 /**
  * Cookie-free anon client for PUBLIC content. Does not call cookies(), so it never
@@ -129,7 +130,7 @@ export async function fetchBlogPosts(): Promise<ServerBlogPost[]> {
       console.error('[serverData] fetchBlogPosts failed:', error.message);
       return [];
     }
-    return (data as ServerBlogPost[]) ?? [];
+    return ((data as ServerBlogPost[]) ?? []).map((p) => ({ ...p, author: BLOG_AUTHOR.name }));
   } catch (e) {
     console.error('[serverData] fetchBlogPosts threw:', e);
     return [];
@@ -153,7 +154,10 @@ export async function fetchBlogPostBySlug(slug: string): Promise<{ post: ServerB
       .eq('category', data.category)
       .neq('id', data.id)
       .limit(3);
-    return { post: data as ServerBlogPost, related: (relatedData as ServerBlogPost[]) ?? [] };
+    return {
+      post: { ...(data as ServerBlogPost), author: BLOG_AUTHOR.name },
+      related: ((relatedData as ServerBlogPost[]) ?? []).map((p) => ({ ...p, author: BLOG_AUTHOR.name })),
+    };
   } catch {
     return { post: null, related: [] };
   }

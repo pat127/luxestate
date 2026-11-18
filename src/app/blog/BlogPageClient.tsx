@@ -8,6 +8,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { useCMS } from '@/contexts/CMSContext';
+import { BLOG_AUTHOR } from '@/lib/seo/author';
 
 interface BlogPost {
   id: string;
@@ -170,9 +171,10 @@ export default function BlogPageClient({ initialPosts = [] }: { initialPosts?: B
         .eq('status', 'Published')
         .order('created_at', { ascending: false });
       if (data) {
-        setPosts(data);
+        const normalized = data.map((p: BlogPost) => ({ ...p, author: BLOG_AUTHOR.name }));
+        setPosts(normalized);
         // Build dynamic category list from actual posts
-        const cats = Array.from(new Set(data.map((p: BlogPost) => p.category).filter(Boolean)));
+        const cats = Array.from(new Set(normalized.map((p: BlogPost) => p.category).filter(Boolean)));
         if (cats.length > 0) {
           setCategories(['All', ...cats]);
         }

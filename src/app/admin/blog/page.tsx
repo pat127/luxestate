@@ -59,7 +59,7 @@ const emptyForm: PostForm = {
   content: '',
   category: 'Market Insights',
   status: 'Draft',
-  author: 'Admin',
+  author: 'Sherry',
   featuredImage: '',
   tags: '',
   metaTitle: '',
@@ -117,7 +117,7 @@ export default function BlogPostsPage() {
       content: post.content || '',
       category: post.category,
       status: post.status,
-      author: post.author,
+      author: 'Sherry',
       featuredImage: post.featured_image || '',
       tags: (post.tags || []).join(', '),
       metaTitle: post.meta_title || '',
@@ -217,7 +217,7 @@ export default function BlogPostsPage() {
             slug,
             excerpt: row['excerpt'] || '',
             category: row['category'] || 'Market Insights',
-            author: row['author'] || 'Admin',
+            author: row['author'] || 'Sherry',
             status: row['status'] || 'Draft',
             views: parseInt(row['views'] || '0', 10) || 0,
             featured_image: row['featured_image'] || row['featured_image_url'] || row['image'] || row['image_url'] || '',
@@ -420,7 +420,7 @@ export default function BlogPostsPage() {
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Author</label>
                       <select value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} className="w-full px-3 py-2.5 bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
-                        <option>Admin</option><option>Sarah M.</option><option>James C.</option><option>Omar H.</option><option>Priya S.</option>
+                        <option>Sherry</option>
                       </select>
                     </div>
                   </div>

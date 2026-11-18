@@ -6,6 +6,20 @@ export const BLOG_AUTHOR = {
   sameAs: ['https://linkedin.com/company/coveestates'],
 } as const;
 
+export const ORGANIZATION = {
+  name: 'Cove Estates',
+  email: 'admin@coveestate.com',
+  telephone: '+971508862683',
+  sameAs: [
+    'https://instagram.com/coveestates',
+    'https://linkedin.com/company/coveestates',
+    'https://youtube.com/@coveestates',
+    'https://www.facebook.com/coveestatesuae',
+    'https://x.com/coveestate',
+    'https://tiktok.com/@coveestates',
+  ],
+} as const;
+
 export const PRICING = {
   reagleAdvisory: 'Starting from AED 15,000',
   commercialLeasing: 'Contact us for a tailored quote',

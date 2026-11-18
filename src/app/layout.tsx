@@ -114,9 +114,22 @@ const organizationSchema = {
   name: 'Cove Estates',
   description: 'Ultra-premium luxury real estate agency in Dubai specializing in residential, commercial, and off-plan properties.',
   url: siteUrl,
-  logo: `${siteUrl}/assets/images/app_logo.png`,
+  logo: {
+    '@type': 'ImageObject',
+    url: `${siteUrl}/assets/images/app_logo.png`,
+  },
   telephone: '+971508862683',
-  email: 'admin@coveestates.com',
+  email: 'admin@coveestate.com',
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      telephone: '+971508862683',
+      email: 'admin@coveestate.com',
+      areaServed: 'AE',
+      availableLanguage: ['English', 'Arabic'],
+    },
+  ],
   address: {
     '@type': 'PostalAddress',
     streetAddress: '8th Level, Moosa Tower 1',
@@ -136,9 +149,9 @@ const organizationSchema = {
   sameAs: [
     'https://instagram.com/coveestates',
     'https://linkedin.com/company/coveestates',
-    'https://facebook.com/coveestates',
-    'https://x.com/coveestates',
     'https://youtube.com/@coveestates',
+    'https://www.facebook.com/coveestatesuae',
+    'https://x.com/coveestate',
     'https://tiktok.com/@coveestates',
   ],
   knowsAbout: [

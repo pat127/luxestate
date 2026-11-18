@@ -186,7 +186,7 @@ export default function Footer() {
   const [careersOpen, setCareersOpen] = useState(false);
 
   const phone = b?.phone || '+971 50 886 2683';
-  const email = b?.email || 'admin@coveestates.com';
+  const email = b?.email || 'admin@coveestate.com';
   const address = b?.address || '8th Level, Moosa Tower 1, Dubai, UAE';
   const phoneTel = `tel:${phone.replace(/\s+/g, '')}`;
 
