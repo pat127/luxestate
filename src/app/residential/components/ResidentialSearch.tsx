@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { usePropertyFields } from '@/hooks/usePropertyFields';
 
 export default function ResidentialSearch() {
+  const pf = usePropertyFields();
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [beds, setBeds] = useState('');
@@ -34,11 +36,7 @@ export default function ResidentialSearch() {
             className="bg-background border border-border text-foreground text-sm px-4 py-3 outline-none focus:border-primary transition-colors cursor-pointer min-w-[160px]"
           >
             <option value="">Property Type</option>
-            <option value="penthouse">Penthouse</option>
-            <option value="villa">Villa</option>
-            <option value="estate">Estate</option>
-            <option value="townhouse">Townhouse</option>
-            <option value="loft">Loft</option>
+            {pf?.types?.map(t => <option key={t} value={t?.toLowerCase()}>{t}</option>)}
           </select>
 
           {/* Beds */}

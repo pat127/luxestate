@@ -1,946 +1,1268 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/contexts/RoleContext';
 
-// ─── Template definitions ────────────────────────────────────────────────────
-interface TemplateField {
-  key: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface FormField {
+  fieldId: string;   // e.g. {{date}}
   label: string;
-  type: 'text' | 'number' | 'date' | 'textarea' | 'select';
+  fieldType: 'Text' | 'Long Text' | 'Number' | 'Date';
   required: boolean;
-  placeholder?: string;
-  options?: string[];
-  fieldCode?: string;
 }
 
-interface TemplateDefinition {
+interface DocumentTemplate {
   id: string;
   name: string;
   category: string;
   description: string;
-  fields: TemplateField[];
-  requiresApproval: boolean;
+  content: string;
+  form_fields: FormField[];
+  requires_approval: boolean;
+  created_at: string;
 }
-
-const TEMPLATES: TemplateDefinition[] = [
-  {
-    id: 'ncnda',
-    name: 'CONFIDENTIALITY, NON-DISCLOSURE & NON-CIRCUMVENTION AGREEMENT',
-    category: 'NDA',
-    description: 'NCNDA with a broker representing seller and Cove representing buyer',
-    requiresApproval: true,
-    fields: [
-      { key: 'date', label: 'Date', type: 'date', required: true, fieldCode: '{{date}}' },
-      { key: 'company', label: 'Company Name', type: 'text', required: true, placeholder: 'Enter company name...', fieldCode: '{{Company}}' },
-      { key: 'license', label: 'License No', type: 'number', required: true, fieldCode: '{{license}}' },
-      { key: 'orn', label: 'ORN', type: 'number', required: true, fieldCode: '{{ORN}}' },
-      { key: 'address', label: 'Address', type: 'text', required: true, placeholder: 'Enter address...', fieldCode: '{{Address}}' },
-      { key: 'coInitials1', label: 'Co Initials', type: 'text', required: true, placeholder: 'Enter co initials...', fieldCode: '{{initials}}' },
-      { key: 'coInitials2', label: 'Co Initials', type: 'text', required: true, placeholder: 'Enter co initials...', fieldCode: '{{Initials}}' },
-      { key: 'signatory', label: 'Auth Signatory', type: 'text', required: true, placeholder: 'Enter auth signatory...', fieldCode: '{{Signatory}}' },
-    ],
-  },
-  {
-    id: 'mou',
-    name: 'Memorandum of Understanding (MOU)',
-    category: 'Sales Contract',
-    description: 'Standard MOU for property transactions between buyer and seller',
-    requiresApproval: true,
-    fields: [
-      { key: 'buyerName', label: 'Buyer Full Name', type: 'text', required: true, placeholder: 'Enter buyer full name...', fieldCode: '{{buyer_name}}' },
-      { key: 'sellerName', label: 'Seller Full Name', type: 'text', required: true, placeholder: 'Enter seller full name...', fieldCode: '{{seller_name}}' },
-      { key: 'propertyRef', label: 'Property Reference No.', type: 'text', required: true, placeholder: 'e.g. LX-RES-004', fieldCode: '{{property_ref}}' },
-      { key: 'propertyAddress', label: 'Property Address', type: 'text', required: true, placeholder: 'Enter property address...', fieldCode: '{{property_address}}' },
-      { key: 'agreedPrice', label: 'Agreed Price (AED)', type: 'number', required: true, fieldCode: '{{agreed_price}}' },
-      { key: 'depositAmount', label: 'Deposit Amount (AED)', type: 'number', required: true, fieldCode: '{{deposit_amount}}' },
-      { key: 'completionDate', label: 'Completion Date', type: 'date', required: true, fieldCode: '{{completion_date}}' },
-      { key: 'agentName', label: 'Agent Name', type: 'text', required: false, placeholder: 'Enter agent name...', fieldCode: '{{agent_name}}' },
-      { key: 'buyerPassport', label: 'Buyer Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{buyer_passport}}' },
-      { key: 'sellerPassport', label: 'Seller Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{seller_passport}}' },
-      { key: 'paymentMethod', label: 'Payment Method', type: 'select', required: true, options: ['Cash', 'Mortgage', 'Installment'], fieldCode: '{{payment_method}}' },
-      { key: 'mortgageBank', label: 'Mortgage Bank (if applicable)', type: 'text', required: false, placeholder: 'Enter bank name...', fieldCode: '{{mortgage_bank}}' },
-      { key: 'transferDate', label: 'Transfer Date', type: 'date', required: true, fieldCode: '{{transfer_date}}' },
-      { key: 'agentCommission', label: 'Agent Commission (%)', type: 'number', required: false, fieldCode: '{{agent_commission}}' },
-      { key: 'specialConditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Enter any special conditions...', fieldCode: '{{special_conditions}}' },
-    ],
-  },
-  {
-    id: 'tenancy',
-    name: 'Tenancy Contract (Ejari)',
-    category: 'Rental Agreement',
-    description: 'Standard tenancy contract for rental properties in Dubai, compliant with Ejari requirements',
-    requiresApproval: true,
-    fields: [
-      { key: 'tenantName', label: 'Tenant Full Name', type: 'text', required: true, placeholder: 'Enter tenant name...', fieldCode: '{{tenant_name}}' },
-      { key: 'landlordName', label: 'Landlord Full Name', type: 'text', required: true, placeholder: 'Enter landlord name...', fieldCode: '{{landlord_name}}' },
-      { key: 'propertyAddress', label: 'Property Address', type: 'text', required: true, placeholder: 'Enter property address...', fieldCode: '{{property_address}}' },
-      { key: 'annualRent', label: 'Annual Rent (AED)', type: 'number', required: true, fieldCode: '{{annual_rent}}' },
-      { key: 'startDate', label: 'Lease Start Date', type: 'date', required: true, fieldCode: '{{start_date}}' },
-      { key: 'endDate', label: 'Lease End Date', type: 'date', required: true, fieldCode: '{{end_date}}' },
-      { key: 'securityDeposit', label: 'Security Deposit (AED)', type: 'number', required: true, fieldCode: '{{security_deposit}}' },
-      { key: 'noOfCheques', label: 'Number of Cheques', type: 'number', required: true, fieldCode: '{{no_of_cheques}}' },
-      { key: 'tenantPassport', label: 'Tenant Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{tenant_passport}}' },
-      { key: 'landlordPassport', label: 'Landlord Passport / Emirates ID', type: 'text', required: true, placeholder: 'Enter passport or ID...', fieldCode: '{{landlord_passport}}' },
-      { key: 'ejariNo', label: 'Ejari Registration No.', type: 'text', required: false, placeholder: 'Enter Ejari number...', fieldCode: '{{ejari_no}}' },
-      { key: 'municipality', label: 'Municipality', type: 'text', required: true, placeholder: 'e.g. Dubai Municipality', fieldCode: '{{municipality}}' },
-      { key: 'propertyType', label: 'Property Type', type: 'select', required: true, options: ['Apartment', 'Villa', 'Townhouse', 'Studio', 'Office', 'Retail'], fieldCode: '{{property_type}}' },
-      { key: 'furnished', label: 'Furnished Status', type: 'select', required: true, options: ['Furnished', 'Semi-Furnished', 'Unfurnished'], fieldCode: '{{furnished}}' },
-      { key: 'agentName', label: 'Agent Name', type: 'text', required: false, placeholder: 'Enter agent name...', fieldCode: '{{agent_name}}' },
-      { key: 'agentLicense', label: 'Agent License No.', type: 'text', required: false, placeholder: 'Enter license number...', fieldCode: '{{agent_license}}' },
-      { key: 'specialConditions', label: 'Special Conditions', type: 'textarea', required: false, placeholder: 'Enter any special conditions...', fieldCode: '{{special_conditions}}' },
-    ],
-  },
-];
-
-const CATEGORIES = ['All Categories', 'NDA', 'Sales Contract', 'Rental Agreement'];
-
-type DocStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected';
 
 interface FilledDocument {
-  id: number;
-  templateId: string;
-  templateName: string;
+  id: string;
+  template_id: string | null;
+  template_name: string;
   category: string;
   title: string;
-  fields: Record<string, string>;
+  field_values: Record<string, string>;
   notes: string;
-  status: DocStatus;
-  createdAt: string;
-  ceoSignature?: string;
-  approvedAt?: string;
-  submittedBy: string;
+  doc_status: 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected';
+  ceo_signature: string | null;
+  approved_at: string | null;
+  rejection_comments: string | null;
+  submitted_by: string;
+  created_at: string;
 }
 
-const INITIAL_DOCUMENTS: FilledDocument[] = [
-  {
-    id: 1,
-    templateId: 'ncnda',
-    templateName: 'CONFIDENTIALITY, NON-DISCLOSURE & NON-CIRCUMVENTION AGREEMENT',
-    category: 'NDA',
-    title: 'NCNDA - LuxEstate LLC - Investor Corp - May 2026',
-    fields: { date: '2026-05-01', company: 'LuxEstate LLC', license: '12345', orn: '67890', address: 'Dubai, UAE', coInitials1: 'LE', coInitials2: 'IC', signatory: 'Ahmed Al-Rashid' },
-    notes: '',
-    status: 'Approved',
-    createdAt: 'May 1, 2026',
-    ceoSignature: 'Ahmed Al-Rashid',
-    approvedAt: 'May 2, 2026',
-    submittedBy: 'Admin',
-  },
-  {
-    id: 2,
-    templateId: 'mou',
-    templateName: 'Memorandum of Understanding (MOU)',
-    category: 'Sales Contract',
-    title: 'MoU - James Harrington - Meridian Villa - Apr 2026',
-    fields: { buyerName: 'James Harrington', sellerName: 'LuxEstate LLC', propertyRef: 'LX-RES-004', propertyAddress: 'Meridian Villa, Palm Jumeirah', agreedPrice: '42000000', depositAmount: '4200000', completionDate: '2026-06-30', paymentMethod: 'Cash', transferDate: '2026-06-30', buyerPassport: 'A1234567', sellerPassport: 'B7654321' },
-    notes: '',
-    status: 'Pending Approval',
-    createdAt: 'Apr 28, 2026',
-    submittedBy: 'Sarah M.',
-  },
-  {
-    id: 3,
-    templateId: 'tenancy',
-    templateName: 'Tenancy Contract (Ejari)',
-    category: 'Rental Agreement',
-    title: 'Tenancy - Sofia Al-Rashid - Atlas Tower - Apr 2026',
-    fields: { tenantName: 'Sofia Al-Rashid', landlordName: 'LuxEstate LLC', propertyAddress: 'Atlas Tower, DIFC', annualRent: '120000', startDate: '2026-05-01', endDate: '2027-04-30', securityDeposit: '10000', noOfCheques: '4', tenantPassport: 'C9876543', landlordPassport: 'D1234567', municipality: 'Dubai Municipality', propertyType: 'Apartment', furnished: 'Furnished' },
-    notes: 'Renewal of existing contract',
-    status: 'Draft',
-    createdAt: 'Apr 20, 2026',
-    submittedBy: 'Omar H.',
-  },
-];
+type ActiveTab = 'templates' | 'documents' | 'pending';
+type ModalMode = 'create' | 'edit' | null;
 
-const STATUS_STYLES: Record<DocStatus, string> = {
+const CATEGORIES = ['NDA', 'Sales Contract', 'Rental Agreement', 'Offer Letter', 'Custom'];
+const FIELD_TYPES: FormField['fieldType'][] = ['Text', 'Long Text', 'Number', 'Date'];
+
+const STATUS_STYLES: Record<string, string> = {
   Draft: 'bg-white/5 text-white/50 border border-white/10',
   'Pending Approval': 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
   Approved: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
   Rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
 };
 
-// ─── SVG Icons ───────────────────────────────────────────────────────────────
-const IconFolder = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
-  </svg>
-);
-const IconFileText = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-    <path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" />
-  </svg>
-);
-const IconFilePen = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2" />
-    <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-    <path d="M8 18h1" />
-  </svg>
-);
-const IconSearch = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />
-  </svg>
-);
-const IconFilter = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
-  </svg>
-);
-const IconChevronDown = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
-const IconPlus = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14" /><path d="M12 5v14" />
-  </svg>
-);
-const IconPen = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-  </svg>
-);
-const IconTrash = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    <line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" />
-  </svg>
-);
-const IconX = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-  </svg>
-);
-const IconEye = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-const IconSend = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
-  </svg>
-);
-const IconCheck = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-const IconPrinter = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-    <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-    <rect x="6" y="14" width="12" height="8" rx="1" />
-  </svg>
-);
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const Icon = {
+  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+  X: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+  Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+  Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>,
+  Eye: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>,
+  File: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>,
+  Search: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.34-4.34"/></svg>,
+  Detect: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.34-4.34"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>,
+  Print: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>,
+  Check: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5"/></svg>,
+  Send: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
+  Download: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+  Reject: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
+  Refresh: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+};
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function DocumentsPage() {
-  const [activeTab, setActiveTab] = useState<'templates' | 'documents' | 'approvals'>('templates');
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All Categories');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [documents, setDocuments] = useState<FilledDocument[]>(INITIAL_DOCUMENTS);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function extractPlaceholders(content: string): string[] {
+  const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
+  const keys = matches.map(m => m.replace(/\{\{|\}\}/g, '').trim());
+  return [...new Set(keys)];
+}
 
-  // New Template modal
-  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState('');
-  const [newTemplateCategory, setNewTemplateCategory] = useState('NDA');
-  const [newTemplateDesc, setNewTemplateDesc] = useState('');
+function placeholderToLabel(key: string): string {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
-  // Fill Document modal
-  const [fillTemplate, setFillTemplate] = useState<TemplateDefinition | null>(null);
-  const [fillTitle, setFillTitle] = useState('');
-  const [fillFields, setFillFields] = useState<Record<string, string>>({});
-  const [fillNotes, setFillNotes] = useState('');
-  const [fillPreview, setFillPreview] = useState(false);
+function fillContent(content: string, values: Record<string, string>): string {
+  return content.replace(/\{\{([^}]+)\}\}/g, (_, key) => values[key.trim()] || `___________`);
+}
 
-  // View Document modal
-  const [viewDoc, setViewDoc] = useState<FilledDocument | null>(null);
+// ─── Template Modal ───────────────────────────────────────────────────────────
+function TemplateModal({
+  mode,
+  initial,
+  onSave,
+  onClose,
+}: {
+  mode: ModalMode;
+  initial?: DocumentTemplate | null;
+  onSave: (data: Omit<DocumentTemplate, 'id' | 'created_at'>) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [category, setCategory] = useState(initial?.category || 'Custom');
+  const [description, setDescription] = useState(initial?.description || '');
+  const [content, setContent] = useState(initial?.content || '');
+  const [fields, setFields] = useState<FormField[]>(initial?.form_fields || []);
+  const [requiresApproval, setRequiresApproval] = useState(initial?.requires_approval ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  // CEO Approval modal
-  const [approvalDoc, setApprovalDoc] = useState<FilledDocument | null>(null);
-  const [ceoSig, setCeoSig] = useState('');
-
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const filteredTemplates = TEMPLATES.filter((t) => {
-    const matchCat = categoryFilter === 'All Categories' || t.category === categoryFilter;
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
-
-  const myDocuments = documents.filter((d) => {
-    const matchCat = categoryFilter === 'All Categories' || d.category === categoryFilter;
-    const matchSearch = d.title.toLowerCase().includes(search.toLowerCase()) || d.templateName.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
-
-  const approvalDocs = documents.filter((d) => d.status === 'Pending Approval');
-
-  // ── Fill Document ─────────────────────────────────────────────────────────
-  const openFill = (tpl: TemplateDefinition) => {
-    setFillTemplate(tpl);
-    const today = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-    setFillTitle(`${tpl.name} - ${today}`);
-    const init: Record<string, string> = {};
-    tpl.fields.forEach((f) => { init[f.key] = ''; });
-    setFillFields(init);
-    setFillNotes('');
-    setFillPreview(false);
+  const detectFields = () => {
+    const keys = extractPlaceholders(content);
+    const existing = new Map(fields.map(f => [f.fieldId, f]));
+    const merged: FormField[] = keys.map(key => {
+      const fid = `{{${key}}}`;
+      if (existing.has(fid)) return existing.get(fid)!;
+      const lbl = placeholderToLabel(key);
+      const isDate = key.toLowerCase().includes('date');
+      const isNum = key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('fee') || key.toLowerCase().includes('deposit') || key.toLowerCase().includes('rent') || key.toLowerCase().includes('sqft') || key.toLowerCase().includes('cheque') || key.toLowerCase().includes('period');
+      const isLong = key.toLowerCase().includes('address') || key.toLowerCase().includes('terms') || key.toLowerCase().includes('conditions') || key.toLowerCase().includes('schedule') || key.toLowerCase().includes('description');
+      return { fieldId: fid, label: lbl, fieldType: isDate ? 'Date' : isNum ? 'Number' : isLong ? 'Long Text' : 'Text', required: true };
+    });
+    setFields(merged);
   };
 
-  const closeFill = () => { setFillTemplate(null); setFillPreview(false); };
-
-  const allRequiredFilled = fillTemplate
-    ? fillTemplate.fields.filter((f) => f.required).every((f) => fillFields[f.key]?.trim())
-    : false;
-
-  const handleSaveDraft = () => {
-    if (!fillTemplate) return;
-    const doc: FilledDocument = {
-      id: Date.now(),
-      templateId: fillTemplate.id,
-      templateName: fillTemplate.name,
-      category: fillTemplate.category,
-      title: fillTitle || fillTemplate.name,
-      fields: { ...fillFields },
-      notes: fillNotes,
-      status: 'Draft',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      submittedBy: 'Admin',
-    };
-    setDocuments([doc, ...documents]);
-    closeFill();
-    setActiveTab('documents');
+  const addField = () => {
+    setFields(prev => [...prev, { fieldId: '', label: '', fieldType: 'Text', required: true }]);
   };
 
-  const handleSaveSubmit = () => {
-    if (!fillTemplate || !allRequiredFilled) return;
-    const doc: FilledDocument = {
-      id: Date.now(),
-      templateId: fillTemplate.id,
-      templateName: fillTemplate.name,
-      category: fillTemplate.category,
-      title: fillTitle || fillTemplate.name,
-      fields: { ...fillFields },
-      notes: fillNotes,
-      status: 'Pending Approval',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      submittedBy: 'Admin',
-    };
-    setDocuments([doc, ...documents]);
-    closeFill();
-    setActiveTab('approvals');
+  const updateField = (idx: number, patch: Partial<FormField>) => {
+    setFields(prev => prev.map((f, i) => i === idx ? { ...f, ...patch } : f));
   };
 
-  // ── Approval actions ──────────────────────────────────────────────────────
-  const handleApprove = () => {
-    if (!approvalDoc || !ceoSig.trim()) return;
-    setDocuments(documents.map((d) =>
-      d.id === approvalDoc.id
-        ? { ...d, status: 'Approved' as DocStatus, ceoSignature: ceoSig, approvedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
-        : d
-    ));
-    setApprovalDoc(null);
-    setCeoSig('');
+  const removeField = (idx: number) => {
+    setFields(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleReject = () => {
-    if (!approvalDoc) return;
-    setDocuments(documents.map((d) => d.id === approvalDoc.id ? { ...d, status: 'Rejected' as DocStatus } : d));
-    setApprovalDoc(null);
-    setCeoSig('');
-  };
-
-  const handleSendForApproval = (doc: FilledDocument) => {
-    setDocuments(documents.map((d) => d.id === doc.id ? { ...d, status: 'Pending Approval' as DocStatus } : d));
-    setViewDoc(null);
-  };
-
-  const handleDeleteDoc = (id: number) => {
-    setDocuments(documents.filter((d) => d.id !== id));
-    if (viewDoc?.id === id) setViewDoc(null);
-  };
-
-  const handlePrint = (doc: FilledDocument) => {
-    const tpl = TEMPLATES.find((t) => t.id === doc.templateId);
-    const fieldsHtml = Object.entries(doc.fields).map(([key, val]) => {
-      const fieldDef = tpl?.fields.find((f) => f.key === key);
-      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span style="color:#666;font-size:13px">${fieldDef?.label || key}</span><span style="font-weight:600;font-size:13px">${val || '—'}</span></div>`;
-    }).join('');
-    const printContent = `<!DOCTYPE html><html><head><title>${doc.title}</title><style>body{font-family:Georgia,serif;color:#1a1a1a;padding:40px;max-width:800px;margin:0 auto}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #C5A47E;padding-bottom:20px;margin-bottom:30px}.logo{font-size:22px;font-weight:bold;color:#C5A47E;letter-spacing:2px}.title{font-size:20px;font-weight:bold;margin-bottom:5px}.section-title{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#C5A47E;border-bottom:1px solid #e5e0d5;padding-bottom:6px;margin-bottom:12px}.esign{background:#f8f6f0;padding:20px;margin-top:30px;border-left:4px solid #C5A47E}.footer{text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid #e5e0d5;font-size:11px;color:#aaa}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><div class="logo">COVE ESTATES</div><div style="text-align:right"><div style="font-size:12px;color:#888">${doc.createdAt}</div></div></div><div class="title">${doc.title}</div><div style="font-size:13px;color:#888;margin-bottom:24px">${doc.category}</div><div class="section-title">Document Fields</div>${fieldsHtml}${doc.ceoSignature ? `<div class="esign"><div class="section-title">CEO E-Signature</div><p style="font-size:20px;font-style:italic;color:#C5A47E;margin:8px 0">${doc.ceoSignature}</p><p style="font-size:12px;color:#888">Approved on ${doc.approvedAt}</p></div>` : ''}<div class="footer">© Cove Estates ${new Date().getFullYear()} · Confidential Document</div><script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}<\/script></body></html>`;
-    if (typeof window !== 'undefined') {
-      const pw = window.open('', '_blank');
-      if (pw) { pw.document.write(printContent); pw.document.close(); }
+  const handleSave = async () => {
+    if (!name.trim()) { setError('Template name is required.'); return; }
+    if (!content.trim()) { setError('Document content is required.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({ name: name.trim(), category, description: description.trim(), content, form_fields: fields, requires_approval: requiresApproval });
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save template.');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="admin-documents">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Document Center</h1>
-          <p className="text-white/50 text-sm mt-1">Manage document templates and filled documents</p>
-        </div>
-        <button
-          onClick={() => setShowNewTemplateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <IconPlus />
-          New Template
-        </button>
-      </div>
-
-      {/* Tabs + Search */}
-      <div className="space-y-4">
-        {/* Tab bar */}
-        <div className="inline-flex h-9 items-center justify-center rounded-lg p-1 bg-[#111111] border border-white/10">
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'templates' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFolder /> Templates
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'documents' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFileText /> My Documents
-          </button>
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-all relative ${
-              activeTab === 'approvals' ? 'bg-primary text-black shadow' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <IconFilePen /> Approvals
-            {approvalDocs.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                {approvalDocs.length}
-              </span>
-            )}
-          </button>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl rounded-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-sm font-bold text-white">{mode === 'create' ? 'Create Template' : 'Edit Template'}</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">&lt;Icon.X /&gt;</button>
         </div>
 
-        {/* Search + Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
-              <IconSearch />
-            </span>
-            <input
-              className="flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 pl-10 bg-white/5 border-white/10 text-white"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-white/50 mb-1.5">Template Name <span className="text-primary">*</span></label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Sales Contract"
+                className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50 placeholder:text-white/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1.5">Category</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50"
+              >
+                {CATEGORIES.map(c => <option key={c} value={c} className="bg-[#111]">{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Brief description of this template"
+              rows={2}
+              className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50 placeholder:text-white/20 resize-none"
             />
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="flex h-9 items-center gap-2 px-3 py-2 text-sm rounded-md border bg-white/5 border-white/10 text-white w-[180px] justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <IconFilter />
-                {categoryFilter}
-              </span>
-              <IconChevronDown />
-            </button>
-            {showCategoryDropdown && (
-              <div className="absolute top-full mt-1 right-0 w-[180px] bg-[#1a1a1a] border border-white/10 rounded-md shadow-lg z-20">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => { setCategoryFilter(cat); setShowCategoryDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-white/5 ${
-                      categoryFilter === cat ? 'text-primary' : 'text-white/70'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* ── Templates Tab ─────────────────────────────────────────────── */}
-        {activeTab === 'templates' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-            {filteredTemplates.map((tpl) => (
-              <div key={tpl.id} className="rounded-xl border bg-[#111111] border-white/10 hover:border-primary/30 transition-colors">
-                <div className="p-6 pb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary"><IconFileText size={20} /></span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white text-sm leading-tight">{tpl.name}</div>
-                      <span className="inline-block mt-1 px-2 py-0.5 text-xs border border-white/20 text-white/60 rounded-md">{tpl.category}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-6 pb-6">
-                  <p className="text-white/50 text-sm mb-4 line-clamp-2">{tpl.description}</p>
-                  <div className="flex items-center gap-2 text-white/40 text-xs mb-4">
-                    <span>{tpl.fields.length} fields</span>
-                    <span>•</span>
-                    <span>{tpl.requiresApproval ? 'Requires approval' : 'No approval needed'}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openFill(tpl)}
-                      className="flex-1 h-8 px-3 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      Fill Document
-                    </button>
-                    <button className="h-8 px-3 text-xs border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors">
-                      <IconPen />
-                    </button>
-                    <button className="h-8 px-3 text-xs border border-red-500/30 text-red-400 rounded-md hover:bg-red-500/10 transition-colors">
-                      <IconTrash />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {filteredTemplates.length === 0 && (
-              <div className="col-span-3 py-16 text-center text-white/40 text-sm">No templates found</div>
-            )}
+          <div>
+            <label className="block text-xs text-white/50 mb-1">Document Content</label>
+            <p className="text-[11px] text-white/30 mb-2">Use {'{{field_id}}'} to insert placeholders (e.g. {'{{client_name}}'}, {'{{contract_date}}'})</p>
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={10}
+              className="w-full bg-[#0a0a0a] border border-white/10 text-white/80 text-xs px-3 py-3 focus:outline-none focus:border-primary/50 font-mono resize-none leading-relaxed"
+              placeholder={'This Agreement is made on {{date}} between {{party_a}} and {{party_b}}...\n\nPROPERTY: {{property_address}}\nPURCHASE PRICE: AED {{purchase_price}}\n\nTerms and Conditions:\n{{terms_and_conditions}}'}
+            />
           </div>
-        )}
 
-        {/* ── My Documents Tab ──────────────────────────────────────────── */}
-        {activeTab === 'documents' && (
-          <div className="mt-2">
-            {myDocuments.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white/30"><IconFileText size={28} /></span>
-                </div>
-                <p className="text-white/50 text-sm">No documents yet. Fill a template to get started.</p>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <label className="block text-xs text-white/50">Form Fields</label>
+                <p className="text-[11px] text-white/30 mt-0.5">Define fields that users must fill in. Click &quot;Detect from Content&quot; to auto-generate.</p>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {myDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 bg-[#111111] border border-white/10 rounded-lg hover:border-white/20 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary"><IconFileText size={16} /></span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{doc.title}</p>
-                        <p className="text-xs text-white/40 mt-0.5">{doc.category} · {doc.createdAt} · {doc.submittedBy}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${STATUS_STYLES[doc.status]}`}>
-                        {doc.status}
-                      </span>
-                      <button onClick={() => setViewDoc(doc)} className="p-1.5 text-white/40 hover:text-white transition-colors"><IconEye /></button>
-                      {doc.status === 'Draft' && (
-                        <button onClick={() => handleSendForApproval(doc)} className="p-1.5 text-white/40 hover:text-amber-400 transition-colors"><IconSend /></button>
-                      )}
-                      {doc.status === 'Approved' && (
-                        <button onClick={() => handlePrint(doc)} className="p-1.5 text-white/40 hover:text-blue-400 transition-colors"><IconPrinter /></button>
-                      )}
-                      <button onClick={() => handleDeleteDoc(doc.id)} className="p-1.5 text-white/40 hover:text-red-400 transition-colors"><IconTrash /></button>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={detectFields}
+                  className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-1.5 transition-colors"
+                >
+                  <Icon.Detect /> Detect from Content
+                </button>
+                <button
+                  onClick={addField}
+                  className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-1.5 transition-colors"
+                >
+                  <Icon.Plus /> Add Field
+                </button>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Approvals Tab ─────────────────────────────────────────────── */}
-        {activeTab === 'approvals' && (
-          <div className="mt-2">
-            {approvalDocs.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400"><IconCheck /></span>
-                </div>
-                <p className="text-white/50 text-sm">No documents pending approval.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {approvalDocs.map((doc) => (
-                  <div key={doc.id} className="p-5 bg-[#111111] border border-amber-500/20 rounded-lg">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">
-                            Pending Approval
-                          </span>
-                          <span className="text-xs text-white/40">{doc.category}</span>
-                        </div>
-                        <p className="text-sm font-semibold text-white">{doc.title}</p>
-                        <p className="text-xs text-white/40 mt-1">Submitted by {doc.submittedBy} · {doc.createdAt}</p>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => setViewDoc(doc)}
-                          className="h-8 px-3 text-xs border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5"
-                        >
-                          <IconEye /> View
-                        </button>
-                        <button
-                          onClick={() => { setApprovalDoc(doc); setCeoSig(''); }}
-                          className="h-8 px-3 text-xs bg-primary text-black rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1.5"
-                        >
-                          <IconCheck /> Review & Sign
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Fill Document Modal ─────────────────────────────────────────────── */}
-      {fillTemplate && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
-            {/* Modal header */}
-            <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-primary"><IconFileText size={16} /></span>
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-bold text-white leading-tight truncate">{fillTemplate.name}</h2>
-                  <p className="text-xs text-white/40 mt-0.5">{fillTemplate.description}</p>
-                </div>
-              </div>
-              <button onClick={closeFill} className="text-white/40 hover:text-white transition-colors flex-shrink-0 ml-4">
-                <IconX />
-              </button>
             </div>
 
-            {/* Modal body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Document title */}
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">
-                  Document Title *
-                </label>
-                <input
-                  type="text"
-                  value={fillTitle}
-                  onChange={(e) => setFillTitle(e.target.value)}
-                  placeholder="Enter a title for this document (e.g., MOU - Client Name - Property)"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
-              </div>
-
-              {/* Fields section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <IconFileText size={14} />
-                    Fill in the Details ({fillTemplate.fields.length} fields)
-                  </h3>
-                  <span className="text-xs text-white/40">
-                    {fillTemplate.fields.filter((f) => f.required).length} required
-                  </span>
+            <div className="border border-white/10 bg-[#0a0a0a] mt-2">
+              {fields.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="text-white/20 text-xs">No fields defined yet</div>
+                  <div className="text-white/15 text-[11px] mt-1">Add {'{{placeholders}}'} in content, then click &quot;Detect from Content&quot;</div>
                 </div>
-                <div className="space-y-4">
-                  {fillTemplate.fields.map((field) => (
-                    <div key={field.key}>
-                      <label className="block text-xs font-medium text-white/70 mb-1">
-                        {field.label} {field.required && <span className="text-red-400">*</span>}
-                      </label>
-                      {field.fieldCode && (
-                        <p className="text-[10px] text-white/30 mb-1">
-                          Field: <code className="text-primary/70 font-mono">{field.fieldCode}</code>
-                        </p>
-                      )}
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          rows={3}
-                          placeholder={field.placeholder || ''}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                        />
-                      ) : field.type === 'select' ? (
-                        <select
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50"
-                        >
-                          <option value="">Select...</option>
-                          {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      ) : (
+              ) : (
+                <div className="divide-y divide-white/5">
+                  <div className="grid grid-cols-[1fr_1fr_120px_80px_32px] gap-3 px-4 py-2 text-[10px] text-white/30 uppercase tracking-wider">
+                    <span>Field ID (in content)</span>
+                    <span>Display Label</span>
+                    <span>Field Type</span>
+                    <span>Required</span>
+                    <span></span>
+                  </div>
+                  {fields.map((field, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_1fr_120px_80px_32px] gap-3 px-4 py-3 items-center">
+                      <input
+                        value={field.fieldId}
+                        onChange={e => updateField(idx, { fieldId: e.target.value })}
+                        placeholder="{{field_name}}"
+                        className="bg-white/5 border border-white/10 text-white/70 text-xs px-2 py-1.5 focus:outline-none focus:border-primary/40 font-mono"
+                      />
+                      <input
+                        value={field.label}
+                        onChange={e => updateField(idx, { label: e.target.value })}
+                        placeholder="Display Label"
+                        className="bg-white/5 border border-white/10 text-white/70 text-xs px-2 py-1.5 focus:outline-none focus:border-primary/40"
+                      />
+                      <select
+                        value={field.fieldType}
+                        onChange={e => updateField(idx, { fieldType: e.target.value as FormField['fieldType'] })}
+                        className="bg-white/5 border border-white/10 text-white/70 text-xs px-2 py-1.5 focus:outline-none focus:border-primary/40"
+                      >
+                        {FIELD_TYPES.map(t => <option key={t} value={t} className="bg-[#111]">{t}</option>)}
+                      </select>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
                         <input
-                          type={field.type}
-                          value={fillFields[field.key] || ''}
-                          onChange={(e) => setFillFields({ ...fillFields, [field.key]: e.target.value })}
-                          placeholder={field.placeholder || ''}
-                          className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={e => updateField(idx, { required: e.target.checked })}
+                          className="accent-primary"
                         />
-                      )}
+                        <span className="text-[11px] text-white/50">Required</span>
+                      </label>
+                      <button onClick={() => removeField(idx)} className="text-white/20 hover:text-red-400 transition-colors flex items-center justify-center">
+                        <Icon.Trash />
+                      </button>
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
 
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  value={fillNotes}
-                  onChange={(e) => setFillNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Any additional notes for this document..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                />
-              </div>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requiresApproval}
+              onChange={e => setRequiresApproval(e.target.checked)}
+              className="accent-primary w-4 h-4"
+            />
+            <span className="text-sm text-white/70">Requires CEO/Admin approval</span>
+          </label>
+
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="text-sm bg-primary hover:bg-primary/90 text-black font-semibold px-5 py-2 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : mode === 'create' ? 'Create Template' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fill Document Modal (create + edit) ──────────────────────────────────────
+function FillDocumentModal({
+  template,
+  initialValues,
+  initialTitle,
+  initialNotes,
+  submitLabel,
+  onSave,
+  onClose,
+}: {
+  template: DocumentTemplate;
+  initialValues?: Record<string, string>;
+  initialTitle?: string;
+  initialNotes?: string;
+  submitLabel?: string;
+  onSave: (values: Record<string, string>, title: string, notes: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>(initialValues || {});
+  const [title, setTitle] = useState(initialTitle || `${template.name} — ${new Date().toLocaleDateString('en-GB')}`);
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handleSave = async () => {
+    const missing = template.form_fields.filter(f => f.required && !values[f.fieldId.replace(/\{\{|\}\}/g, '').trim()]);
+    if (missing.length > 0) { setError(`Please fill in: ${missing.map(f => f.label).join(', ')}`); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onSave(values, title, notes);
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save document.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setValue = (fieldId: string, val: string) => {
+    const key = fieldId.replace(/\{\{|\}\}/g, '').trim();
+    setValues(prev => ({ ...prev, [key]: val }));
+  };
+
+  const previewContent = fillContent(template.content, values);
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className={`bg-[#111] border border-white/10 w-full ${showPreview ? 'max-w-5xl' : 'max-w-xl'} max-h-[95vh] flex flex-col shadow-2xl rounded-sm transition-all duration-300`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h2 className="text-sm font-bold text-white">{submitLabel ? 'Edit Document' : 'Fill Document'}</h2>
+            <p className="text-xs text-white/40 mt-0.5">{template.name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPreview(p => !p)}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 border transition-colors ${showPreview ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
+            >
+              <Icon.Eye /> {showPreview ? 'Hide Preview' : 'Preview'}
+            </button>
+            <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">&lt;Icon.X /&gt;</button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden flex min-h-0">
+          <div className={`${showPreview ? 'w-1/2 border-r border-white/10' : 'w-full'} overflow-y-auto px-6 py-5 space-y-4`}>
+            <div>
+              <label className="block text-xs text-white/50 mb-1.5">Document Title</label>
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50"
+              />
             </div>
 
-            {/* Modal footer */}
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/10">
-              <button onClick={closeFill} className="h-9 px-4 text-sm border border-white/10 text-white/60 rounded-md hover:text-white hover:border-white/20 transition-colors">
-                Cancel
+            {template.form_fields.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs text-white/40 uppercase tracking-wider">Fill in the fields below</p>
+                {template.form_fields.map((field) => {
+                  const key = field.fieldId.replace(/\{\{|\}\}/g, '').trim();
+                  return (
+                    <div key={field.fieldId}>
+                      <label className="block text-xs text-white/60 mb-1.5">
+                        {field.label} {field.required && <span className="text-primary">*</span>}
+                      </label>
+                      {field.fieldType === 'Long Text' ? (
+                        <textarea
+                          value={values[key] || ''}
+                          onChange={e => setValue(field.fieldId, e.target.value)}
+                          rows={3}
+                          className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50 resize-none"
+                        />
+                      ) : (
+                        <input
+                          type={field.fieldType === 'Date' ? 'date' : field.fieldType === 'Number' ? 'number' : 'text'}
+                          value={values[key] || ''}
+                          onChange={e => setValue(field.fieldId, e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs text-white/50 mb-1.5">Internal Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-primary/50 resize-none placeholder:text-white/20"
+                placeholder="Any internal notes..."
+              />
+            </div>
+
+            {error && <p className="text-red-400 text-xs">{error}</p>}
+          </div>
+
+          {showPreview && (
+            <div className="w-1/2 overflow-y-auto bg-gray-100 p-4">
+              <div className="bg-white shadow px-8 py-8 min-h-full">
+                <div style={{ display:'flex', justifyContent:'space-between', borderBottom:'1px solid #e8e3d8', paddingBottom:'12px', marginBottom:'32px' }}>
+                  <span style={{ fontSize:'8px', letterSpacing:'2px', textTransform:'uppercase', color:'#b0a080', fontWeight:600 }}>Cove Estates · Confidential</span>
+                  <span style={{ fontSize:'8px', color:'#8a7040', fontWeight:600 }}>Draft Preview</span>
+                </div>
+                <div style={{ textAlign:'center', marginBottom:'32px' }}>
+                  <div style={{ fontSize:'15px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{template.name}</div>
+                  <div style={{ width:'40px', height:'2px', background:'#C9A84C', margin:'12px auto 0' }} />
+                </div>
+                <div style={{ fontSize:'10px', color:'#333', lineHeight:1.9, whiteSpace:'pre-wrap', marginBottom:'40px', fontFamily:"'Helvetica Neue', Arial, sans-serif" }}>
+                  {previewContent}
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px', marginTop:'40px' }}>
+                  <div>
+                    <div style={{ minHeight:'48px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'8px' }} />
+                    <div style={{ fontSize:'8px', color:'#888', textTransform:'uppercase', letterSpacing:'1.5px' }}>Authorised Signatory</div>
+                    <div style={{ fontSize:'9px', color:'#aaa', marginTop:'4px' }}>Date: _______________</div>
+                  </div>
+                  <div>
+                    <div style={{ minHeight:'48px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'8px' }} />
+                    <div style={{ fontSize:'8px', color:'#888', textTransform:'uppercase', letterSpacing:'1.5px' }}>Authorised Signatory</div>
+                    <div style={{ fontSize:'9px', color:'#aaa', marginTop:'4px' }}>Date: _______________</div>
+                  </div>
+                </div>
+                <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'10px', marginTop:'32px', display:'flex', justifyContent:'space-between' }}>
+                  <span style={{ fontSize:'7px', color:'#c0b080', letterSpacing:'1.5px', textTransform:'uppercase' }}>Confidential · Not for Distribution</span>
+                  <span style={{ fontSize:'7px', color:'#c0b080' }}>Draft</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="text-sm bg-primary hover:bg-primary/90 text-black font-semibold px-5 py-2 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : submitLabel || 'Create Document'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reject Document Modal ────────────────────────────────────────────────────
+function RejectDocumentModal({
+  doc,
+  onReject,
+  onClose,
+}: {
+  doc: FilledDocument;
+  onReject: (docId: string, comments: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [comments, setComments] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleReject = async () => {
+    if (!comments.trim()) { setError('Please provide rejection comments so the submitter knows what to fix.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onReject(doc.id, comments.trim());
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to reject document.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 w-full max-w-md shadow-2xl rounded-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h2 className="text-sm font-bold text-white">Reject Document</h2>
+            <p className="text-xs text-white/40 mt-0.5 truncate max-w-xs">{doc.title}</p>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">&lt;Icon.X /&gt;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="bg-red-500/5 border border-red-500/20 px-4 py-3 rounded-sm">
+            <p className="text-xs text-red-400/80">The submitter will be notified with your comments and can edit and resubmit the document.</p>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">Rejection Comments <span className="text-primary">*</span></label>
+            <textarea
+              value={comments}
+              onChange={e => setComments(e.target.value)}
+              rows={4}
+              placeholder="Explain what needs to be corrected or updated..."
+              className="w-full bg-white/5 border border-white/10 text-white text-sm px-3 py-2 focus:outline-none focus:border-red-500/50 resize-none placeholder:text-white/20"
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10">
+          <button onClick={onClose} className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+          <button
+            onClick={handleReject}
+            disabled={saving}
+            className="flex items-center gap-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 font-semibold px-5 py-2 transition-colors disabled:opacity-50"
+          >
+            <Icon.Reject /> {saving ? 'Rejecting...' : 'Reject Document'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Document Preview Modal ───────────────────────────────────────────────────
+function DocumentPreviewModal({
+  doc,
+  template,
+  isCEO,
+  onClose,
+  onApprove,
+  onRejectOpen,
+  onEditByCEO,
+  onSendForApproval,
+}: {
+  doc: FilledDocument;
+  template: DocumentTemplate | null;
+  isCEO: boolean;
+  onClose: () => void;
+  onApprove?: (sig: string) => void;
+  onRejectOpen?: () => void;
+  onEditByCEO?: () => void;
+  onSendForApproval?: () => void;
+}) {
+  const [ceoSig, setCeoSig] = useState('');
+  const [showSignInput, setShowSignInput] = useState(false);
+
+  const refNo = `CE/${doc.category.replace(/\s+/g, '').substring(0, 4).toUpperCase()}/${new Date(doc.created_at).getFullYear()}/${String(new Date(doc.created_at).getMonth() + 1).padStart(2, '0')}/${doc.id.substring(0, 6).toUpperCase()}`;
+
+  const filledContent = template ? fillContent(template.content, doc.field_values) : '';
+
+  const handlePrint = () => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><title>${doc.title}</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      html,body{width:210mm;min-height:297mm;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff}
+      @page{size:A4 portrait;margin:20mm 16mm 28mm 16mm}
+      .page{width:100%;padding:0}
+      .doc-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8e3d8;padding-bottom:10px;margin-bottom:32px}
+      .ref-label{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#b0a080;font-weight:600}
+      .ref-no{font-size:8px;color:#8a7040;font-weight:600}
+      .title-block{text-align:center;margin-bottom:36px}
+      .doc-title{font-size:18px;font-weight:700;letter-spacing:1px;color:#0f0f0f;text-transform:uppercase;line-height:1.3}
+      .gold-rule{width:48px;height:2px;background:#C9A84C;margin:12px auto 0}
+      .content{font-size:10.5px;color:#333;line-height:1.85;white-space:pre-wrap;margin-bottom:36px}
+      .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px;margin-bottom:32px}
+      .sig-line{min-height:48px;border-bottom:1.5px solid #1a1a1a;margin-bottom:8px}
+      .sig-role{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+      .sig-date{font-size:9px;color:#aaa;margin-top:4px}
+      .approved-stamp{border:1.5px solid #22c55e;background:#f0fdf4;padding:16px;text-align:center;margin-bottom:24px}
+      .doc-footer{position:running(footer);width:100%;border-top:1px solid #e8e3d8;padding:7px 0;display:flex;justify-content:space-between;background:#fff}
+      .footer-text{font-size:7.5px;color:#c0b080;letter-spacing:1.5px;text-transform:uppercase}
+      @page{@bottom-left{content:element(footer)}}
+      @media print{
+        html,body{width:210mm;min-height:297mm}
+        body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .doc-footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e8e3d8;padding:7px 16mm;display:flex;justify-content:space-between;background:#fff}
+      }
+    </style></head><body><div class="page">
+      <div class="doc-header"><div class="ref-label">Cove Estates · Confidential</div><div class="ref-no">Ref: ${refNo}</div></div>
+      <div class="title-block"><div class="doc-title">${doc.template_name}</div><div class="gold-rule"></div></div>
+      <div class="content">${filledContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="sig-grid">
+        <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
+        <div><div class="sig-line"></div><div class="sig-role">Authorised Signatory</div><div class="sig-date">Date: _______________</div></div>
+      </div>
+      ${doc.ceo_signature ? `<div class="approved-stamp"><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#16a34a;margin-bottom:8px">&#10003; Approved &amp; Executed</div><div style="font-size:26px;font-style:italic;color:#C9A84C;font-family:Georgia,serif">${doc.ceo_signature}</div><div style="font-size:8px;color:#888;margin-top:4px">Authorised on ${doc.approved_at}</div></div>` : ''}
+    </div>
+    <div class="doc-footer"><div class="footer-text">Confidential · Not for Distribution</div><div class="footer-text">${refNo}</div></div>
+    <script>window.onload=function(){window.print()}<\/script></body></html>`);
+    win.document.close();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#0d0d0d] border border-white/10 w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#111]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary/10 flex items-center justify-center text-primary">&lt;Icon.File /&gt;</div>
+            <div>
+              <h2 className="text-sm font-bold text-white">{doc.template_name}</h2>
+              <p className="text-xs text-white/40">{doc.title}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${STATUS_STYLES[doc.doc_status]}`}>{doc.doc_status}</span>
+            <button onClick={onClose} className="text-white/40 hover:text-white ml-2">&lt;Icon.X /&gt;</button>
+          </div>
+        </div>
+
+        {/* Rejection comments banner (visible to submitter on rejected docs) */}
+        {doc.doc_status === 'Rejected' && doc.rejection_comments && (
+          <div className="mx-6 mt-4 bg-red-500/5 border border-red-500/20 px-4 py-3 rounded-sm">
+            <p className="text-xs font-semibold text-red-400 mb-1">Rejection Comments from CEO:</p>
+            <p className="text-xs text-red-400/80 whitespace-pre-wrap">{doc.rejection_comments}</p>
+          </div>
+        )}
+
+        {/* Document Body */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+          <div className="max-w-2xl mx-auto bg-white shadow-lg px-12 py-10">
+            <div style={{ display:'flex', justifyContent:'space-between', borderBottom:'1px solid #e8e3d8', paddingBottom:'14px', marginBottom:'40px' }}>
+              <span style={{ fontSize:'9px', letterSpacing:'2.5px', textTransform:'uppercase', color:'#b0a080', fontWeight:600 }}>Cove Estates · Confidential</span>
+              <span style={{ fontSize:'9px', color:'#8a7040', fontWeight:600 }}>Ref: {refNo}</span>
+            </div>
+            <div style={{ textAlign:'center', marginBottom:'40px' }}>
+              <div style={{ fontSize:'18px', fontWeight:700, letterSpacing:'1px', color:'#0f0f0f', textTransform:'uppercase', lineHeight:1.3 }}>{doc.template_name}</div>
+              <div style={{ width:'48px', height:'2px', background:'#C9A84C', margin:'14px auto 0' }} />
+            </div>
+            <div style={{ fontSize:'11px', color:'#333', lineHeight:1.9, whiteSpace:'pre-wrap', marginBottom:'48px', fontFamily:"'Helvetica Neue', Arial, sans-serif" }}>
+              {filledContent}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', marginTop:'48px', marginBottom:'32px' }}>
+              <div>
+                <div style={{ minHeight:'56px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'10px' }} />
+                <div style={{ fontSize:'9px', color:'#888', textTransform:'uppercase', letterSpacing:'1.5px' }}>Authorised Signatory</div>
+                <div style={{ fontSize:'10px', color:'#aaa', marginTop:'6px' }}>Date: _______________</div>
+              </div>
+              <div>
+                <div style={{ minHeight:'56px', borderBottom:'1.5px solid #1a1a1a', marginBottom:'10px' }} />
+                <div style={{ fontSize:'9px', color:'#888', textTransform:'uppercase', letterSpacing:'1.5px' }}>Authorised Signatory</div>
+                <div style={{ fontSize:'10px', color:'#aaa', marginTop:'6px' }}>Date: _______________</div>
+              </div>
+            </div>
+            {doc.doc_status === 'Approved' && doc.ceo_signature && (
+              <div style={{ border:'1.5px solid #22c55e', background:'#f0fdf4', padding:'20px', textAlign:'center', marginBottom:'32px' }}>
+                <div style={{ fontSize:'7px', fontWeight:700, textTransform:'uppercase', letterSpacing:'2.5px', color:'#16a34a', marginBottom:'8px' }}>✓ Approved & Executed</div>
+                <div style={{ fontSize:'28px', fontStyle:'italic', color:'#C9A84C', fontFamily:'Georgia, serif' }}>{doc.ceo_signature}</div>
+                <div style={{ fontSize:'9px', color:'#888', marginTop:'6px' }}>Authorised on {doc.approved_at}</div>
+              </div>
+            )}
+            <div style={{ borderTop:'1px solid #e8e3d8', paddingTop:'12px', display:'flex', justifyContent:'space-between', marginTop:'auto' }}>
+              <span style={{ fontSize:'8px', color:'#c0b080', letterSpacing:'1.5px', textTransform:'uppercase' }}>Confidential · Not for Distribution</span>
+              <span style={{ fontSize:'8px', color:'#c0b080' }}>{refNo}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-[#111]">
+          <div className="flex items-center gap-2">
+            <button onClick={handlePrint} className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors">
+              <Icon.Print /> Print / PDF
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* CEO actions on Pending Approval */}
+            {isCEO && doc.doc_status === 'Pending Approval' && (
+              <>
+                {onEditByCEO && (
+                  <button
+                    onClick={() => { onClose(); onEditByCEO(); }}
+                    className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors"
+                  >
+                    <Icon.Edit /> Edit Fields
+                  </button>
+                )}
+                {onRejectOpen && (
+                  <button
+                    onClick={() => { onClose(); onRejectOpen(); }}
+                    className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 px-3 py-2 transition-colors"
+                  >
+                    <Icon.Reject /> Reject
+                  </button>
+                )}
+                {!showSignInput ? (
+                  <button onClick={() => setShowSignInput(true)} className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors">
+                    <Icon.Check /> Review & E-Sign
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={ceoSig}
+                      onChange={e => setCeoSig(e.target.value)}
+                      placeholder="Type your signature..."
+                      className="bg-white/5 border border-white/10 text-white text-sm px-3 py-1.5 focus:outline-none focus:border-primary/50 w-44"
+                    />
+                    <button
+                      onClick={() => { if (ceoSig.trim() && onApprove) onApprove(ceoSig.trim()); }}
+                      disabled={!ceoSig.trim()}
+                      className="flex items-center gap-1.5 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 px-3 py-2 transition-colors disabled:opacity-40"
+                    >
+                      <Icon.Check /> Approve
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Submitter: Send for Approval on Draft */}
+            {!isCEO && doc.doc_status === 'Draft' && onSendForApproval && (
+              <button onClick={onSendForApproval} className="flex items-center gap-1.5 text-xs bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 px-3 py-2 transition-colors">
+                <Icon.Send /> Send for Approval
               </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFillPreview(!fillPreview)}
-                  className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5"
-                >
-                  <IconEye /> Preview
-                </button>
-                <button
-                  onClick={handleSaveDraft}
-                  className="h-9 px-4 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors"
-                >
-                  Save as Draft
-                </button>
-                <button
-                  onClick={handleSaveSubmit}
-                  disabled={!allRequiredFilled}
-                  className="h-9 px-4 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                >
-                  <IconSend /> Save & Submit
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      {/* ── View Document Modal ─────────────────────────────────────────────── */}
-      {viewDoc && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function DocumentsPage() {
+  const supabase = createClient();
+  const { isRole } = useRole();
+  const isCEO = isRole('super_admin');
+  const isAgent = isRole('agent');
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>('templates');
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
+  const [documents, setDocuments] = useState<FilledDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+
+  // Modals
+  const [templateModal, setTemplateModal] = useState<{ mode: ModalMode; template?: DocumentTemplate | null }>({ mode: null });
+  const [fillModal, setFillModal] = useState<DocumentTemplate | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<FilledDocument | null>(null);
+  // Edit modal: CEO editing a pending doc, or submitter editing a rejected/pending doc
+  const [editDocModal, setEditDocModal] = useState<{ doc: FilledDocument; template: DocumentTemplate } | null>(null);
+  // Reject modal
+  const [rejectDocModal, setRejectDocModal] = useState<FilledDocument | null>(null);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const fetchTemplates = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('document_templates')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (!error && data) setTemplates(data as DocumentTemplate[]);
+  }, [supabase]);
+
+  const fetchDocuments = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('filled_documents')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setDocuments(data as FilledDocument[]);
+  }, [supabase]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      await Promise.all([fetchTemplates(), fetchDocuments()]);
+      setLoading(false);
+    };
+    load();
+  }, [fetchTemplates, fetchDocuments]);
+
+  // ── Template CRUD ──────────────────────────────────────────────────────────
+  const saveTemplate = async (data: Omit<DocumentTemplate, 'id' | 'created_at'>) => {
+    if (templateModal.mode === 'edit' && templateModal.template) {
+      const { error } = await supabase
+        .from('document_templates')
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq('id', templateModal.template.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('document_templates').insert(data);
+      if (error) throw error;
+    }
+    await fetchTemplates();
+  };
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm('Delete this template? Filled documents will not be affected.')) return;
+    await supabase.from('document_templates').delete().eq('id', id);
+    await fetchTemplates();
+  };
+
+  // ── Document CRUD ──────────────────────────────────────────────────────────
+  const createDocument = async (values: Record<string, string>, title: string, notes: string) => {
+    if (!fillModal) return;
+    const { error } = await supabase.from('filled_documents').insert({
+      template_id: fillModal.id,
+      template_name: fillModal.name,
+      category: fillModal.category,
+      title,
+      field_values: values,
+      notes,
+      doc_status: 'Draft',
+      submitted_by: 'Admin',
+    });
+    if (error) throw error;
+    await fetchDocuments();
+    setActiveTab('documents');
+  };
+
+  const sendForApproval = async (docId: string) => {
+    await supabase.from('filled_documents').update({ doc_status: 'Pending Approval', rejection_comments: null }).eq('id', docId);
+    await fetchDocuments();
+    if (previewDoc?.id === docId) setPreviewDoc(prev => prev ? { ...prev, doc_status: 'Pending Approval', rejection_comments: null } : null);
+  };
+
+  const approveDocument = async (docId: string, sig: string) => {
+    const now = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    await supabase.from('filled_documents').update({ doc_status: 'Approved', ceo_signature: sig, approved_at: now }).eq('id', docId);
+    await fetchDocuments();
+    setPreviewDoc(null);
+  };
+
+  const rejectDocument = async (docId: string, comments: string) => {
+    await supabase.from('filled_documents').update({ doc_status: 'Rejected', rejection_comments: comments }).eq('id', docId);
+    await fetchDocuments();
+    setRejectDocModal(null);
+  };
+
+  // CEO edits form fields on a pending document (keeps status as Pending Approval)
+  const ceoEditDocument = async (values: Record<string, string>, title: string, notes: string) => {
+    if (!editDocModal) return;
+    const { error } = await supabase
+      .from('filled_documents')
+      .update({ field_values: values, title, notes, updated_at: new Date().toISOString() })
+      .eq('id', editDocModal.doc.id);
+    if (error) throw error;
+    await fetchDocuments();
+    setEditDocModal(null);
+  };
+
+  // Submitter edits and resubmits (sets status back to Pending Approval)
+  const submitterEditAndResubmit = async (values: Record<string, string>, title: string, notes: string) => {
+    if (!editDocModal) return;
+    const { error } = await supabase
+      .from('filled_documents')
+      .update({
+        field_values: values,
+        title,
+        notes,
+        doc_status: 'Pending Approval',
+        rejection_comments: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', editDocModal.doc.id);
+    if (error) throw error;
+    await fetchDocuments();
+    setEditDocModal(null);
+  };
+
+  const deleteDocument = async (id: string) => {
+    if (!confirm('Delete this document?')) return;
+    await supabase.from('filled_documents').delete().eq('id', id);
+    await fetchDocuments();
+  };
+
+  // ── Open edit modal helper ─────────────────────────────────────────────────
+  const openEditModal = (doc: FilledDocument) => {
+    const tmpl = templates.find(t => t.id === doc.template_id);
+    if (!tmpl) return;
+    setEditDocModal({ doc, template: tmpl });
+  };
+
+  // ── Filtered lists ─────────────────────────────────────────────────────────
+  const allCategories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
+
+  const filteredTemplates = templates.filter(t => {
+    const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.description?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = filterCategory === 'All' || t.category === filterCategory;
+    return matchSearch && matchCat;
+  });
+
+  const filteredDocuments = documents.filter(d => {
+    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.template_name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = filterCategory === 'All' || d.category === filterCategory;
+    return matchSearch && matchCat;
+  });
+
+  const pendingApprovalDocs = documents.filter(d => d.doc_status === 'Pending Approval');
+
+  const filteredPendingDocs = pendingApprovalDocs.filter(d => {
+    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.template_name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = filterCategory === 'All' || d.category === filterCategory;
+    return matchSearch && matchCat;
+  });
+
+  const previewTemplate = previewDoc ? templates.find(t => t.id === previewDoc.template_id) || null : null;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="px-6 py-6 max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-white">Document Center</h1>
+            <p className="text-sm text-white/40 mt-0.5">Manage document templates and filled documents</p>
+          </div>
+          {!isAgent && (
+          <button
+            onClick={() => setTemplateModal({ mode: 'create' })}
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-black text-sm font-semibold px-4 py-2 transition-colors"
+          >
+            <Icon.Plus /> New Template
+          </button>
+          )}
+        </div>
+
+        {/* CEO Pending Approval Banner */}
+        {isCEO && pendingApprovalDocs.length > 0 && (
+          <div className="mb-5 bg-amber-500/10 border border-amber-500/20 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              </div>
               <div>
-                <h2 className="text-sm font-bold text-white">{viewDoc.title}</h2>
-                <p className="text-xs text-white/40 mt-0.5">{viewDoc.category} · {viewDoc.createdAt}</p>
+                <p className="text-sm font-semibold text-amber-400">
+                  {pendingApprovalDocs.length} document{pendingApprovalDocs.length > 1 ? 's' : ''} pending your approval
+                </p>
+                <p className="text-xs text-amber-400/60 mt-0.5">Review, edit fields, or reject with comments</p>
               </div>
-              <button onClick={() => setViewDoc(null)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Status */}
-              <div className="flex items-center gap-2 mb-5">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${STATUS_STYLES[viewDoc.status]}`}>
-                  {viewDoc.status}
-                </span>
-                <span className="text-xs text-white/40">Submitted by {viewDoc.submittedBy}</span>
-              </div>
-              {/* Fields */}
-              <div className="space-y-2 mb-5">
-                {Object.entries(viewDoc.fields).map(([key, val]) => {
-                  const tpl = TEMPLATES.find((t) => t.id === viewDoc.templateId);
-                  const fieldDef = tpl?.fields.find((f) => f.key === key);
-                  return (
-                    <div key={key} className="flex justify-between py-2 border-b border-white/5">
-                      <span className="text-xs text-white/40">{fieldDef?.label || key}</span>
-                      <span className="text-xs text-white font-medium">{val || '—'}</span>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className="text-xs bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 px-3 py-1.5 transition-colors font-medium"
+            >
+              Review Now
+            </button>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-5 border-b border-white/10">
+          {(['templates', 'documents', 'pending'] as ActiveTab[]).map(tab => {
+            if (tab === 'pending' && !isCEO) return null;
+            if (tab === 'pending' && isAgent) return null;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px flex items-center gap-2 ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white/70'}`}
+              >
+                {tab === 'templates' && `Templates (${templates.length})`}
+                {tab === 'documents' && `My Documents (${documents.length})`}
+                {tab === 'pending' && (
+                  <>
+                    <span>Pending Approval</span>
+                    {pendingApprovalDocs.length > 0 && (
+                      <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                        {pendingApprovalDocs.length}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search + Filter */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="relative flex-1 max-w-xs">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">&lt;Icon.Search /&gt;</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-white/5 border border-white/10 text-white text-sm pl-9 pr-3 py-2 focus:outline-none focus:border-primary/50 placeholder:text-white/20"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            {allCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`text-xs px-3 py-1.5 border transition-colors ${filterCategory === cat ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : activeTab === 'templates' ? (
+          filteredTemplates.length === 0 ? (
+            <div className="text-center py-20 text-white/30">
+              <div className="text-4xl mb-3">📄</div>
+              <p className="text-sm">No templates yet. Create your first template.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTemplates.map(template => (
+                <div key={template.id} className="bg-[#111] border border-white/10 hover:border-white/20 transition-colors p-5 flex flex-col">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-9 h-9 bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                      <Icon.File />
                     </div>
-                  );
-                })}
-              </div>
-              {/* Notes */}
-              {viewDoc.notes && (
-                <div className="mb-5 p-3 bg-white/5 rounded-md">
-                  <p className="text-xs text-white/40 mb-1">Notes</p>
-                  <p className="text-sm text-white">{viewDoc.notes}</p>
-                </div>
-              )}
-              {/* E-Signature */}
-              {viewDoc.status === 'Approved' && viewDoc.ceoSignature ? (
-                <div className="border border-emerald-500/30 bg-emerald-500/5 p-4 rounded-md mb-4">
-                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">CEO E-Signature</p>
-                  <p className="text-xl font-serif italic text-primary">{viewDoc.ceoSignature}</p>
-                  <p className="text-xs text-white/40 mt-1">Approved on {viewDoc.approvedAt}</p>
-                </div>
-              ) : (
-                <div className="border border-dashed border-white/10 p-4 rounded-md mb-4 text-center">
-                  <p className="text-xs text-white/30">Awaiting CEO e-signature</p>
-                </div>
-              )}
-              {/* Actions */}
-              <div className="flex gap-2">
-                {viewDoc.status === 'Draft' && (
-                  <button
-                    onClick={() => handleSendForApproval(viewDoc)}
-                    className="flex-1 h-9 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-md hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <IconSend /> Send for Approval
-                  </button>
-                )}
-                {viewDoc.status === 'Approved' && (
-                  <button
-                    onClick={() => { handlePrint(viewDoc); setViewDoc(null); }}
-                    className="flex-1 h-9 text-xs bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-md hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <IconPrinter /> Print / Save
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── CEO Approval & E-Sign Modal ─────────────────────────────────────── */}
-      {approvalDoc && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <div>
-                <h2 className="text-base font-bold text-white">CEO Approval & E-Signature</h2>
-                <p className="text-xs text-white/40 mt-0.5">{approvalDoc.category} — {approvalDoc.title}</p>
-              </div>
-              <button onClick={() => setApprovalDoc(null)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
-            </div>
-            <div className="p-6">
-              {/* Document summary */}
-              <div className="bg-primary/5 border border-primary/20 p-4 rounded-md mb-5">
-                <p className="text-xs font-semibold text-white mb-2">Document Summary</p>
-                {Object.entries(approvalDoc.fields).slice(0, 4).map(([key, val]) => {
-                  const tpl = TEMPLATES.find((t) => t.id === approvalDoc.templateId);
-                  const fieldDef = tpl?.fields.find((f) => f.key === key);
-                  return (
-                    <div key={key} className="flex justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
-                      <span className="text-white/40">{fieldDef?.label || key}</span>
-                      <span className="text-white font-medium">{val || '—'}</span>
+                    {!isAgent && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setTemplateModal({ mode: 'edit', template })}
+                        className="p-1.5 text-white/30 hover:text-white transition-colors"
+                        title="Edit template"
+                      >
+                        <Icon.Edit />
+                      </button>
+                      <button
+                        onClick={() => deleteTemplate(template.id)}
+                        className="p-1.5 text-white/30 hover:text-red-400 transition-colors"
+                        title="Delete template"
+                      >
+                        <Icon.Trash />
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-              {/* Signature input */}
-              <div className="mb-5">
-                <label className="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
-                  CEO Full Name (E-Signature) *
-                </label>
-                <input
-                  type="text"
-                  value={ceoSig}
-                  onChange={(e) => setCeoSig(e.target.value)}
-                  placeholder="Type full name to sign"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
-                {ceoSig && (
-                  <p className="mt-2 text-xl font-serif italic text-primary">{ceoSig}</p>
-                )}
-                <p className="text-xs text-white/30 mt-1">By typing your name, you are electronically signing this document.</p>
-              </div>
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleReject}
-                  className="flex-1 h-10 text-sm bg-red-500/10 border border-red-500/30 text-red-400 rounded-md hover:bg-red-500/20 transition-colors"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={handleApprove}
-                  disabled={!ceoSig.trim()}
-                  className="flex-1 h-10 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-                >
-                  Approve & Sign
-                </button>
-              </div>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-semibold text-white leading-snug mb-1">{template.name}</h3>
+                  <p className="text-xs text-white/40 mb-3 flex-1 line-clamp-2">{template.description || 'No description'}</p>
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    <span className="text-[10px] bg-white/5 border border-white/10 text-white/50 px-2 py-0.5">{template.category}</span>
+                    <span className="text-[10px] text-white/30">{template.form_fields.length} fields</span>
+                    {template.requires_approval && (
+                      <span className="text-[10px] text-amber-400/70">· Requires approval</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setFillModal(template)}
+                    className="w-full text-sm bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary font-medium py-2 transition-colors"
+                  >
+                    Fill Document
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
-        </div>
+          )
+        ) : activeTab === 'pending' ? (
+          /* ── Pending Approval List (CEO only) ── */
+          filteredPendingDocs.length === 0 ? (
+            <div className="text-center py-20 text-white/30">
+              <div className="text-4xl mb-3">✅</div>
+              <p className="text-sm">No documents pending approval.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredPendingDocs.map(doc => (
+                <div key={doc.id} className="bg-[#111] border border-amber-500/20 hover:border-amber-500/40 transition-colors px-5 py-4 flex items-center gap-4">
+                  <div className="w-8 h-8 bg-amber-500/10 flex items-center justify-center text-amber-400 flex-shrink-0">
+                    <Icon.File />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{doc.title}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{doc.template_name} · {doc.category} · Submitted {new Date(doc.created_at).toLocaleDateString('en-GB')}</div>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 flex-shrink-0 ${STATUS_STYLES[doc.doc_status]}`}>
+                    {doc.doc_status}
+                  </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openEditModal(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 px-3 py-2 transition-colors"
+                      title="Edit form fields"
+                    >
+                      <Icon.Edit /> Edit Fields
+                    </button>
+                    <button
+                      onClick={() => setRejectDocModal(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 px-3 py-2 transition-colors"
+                    >
+                      <Icon.Reject /> Reject
+                    </button>
+                    <button
+                      onClick={() => setPreviewDoc(doc)}
+                      className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 px-3 py-2 transition-colors"
+                    >
+                      <Icon.Check /> Review & Sign
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* ── Documents List ── */
+          filteredDocuments.length === 0 ? (
+            <div className="text-center py-20 text-white/30">
+              <div className="text-4xl mb-3">📋</div>
+              <p className="text-sm">No documents yet. Fill a template to create one.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredDocuments.map(doc => (
+                <div key={doc.id} className="bg-[#111] border border-white/10 hover:border-white/20 transition-colors px-5 py-4 flex items-center gap-4">
+                  <div className="w-8 h-8 bg-white/5 flex items-center justify-center text-white/40 flex-shrink-0">
+                    <Icon.File />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{doc.title}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{doc.template_name} · {doc.category} · {new Date(doc.created_at).toLocaleDateString('en-GB')}</div>
+                    {/* Show rejection comments inline for rejected docs */}
+                    {doc.doc_status === 'Rejected' && doc.rejection_comments && (
+                      <div className="mt-1.5 text-[11px] text-red-400/80 bg-red-500/5 border border-red-500/15 px-2 py-1 rounded-sm line-clamp-1">
+                        <span className="font-semibold">CEO Comments:</span> {doc.rejection_comments}
+                      </div>
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 flex-shrink-0 ${STATUS_STYLES[doc.doc_status]}`}>
+                    {doc.doc_status}
+                  </span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => setPreviewDoc(doc)}
+                      className="p-2 text-white/30 hover:text-white transition-colors"
+                      title="Preview"
+                    >
+                      <Icon.Eye />
+                    </button>
+                    {/* Submitter can edit & resubmit if Rejected or Pending Approval */}
+                    {(doc.doc_status === 'Rejected' || doc.doc_status === 'Pending Approval') && (
+                      <button
+                        onClick={() => openEditModal(doc)}
+                        className="p-2 text-white/30 hover:text-primary transition-colors"
+                        title={doc.doc_status === 'Rejected' ? 'Edit & Resubmit' : 'Edit document'}
+                      >
+                        <Icon.Edit />
+                      </button>
+                    )}
+                    {doc.doc_status === 'Draft' && (
+                      <button
+                        onClick={() => sendForApproval(doc.id)}
+                        className="p-2 text-white/30 hover:text-amber-400 transition-colors"
+                        title="Send for approval"
+                      >
+                        <Icon.Send />
+                      </button>
+                    )}
+                    {doc.doc_status === 'Rejected' && (
+                      <button
+                        onClick={() => sendForApproval(doc.id)}
+                        className="p-2 text-white/30 hover:text-amber-400 transition-colors"
+                        title="Resubmit for approval"
+                      >
+                        <Icon.Refresh />
+                      </button>
+                    )}
+                    {!isAgent && (
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="p-2 text-white/30 hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      <Icon.Trash />
+                    </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* ── Modals ── */}
+      {templateModal.mode && (
+        <TemplateModal
+          mode={templateModal.mode}
+          initial={templateModal.template}
+          onSave={saveTemplate}
+          onClose={() => setTemplateModal({ mode: null })}
+        />
       )}
 
-      {/* ── New Template Modal ──────────────────────────────────────────────── */}
-      {showNewTemplateModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <h2 className="text-base font-bold text-white">New Template</h2>
-              <button onClick={() => setShowNewTemplateModal(false)} className="text-white/40 hover:text-white transition-colors"><IconX /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Template Name *</label>
-                <input
-                  type="text"
-                  value={newTemplateName}
-                  onChange={(e) => setNewTemplateName(e.target.value)}
-                  placeholder="e.g. Sale & Purchase Agreement"
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Category</label>
-                <select
-                  value={newTemplateCategory}
-                  onChange={(e) => setNewTemplateCategory(e.target.value)}
-                  className="w-full h-9 px-3 bg-white/5 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-primary/50"
-                >
-                  <option>NDA</option>
-                  <option>Sales Contract</option>
-                  <option>Rental Agreement</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">Description</label>
-                <textarea
-                  value={newTemplateDesc}
-                  onChange={(e) => setNewTemplateDesc(e.target.value)}
-                  rows={3}
-                  placeholder="Brief description of this template..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 resize-none"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowNewTemplateModal(false)} className="flex-1 h-9 text-sm border border-white/10 text-white/60 rounded-md hover:text-white transition-colors">Cancel</button>
-                <button
-                  onClick={() => setShowNewTemplateModal(false)}
-                  disabled={!newTemplateName.trim()}
-                  className="flex-1 h-9 text-sm bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  Create Template
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {fillModal && (
+        <FillDocumentModal
+          template={fillModal}
+          onSave={createDocument}
+          onClose={() => setFillModal(null)}
+        />
+      )}
+
+      {previewDoc && (
+        <DocumentPreviewModal
+          doc={previewDoc}
+          template={previewTemplate}
+          isCEO={isCEO}
+          onClose={() => setPreviewDoc(null)}
+          onSendForApproval={!isCEO ? () => sendForApproval(previewDoc.id) : undefined}
+          onApprove={isCEO ? (sig) => approveDocument(previewDoc.id, sig) : undefined}
+          onRejectOpen={isCEO ? () => setRejectDocModal(previewDoc) : undefined}
+          onEditByCEO={isCEO ? () => openEditModal(previewDoc) : undefined}
+        />
+      )}
+
+      {/* Edit modal — CEO keeps status, submitter resubmits */}
+      {editDocModal && (
+        <FillDocumentModal
+          template={editDocModal.template}
+          initialValues={editDocModal.doc.field_values}
+          initialTitle={editDocModal.doc.title}
+          initialNotes={editDocModal.doc.notes}
+          submitLabel={
+            isCEO
+              ? 'Save Changes'
+              : editDocModal.doc.doc_status === 'Rejected' ?'Save & Resubmit for Approval' :'Save & Resubmit for Approval'
+          }
+          onSave={isCEO ? ceoEditDocument : submitterEditAndResubmit}
+          onClose={() => setEditDocModal(null)}
+        />
+      )}
+
+      {/* Reject modal */}
+      {rejectDocModal && (
+        <RejectDocumentModal
+          doc={rejectDocModal}
+          onReject={rejectDocument}
+          onClose={() => setRejectDocModal(null)}
+        />
       )}
     </div>
   );
