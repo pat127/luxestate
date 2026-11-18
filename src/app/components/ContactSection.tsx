@@ -64,8 +64,11 @@ export default function ContactSection({ content }: Props) {
         form_type: 'contact',
       });
       leadSaved = !insertError;
-    } catch {
-      // silent fail — form still shows success to user
+      if (insertError) {
+        console.error('[ContactSection] leads insert failed:', insertError);
+      }
+    } catch (err) {
+      console.error('[ContactSection] leads insert threw:', err);
     }
     if (leadSaved) trackAdsConversion();
     await sendInquiryEmail({

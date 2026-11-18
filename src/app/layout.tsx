@@ -255,18 +255,21 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18551108775"
-          strategy="afterInteractive"
-        />
         <Script id="google-ads-tag" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            window.gtag = window.gtag || function(){window.dataLayer.push(arguments);};
+            if (typeof window.gtag !== 'function') {
+              window.gtag = function gtag(){ window.dataLayer.push(arguments); };
+            }
             window.gtag('js', new Date());
             window.gtag('config', 'AW-18551108775');
           `}
         </Script>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18551108775"
+          strategy="afterInteractive"
+        />
+
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fluxestate6357back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.21" />
         <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.3" /></head>
       <body className={plusJakartaSans.className}>

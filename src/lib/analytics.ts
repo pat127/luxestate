@@ -23,12 +23,24 @@ export function trackEvent(eventName: string, params: Record<string, any> = {}):
  */
 export function trackAdsConversion(): void {
   if (typeof window === 'undefined') return;
-  if (typeof window.gtag !== 'function') return;
-  window.gtag('event', 'conversion', {
-    send_to: 'AW-18551108775/jVz9CIzGqbkdEKfp7Y1F',
-    value: 1.0,
-    currency: 'AED',
-  });
+  try {
+    window.dataLayer = window.dataLayer || [];
+    if (typeof window.gtag !== 'function') {
+      // gtag.js requires the `arguments` object (not a rest-args array) to be pushed
+      window.gtag = function gtag(..._args: any[]) {
+        // eslint-disable-next-line prefer-rest-params
+        window.dataLayer.push(arguments);
+      };
+    }
+    window.gtag('event', 'conversion', {
+      send_to: 'AW-18551108775/jVz9CIzGqbkdEKfp7Y1F',
+      value: 1.0,
+      currency: 'AED',
+    });
+    console.info('[ads] conversion event sent');
+  } catch (err) {
+    console.error('[ads] conversion tracking failed:', err);
+  }
 }
 
 // ─── Real Estate Specific Tracking ───────────────────────────────────────────
