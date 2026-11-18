@@ -6,6 +6,7 @@ import Icon from '@/components/ui/AppIcon';
 import { PropertyDetailContent } from '@/contexts/CMSContext';
 import { createClient } from '@/lib/supabase/client';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
+import { trackAdsConversion } from '@/lib/analytics';
 
 export function GallerySection({ images }: { images: PropertyDetailContent['images'] }) {
   const [active, setActive] = useState(0);
@@ -183,9 +184,10 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
+    let leadSaved = false;
     try {
       const supabase = createClient();
-      await supabase.from('leads').insert({
+      const { error: insertError } = await supabase.from('leads').insert({
         name: form.name,
         email: form.email,
         phone: form.phone || null,
@@ -195,9 +197,11 @@ export function EnquiryForm({ propertyName, reference }: { propertyName: string;
         notes: form.message || null,
         form_type: 'property_inquiry',
       });
+      leadSaved = !insertError;
     } catch {
       // silent fail
     }
+    if (leadSaved) trackAdsConversion();
     await sendInquiryEmail({
       name: form.name,
       email: form.email,

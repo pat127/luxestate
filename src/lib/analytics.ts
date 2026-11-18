@@ -17,6 +17,20 @@ export function trackEvent(eventName: string, params: Record<string, any> = {}):
   }
 }
 
+/**
+ * Fire the Google Ads lead conversion. Call ONLY after the lead submission
+ * has succeeded (never on click / page load).
+ */
+export function trackAdsConversion(): void {
+  if (typeof window === 'undefined') return;
+  if (typeof window.gtag !== 'function') return;
+  window.gtag('event', 'conversion', {
+    send_to: 'AW-18551108775/jVz9CIzGqbkdEKfp7Y1F',
+    value: 1.0,
+    currency: 'AED',
+  });
+}
+
 // ─── Real Estate Specific Tracking ───────────────────────────────────────────
 
 /** Fired when a property detail page is viewed */

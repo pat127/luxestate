@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
-import { trackInquirySubmission } from '@/lib/analytics';
+import { trackInquirySubmission, trackAdsConversion } from '@/lib/analytics';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 const INQUIRY_TYPES = ['Buy', 'Rent', 'Investment', 'Valuation', 'General Enquiry'];
@@ -43,8 +43,9 @@ export default function ResidentialInquiry() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    let leadSaved = false;
     try {
-      await supabase.from('leads').insert({
+      const { error: insertError } = await supabase.from('leads').insert({
         name: form.name,
         email: form.email,
         phone: form.phone || null,
@@ -54,9 +55,11 @@ export default function ResidentialInquiry() {
         notes: [form.inquiryType ? `Inquiry Type: ${form.inquiryType}` : '', form.message].filter(Boolean).join('\n') || null,
         form_type: 'residential_inquiry',
       });
+      leadSaved = !insertError;
     } catch {
       // silent fail
     }
+    if (leadSaved) trackAdsConversion();
     await sendInquiryEmail({
       name: form.name,
       email: form.email,

@@ -8,6 +8,7 @@ import Icon from '@/components/ui/AppIcon';
 import { useCMS, DEFAULT_ABOUT_CONTENT, AboutContent } from '@/contexts/CMSContext';
 import { createClient } from '@/lib/supabase/client';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
+import { trackAdsConversion } from '@/lib/analytics';
 
 export default function AboutPage() {
   const { getPage, branding } = useCMS();
@@ -311,9 +312,10 @@ function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    let leadSaved = false;
     try {
       const supabase = createClient();
-      await supabase.from('leads').insert({
+      const { error: insertError } = await supabase.from('leads').insert({
         name: form.name,
         email: form.email,
         phone: form.phone || null,
@@ -321,9 +323,11 @@ function ContactForm() {
         status: 'New',
         notes: form.message || null,
       });
+      leadSaved = !insertError;
     } catch {
       // silent fail
     }
+    if (leadSaved) trackAdsConversion();
     await sendInquiryEmail({
       name: form.name,
       email: form.email,

@@ -9,6 +9,7 @@ import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
+import { trackAdsConversion } from '@/lib/analytics';
 import { useCMS } from '@/contexts/CMSContext';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -237,12 +238,13 @@ function EnquiryForm({ projectName, reference, unitTypes, projectId }: { project
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    await supabase.from('leads').insert({
+    const { error: insertError } = await supabase.from('leads').insert({
       name: form.name, email: form.email, phone: form.phone,
       source: 'Website', status: 'New',
       interest: form.unitType ? `${projectName} — ${form.unitType}` : projectName,
       notes: form.message,
     });
+    if (!insertError) trackAdsConversion();
     await sendInquiryEmail({
       name: form.name,
       email: form.email,

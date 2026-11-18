@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
-import { trackInquirySubmission } from '@/lib/analytics';
+import { trackInquirySubmission, trackAdsConversion } from '@/lib/analytics';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 
 export default function ProjectInquiry() {
@@ -46,7 +46,7 @@ export default function ProjectInquiry() {
     e.preventDefault();
     setSubmitting(true);
     const selectedProject = projectOptions.find(p => p.id === form.project);
-    await supabase.from('leads').insert({
+    const { error: insertError } = await supabase.from('leads').insert({
       name: form.name,
       email: form.email,
       phone: form.phone,
@@ -57,6 +57,7 @@ export default function ProjectInquiry() {
       notes: form.message,
       form_type: 'project_registration',
     });
+    if (!insertError) trackAdsConversion();
     await sendInquiryEmail({
       name: form.name,
       email: form.email,

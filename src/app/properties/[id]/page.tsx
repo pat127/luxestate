@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
-import { trackPropertyView, trackInquirySubmission } from '@/lib/analytics';
+import { trackPropertyView, trackInquirySubmission, trackAdsConversion } from '@/lib/analytics';
 import { sendInquiryEmail } from '@/lib/sendInquiryEmail';
 import { useCMS } from '@/contexts/CMSContext';
 
@@ -207,7 +207,7 @@ function EnquiryForm({ propertyName, reference, propertyId }: { propertyName: st
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    await supabase.from('leads').insert({
+    const { error: insertError } = await supabase.from('leads').insert({
       name: form.name,
       email: form.email,
       phone: form.phone,
@@ -216,6 +216,7 @@ function EnquiryForm({ propertyName, reference, propertyId }: { propertyName: st
       interest: propertyName,
       notes: form.message,
     });
+    if (!insertError) trackAdsConversion();
     trackInquirySubmission({
       formType: 'property_enquiry',
       propertyId,

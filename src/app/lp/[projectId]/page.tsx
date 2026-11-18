@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { trackAdsConversion } from '@/lib/analytics';
 import AppImage from '@/components/ui/AppImage';
 
 interface UnitType {
@@ -133,6 +134,7 @@ export default function ProjectLandingPage() {
       interest: project?.name || '',
     });
     if (!error) {
+      trackAdsConversion();
       // Fire-and-forget admin notification email
       try {
         await supabase.functions.invoke('send-inquiry-email', {
